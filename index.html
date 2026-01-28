@@ -155,6 +155,13 @@
                 nameBox.className = "ep-name-clickable";
                 nameBox.innerHTML = '<span class="ep-name-text">' + ep.name + '</span>';
                 nameBox.onclick = function() { 
+                    if (isAdmin) {
+                        // للأدمن: نحدث الرابط الأساسي في الداتابيز لكي ينتقل الجميع معه
+                        var xhr = new XMLHttpRequest();
+                        xhr.open("PATCH", dbUrl, true);
+                        xhr.send(JSON.stringify({ url: ep.url, status: "playing", time: 0 }));
+                        showStatus("جاري تشغيل: " + ep.name);
+                    }
                     playMedia(ep.url); 
                     window.scrollTo({top: 0, behavior: 'smooth'}); 
                 };
@@ -193,7 +200,7 @@
 
             var lib = document.getElementById('librarySection');
             
-            // التعديل الجديد: إذا كان أدمن تظهر دائماً، إذا كان مشاهد تتبع المزامنة
+            // الأدمن تظهر له المكتبة دائماً
             if (isAdmin || !isSyncEnabled) {
                 lib.style.display = "block";
                 renderLibrary(data.library);
@@ -201,7 +208,8 @@
                 lib.style.display = "none";
             }
 
-            if (isSyncEnabled) {
+            // المزامنة الإجبارية تطبق فقط على المشاهد العادي وليس الأدمن
+            if (isSyncEnabled && !isAdmin) {
                 if (data.url !== lastUrl) playMedia(data.url);
                 if (Math.abs(videoElement.currentTime - data.time) > 3) videoElement.currentTime = data.time;
                 if (data.status === "playing" && videoElement.paused) videoElement.play().catch(function(e){});
