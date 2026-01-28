@@ -52,28 +52,33 @@
         #statusText { text-align: center; font-size: 12px; color: #4caf50; margin: 5px 0; display: none; }
         h2, p, span, h3 { display: none !important; }
 
-        /* ستايل المكتبة المعدل لضمان القابلية للضغط */
+        /* ستايل المكتبة المطور */
         #librarySection {
             width: 95%; max-width: 650px; margin: 20px 0 40px 0;
             background: #111; border-radius: 12px; border: 1px solid #222;
             padding: 15px; box-sizing: border-box; display: none;
-            z-index: 5;
         }
         .lib-title { font-size: 18px; margin-bottom: 15px; border-right: 4px solid #4caf50; padding-right: 10px; color: #4caf50; font-weight: bold; }
         .ep-list { max-height: 400px; overflow-y: auto; }
         
         .ep-item { 
-            display: block; width: 100%;
-            background: #1a1a1a; padding: 15px; margin-bottom: 10px; border-radius: 8px;
-            border: 1px solid #333; cursor: pointer; text-align: right;
-            transition: background 0.2s, transform 0.1s;
-            box-sizing: border-box;
+            display: flex; align-items: center; justify-content: center;
+            width: 100%; min-height: 50px;
+            background: #1a1a1a; margin-bottom: 10px; border-radius: 8px;
+            border: 1px solid #333; cursor: pointer;
+            transition: all 0.2s; box-sizing: border-box;
             -webkit-tap-highlight-color: transparent;
         }
-        .ep-item:active { transform: scale(0.98); background: #222; }
-        .ep-item:hover { background: #252525; border-color: #4caf50; }
+        .ep-item:active { background: #333; transform: scale(0.97); }
         
-        .ep-name { font-size: 15px; color: #fff; pointer-events: none; }
+        /* تأكد من أن النص يظهر بوضوح */
+        .ep-name-text { 
+            color: #ffffff !important; 
+            font-size: 16px; 
+            font-weight: bold;
+            display: block !important; /* إجبار الظهور */
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
@@ -103,8 +108,7 @@
 
     <div id="librarySection">
         <div class="lib-title">مكتبة المسلسلات والأفلام</div>
-        <div id="episodesContainer" class="ep-list">
-            </div>
+        <div id="episodesContainer" class="ep-list"></div>
     </div>
 
     <script>
@@ -116,24 +120,36 @@
         var isSyncEnabled = true;
 
         function playMedia(url) {
-            if (!url) { 
-                videoElement.src = ""; 
-                if (hls) hls.destroy(); 
-                lastUrl = "";
-                return; 
-            }
+            if (!url) { videoElement.src = ""; if (hls) hls.destroy(); lastUrl = ""; return; }
             if (url === lastUrl) return;
             lastUrl = url;
-            
             if (Hls.isSupported() && (url.includes('m3u8') || url.includes('.ts'))) {
-                hls.destroy(); 
-                hls = new Hls();
-                hls.loadSource(url); 
-                hls.attachMedia(videoElement);
-            } else { 
-                videoElement.src = url; 
-            }
+                hls.destroy(); hls = new Hls();
+                hls.loadSource(url); hls.attachMedia(videoElement);
+            } else { videoElement.src = url; }
             videoElement.play().catch(function(e){});
+        }
+
+        function renderLibrary(libData) {
+            var container = document.getElementById('episodesContainer');
+            container.innerHTML = "";
+            if (!libData) { 
+                container.innerHTML = "<div style='text-align:center; padding:20px; color:#555; display:block !important;'>المكتبة فارغة حالياً</div>"; 
+                return; 
+            }
+            
+            Object.keys(libData).forEach(function(key) {
+                var ep = libData[key];
+                var item = document.createElement('div');
+                item.className = "ep-item";
+                // إضافة النص كعنصر Span بستايل صريح للظهور
+                item.innerHTML = '<span class="ep-name-text">' + ep.name + '</span>';
+                item.onclick = function() { 
+                    playMedia(ep.url); 
+                    window.scrollTo({top: 0, behavior: 'smooth'}); 
+                };
+                container.appendChild(item);
+            });
         }
 
         function syncPlayer(data) {
@@ -151,33 +167,10 @@
 
             if (isSyncEnabled) {
                 if (data.url !== lastUrl) playMedia(data.url);
-                if (Math.abs(videoElement.currentTime - data.time) > 3) {
-                    videoElement.currentTime = data.time;
-                }
-                if (data.status === "playing" && videoElement.paused) {
-                    videoElement.play().catch(function(e){});
-                } else if (data.status === "paused" && !videoElement.paused) {
-                    videoElement.pause();
-                }
+                if (Math.abs(videoElement.currentTime - data.time) > 3) videoElement.currentTime = data.time;
+                if (data.status === "playing" && videoElement.paused) videoElement.play().catch(function(e){});
+                else if (data.status === "paused" && !videoElement.paused) videoElement.pause();
             }
-        }
-
-        function renderLibrary(libData) {
-            var container = document.getElementById('episodesContainer');
-            container.innerHTML = "";
-            if (!libData) { 
-                container.innerHTML = "<div style='text-align:center; padding:20px; color:#555;'>لا توجد حلقات مضافة حالياً</div>"; 
-                return; 
-            }
-            
-            Object.keys(libData).forEach(function(key) {
-                var ep = libData[key];
-                var item = document.createElement('div');
-                item.className = "ep-item";
-                item.onclick = function() { playMedia(ep.url); window.scrollTo({top: 0, behavior: 'smooth'}); };
-                item.innerHTML = '<span class="ep-name">' + ep.name + '</span>';
-                container.appendChild(item);
-            });
         }
 
         function loadStream() {
@@ -215,8 +208,7 @@
         function addEpisode() {
             var name = document.getElementById('epNameInput').value.trim();
             var url = document.getElementById('epUrlInput').value.trim();
-            if (!name || !url) { alert("يرجى كتابة الاسم والرابط أولاً"); return; }
-            
+            if (!name || !url) { alert("أدخل الاسم والرابط"); return; }
             var xhr = new XMLHttpRequest();
             xhr.open("POST", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library.json", true);
             xhr.onload = function() {
@@ -229,13 +221,10 @@
         }
 
         function clearLibrary() {
-            if(confirm("هل أنت متأكد من حذف جميع محتويات المكتبة؟")) {
+            if(confirm("حذف كل الحلقات؟")) {
                 var xhr = new XMLHttpRequest();
                 xhr.open("DELETE", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library.json", true);
-                xhr.onload = function() {
-                    showStatus("تم مسح المكتبة بنجاح");
-                    loadStream();
-                };
+                xhr.onload = function() { showStatus("تم المسح"); loadStream(); };
                 xhr.send();
             }
         }
@@ -244,27 +233,18 @@
             if (!isAdmin || !isSyncEnabled) return;
             var xhr = new XMLHttpRequest();
             xhr.open("PATCH", dbUrl, true);
-            var state = {
-                status: videoElement.paused ? "paused" : "playing",
-                time: videoElement.currentTime
-            };
+            var state = { status: videoElement.paused ? "paused" : "playing", time: videoElement.currentTime };
             xhr.send(JSON.stringify(state));
         }
 
         setInterval(function() {
-            if (!isAdmin) {
-                loadStream();
-            } else {
-                if (isSyncEnabled) updateDatabaseState();
-                loadStream(); 
-            }
+            if (!isAdmin) loadStream();
+            else { if (isSyncEnabled) updateDatabaseState(); loadStream(); }
         }, 2000);
 
         if (isAdmin) {
             ['play', 'pause', 'seeked'].forEach(function(ev) {
-                videoElement.addEventListener(ev, function() {
-                    if(isSyncEnabled) updateDatabaseState();
-                });
+                videoElement.addEventListener(ev, function() { if(isSyncEnabled) updateDatabaseState(); });
             });
         }
 
@@ -276,17 +256,16 @@
                     xhr.open("PATCH", dbUrl, true);
                     xhr.send(JSON.stringify({ url: val, status: "playing", time: 0 }));
                     document.getElementById('urlInput').value = ''; 
-                    showStatus("تم تحديث البث المباشر ✅");
+                    showStatus("تم التحديث ✅");
                 }
             }, 100);
         }
 
         function deleteVideo() {
-            if(confirm("حذف رابط البث المباشر؟")) {
+            if(confirm("حذف البث؟")) {
                 var xhr = new XMLHttpRequest();
                 xhr.open("PATCH", dbUrl, true);
                 xhr.send(JSON.stringify({ url: "", status: "paused", time: 0 }));
-                showStatus("تم حذف البث 🗑️");
             }
         }
 
