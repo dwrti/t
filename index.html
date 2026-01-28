@@ -52,7 +52,7 @@
             background-color: #2a1212; 
             color: #ff5252; 
             border: 1px solid #5d1b1b; 
-            flex: 0.6; /* أصغر قليلاً من زر المزامنة */
+            flex: 0.6; 
         }
         .btn-delete:hover { background-color: #3d1a1a; }
 
@@ -95,10 +95,10 @@
             pointer-events: none;
         }
 
-        /* تحسين زر حذف الحلقة الفردي ليصبح أيقونة صغيرة دائرية */
+        /* تم تعديل هذا الجزء لحذف الدائرة */
         .single-delete-btn {
             background: #331212; color: #ff5252; border: 1px solid #4a1a1a; 
-            width: 32px; height: 32px; border-radius: 50%; 
+            width: 35px; height: 35px; border-radius: 6px; /* تحويل من دائرة إلى مربع بزوايا خفيفة */
             font-size: 14px; cursor: pointer; display: none; 
             flex-shrink: 0; align-items: center; justify-content: center;
             padding: 0; line-height: 1; transition: 0.2s;
@@ -188,7 +188,7 @@
                     var delBtn = document.createElement('button');
                     delBtn.className = "single-delete-btn";
                     delBtn.style.display = "flex";
-                    delBtn.innerHTML = "✕"; // شكل إكس بدلاً من سلة عريضة
+                    delBtn.innerHTML = "✕"; 
                     delBtn.title = "حذف";
                     delBtn.onclick = function(e) { e.stopPropagation(); deleteSingleEpisode(key); };
                     item.appendChild(delBtn);
