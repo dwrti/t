@@ -28,9 +28,9 @@
         #admin { display: none; width: 95%; max-width: 650px; margin-top: 15px; }
         
         input { 
-            width: 100%; padding: 15px; margin: 5px 0; 
+            width: 100%; padding: 12px; margin: 5px 0; 
             border: 1px solid #333; border-radius: 8px; 
-            font-size: 16px; background: #1a1a1a; color: #fff;
+            font-size: 14px; background: #1a1a1a; color: #fff;
             box-sizing: border-box; text-align: center; outline: none;
         }
 
@@ -44,29 +44,27 @@
 
         .btn-sync.active { background-color: #2e7d32; color: #fff; border-color: #4caf50; }
         .btn-sync.inactive { background-color: #c62828; color: #fff; border-color: #f44336; }
+        .btn-add { background-color: #1976d2; color: #fff; border-color: #2196f3; }
 
         .btn-delete { color: #ff4d4d; border-color: #442222; }
-        .btn-delete:hover { background-color: #441111; }
-
-        /* ستايل قائمة المقاطع */
-        #playlistContainer { 
-            width: 95%; max-width: 650px; margin-top: 15px; 
-            background: #111; border-radius: 12px; padding: 10px;
-            border: 1px solid #222; display: none; box-sizing: border-box;
-        }
-        .playlist-title { font-size: 14px; color: #888; margin-bottom: 10px; text-align: center; border-bottom: 1px solid #222; padding-bottom: 5px; }
-        .video-item { 
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 10px; background: #1a1a1a; margin-bottom: 5px; border-radius: 6px;
-            cursor: pointer; transition: 0.2s;
-        }
-        .video-item:hover { background: #252525; }
-        .video-item span { font-size: 14px; }
-        .remove-vid { color: #ff4d4d; font-size: 18px; padding: 0 10px; }
-
+        
         #statusText { text-align: center; font-size: 12px; color: #4caf50; margin-top: 5px; display: none; }
-        h2, p, span, h3 { color: inherit; } /* ألغيت خاصية الإخفاء العام للسماح برؤية القائمة */
-        h2, p, h3 { display: none !important; } /* الحفاظ على إخفاء العناوين كما طلبت سابقاً */
+
+        /* ستايل المكتبة */
+        #library { 
+            width: 95%; max-width: 650px; margin-top: 20px; padding-bottom: 40px;
+            display: none; /* مخفية افتراضياً */
+        }
+        .library-title { border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 15px; color: #aaa; }
+        .movie-item {
+            background: #151515; padding: 15px; border-radius: 8px; margin-bottom: 10px;
+            display: flex; justify-content: space-between; align-items: center;
+            border: 1px solid #222;
+        }
+        .movie-item span { font-size: 14px; font-weight: bold; }
+        .play-btn { background: #E50914; color: white; padding: 5px 15px; border-radius: 4px; text-decoration: none; font-size: 12px; }
+        
+        h2, p, span.hidden, h3 { display: none !important; }
     </style>
 </head>
 <body>
@@ -75,26 +73,33 @@
         <video id="myPlayer" controls autoplay playsinline></video>
     </div>
 
-    <div id="playlistContainer">
-        <div class="playlist-title">المقاطع المحفوظة (تظهر عند إيقاف المزامنة)</div>
-        <div id="items"></div>
-    </div>
-
     <div id="admin">
-        <input type="text" id="nameInput" placeholder="اسم المقطع (اختياري للحفظ)">
-        <input type="text" id="urlInput" placeholder="ألصق الرابط هنا..." onpaste="handlePaste(event)">
+        <input type="text" id="urlInput" placeholder="ألصق رابط البث المباشر هنا..." onpaste="handlePaste(event)">
+        
+        <div style="margin-top: 15px; padding: 10px; border: 1px dashed #444; border-radius: 8px;">
+            <input type="text" id="movieTitle" placeholder="اسم الحلقة أو الفيلم">
+            <input type="text" id="movieUrl" placeholder="رابط الفيديو">
+            <button class="btn-add" onclick="addToLibrary()">إضافة للمكتبة +</button>
+        </div>
+
         <div class="btn-group">
             <button id="syncToggleBtn" class="btn-sync" onclick="toggleSync()">جاري التحميل...</button>
-            <button class="btn-delete" onclick="deleteVideo()">حذف الفيديو الحالي 🗑️</button>
+            <button class="btn-delete" onclick="deleteVideo()">حذف فيديو البث 🗑️</button>
         </div>
         <div id="statusText">تم التحديث بنجاح ✅</div>
+    </div>
+
+    <div id="library">
+        <div class="library-title">🎬 مكتبة الأفلام والمسلسلات</div>
+        <div id="libraryList">
+            </div>
     </div>
 
     <script>
         var videoElement = document.getElementById('myPlayer');
         var hls = new Hls();
         var dbUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream.json";
-        var playlistUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/playlist.json";
+        var libraryUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/library.json";
         var lastUrl = ""; 
         var isAdmin = window.location.hash === "#ana";
         var isSyncEnabled = true;
@@ -114,8 +119,14 @@
             isSyncEnabled = data.syncEnabled !== false; 
             updateSyncButtonUI();
             
-            // التحكم في ظهور قائمة التشغيل بناءً على المزامنة
-            document.getElementById('playlistContainer').style.display = isSyncEnabled ? "none" : "block";
+            // التحكم في ظهور المكتبة: تظهر فقط إذا كانت المزامنة معطلة
+            var libSection = document.getElementById('library');
+            if (!isSyncEnabled) {
+                libSection.style.display = "block";
+                loadLibrary(); // تحديث القائمة
+            } else {
+                libSection.style.display = "none";
+            }
 
             if (isSyncEnabled) {
                 if (data.url !== lastUrl) playMedia(data.url);
@@ -127,6 +138,8 @@
                 } else if (data.status === "paused" && !videoElement.paused) {
                     videoElement.pause();
                 }
+            } else {
+                if (data.url !== lastUrl) playMedia(data.url);
             }
         }
 
@@ -140,44 +153,45 @@
                 }
             };
             xhr.send();
-            loadPlaylist();
         }
 
-        function loadPlaylist() {
+        // --- وظائف المكتبة ---
+
+        function addToLibrary() {
+            var title = document.getElementById('movieTitle').value.trim();
+            var url = document.getElementById('movieUrl').value.trim();
+            if(!title || !url) return alert("امسح الخانات وعبيها صح");
+
             var xhr = new XMLHttpRequest();
-            xhr.open("GET", playlistUrl, true);
+            xhr.open("POST", libraryUrl, true);
+            xhr.send(JSON.stringify({ title: title, url: url }));
+            
+            document.getElementById('movieTitle').value = "";
+            document.getElementById('movieUrl').value = "";
+            showStatus("تمت الإضافة للمكتبة ✅");
+            loadLibrary();
+        }
+
+        function loadLibrary() {
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", libraryUrl, true);
             xhr.onload = function () {
                 if (xhr.status === 200) {
-                    var list = JSON.parse(xhr.responseText);
-                    renderPlaylist(list);
+                    var items = JSON.parse(xhr.responseText);
+                    var listHtml = "";
+                    for (var id in items) {
+                        listHtml += `<div class="movie-item">
+                            <span>${items[id].title}</span>
+                            <button class="play-btn" onclick="playMedia('${items[id].url}')">تشغيل ▶️</button>
+                        </div>`;
+                    }
+                    document.getElementById('libraryList').innerHTML = listHtml || "<p style='text-align:center; color:#555;'>المكتبة فارغة</p>";
                 }
             };
             xhr.send();
         }
 
-        function renderPlaylist(list) {
-            var container = document.getElementById('items');
-            container.innerHTML = "";
-            if (!list) return;
-            Object.keys(list).forEach(function(key) {
-                var item = list[key];
-                var div = document.createElement('div');
-                div.className = "video-item";
-                div.innerHTML = `<span onclick="playFromPlaylist('${item.url}')">${item.name}</span>`;
-                if(isAdmin) {
-                    div.innerHTML += `<span class="remove-vid" onclick="removeFromPlaylist('${key}')">×</span>`;
-                }
-                container.appendChild(div);
-            });
-        }
-
-        function playFromPlaylist(url) {
-            if (!isSyncEnabled) {
-                playMedia(url);
-            } else {
-                alert("المزامنة مفعلة، لا يمكنك تغيير المقطع يدوياً.");
-            }
-        }
+        // --- وظائف الأدمن ---
 
         function toggleSync() {
             if (!isAdmin) return;
@@ -194,51 +208,54 @@
                 btn.innerText = "المزامنة: مفعلة ✅";
                 btn.className = "btn-sync active";
             } else {
-                btn.innerText = "المزامنة: معطلة ❌";
+                btn.innerText = "المزامنة: معطلة (المكتبة ظاهرة) ❌";
                 btn.className = "btn-sync inactive";
             }
         }
 
+        function updateDatabaseState() {
+            if (!isAdmin || !isSyncEnabled) return;
+            var xhr = new XMLHttpRequest();
+            xhr.open("PATCH", dbUrl, true);
+            var state = {
+                status: videoElement.paused ? "paused" : "playing",
+                time: videoElement.currentTime
+            };
+            xhr.send(JSON.stringify(state));
+        }
+
+        setInterval(function() {
+            if (!isAdmin) {
+                loadStream();
+            } else {
+                if (isSyncEnabled) updateDatabaseState();
+                loadStream(); 
+            }
+        }, 2000);
+
+        if (isAdmin) {
+            ['play', 'pause', 'seeked'].forEach(function(ev) {
+                videoElement.addEventListener(ev, function() {
+                    if(isSyncEnabled) updateDatabaseState();
+                });
+            });
+        }
+
         function handlePaste(event) {
             setTimeout(function() {
-                var url = document.getElementById('urlInput').value.trim();
-                var name = document.getElementById('nameInput').value.trim() || "مقطع بدون اسم";
-                if (url) {
-                    var action = confirm("هل تريد حفظ المقطع في القائمة وتشغيله؟\n(إلغاء سيقوم بالتشغيل فقط بدون حفظ)");
-                    if (action) {
-                        saveToPlaylist(name, url);
-                    }
-                    updateCurrentVideo(url);
+                var val = document.getElementById('urlInput').value.trim();
+                if (val) {
+                    var xhr = new XMLHttpRequest();
+                    xhr.open("PATCH", dbUrl, true);
+                    xhr.send(JSON.stringify({ url: val, status: "playing", time: 0 }));
                     document.getElementById('urlInput').value = ''; 
-                    document.getElementById('nameInput').value = '';
+                    showStatus("تم تحديث البث المباشر ✅");
                 }
             }, 100);
         }
 
-        function saveToPlaylist(name, url) {
-            var xhr = new XMLHttpRequest();
-            xhr.open("POST", playlistUrl, true);
-            xhr.send(JSON.stringify({ name: name, url: url }));
-        }
-
-        function removeFromPlaylist(key) {
-            if(confirm("حذف من القائمة؟")) {
-                var xhr = new XMLHttpRequest();
-                xhr.open("DELETE", `https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/playlist/${key}.json`, true);
-                xhr.onload = function() { loadPlaylist(); };
-                xhr.send();
-            }
-        }
-
-        function updateCurrentVideo(url) {
-            var xhr = new XMLHttpRequest();
-            xhr.open("PATCH", dbUrl, true);
-            xhr.send(JSON.stringify({ url: url, status: "playing", time: 0 }));
-            showStatus("تم التحديث بنجاح ✅");
-        }
-
         function deleteVideo() {
-            if(confirm("حذف الفيديو الحالي؟")) {
+            if(confirm("حذف الفيديو؟")) {
                 var xhr = new XMLHttpRequest();
                 xhr.open("PATCH", dbUrl, true);
                 xhr.send(JSON.stringify({ url: "", status: "paused", time: 0 }));
@@ -252,8 +269,6 @@
             status.style.display = "block";
             setTimeout(function() { status.style.display = "none"; }, 2000);
         }
-
-        setInterval(loadStream, 3000);
 
         window.onload = function() {
             loadStream();
