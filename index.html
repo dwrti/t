@@ -52,7 +52,7 @@
         #statusText { text-align: center; font-size: 12px; color: #4caf50; margin: 5px 0; display: none; }
         h2, p, span, h3 { display: none !important; }
 
-        /* ستايل المكتبة المطور */
+        /* ستايل المكتبة */
         #librarySection {
             width: 95%; max-width: 650px; margin: 20px 0 40px 0;
             background: #111; border-radius: 12px; border: 1px solid #222;
@@ -83,11 +83,10 @@
             pointer-events: none;
         }
 
-        /* زر حذف الحلقة الواحدة */
         .single-delete-btn {
             background: #331111; color: #ff4d4d; border: 1px solid #442222;
             padding: 5px 10px; border-radius: 6px; font-size: 16px;
-            cursor: pointer; margin-right: 10px; display: none; /* يظهر للأدمن فقط */
+            cursor: pointer; margin-right: 10px; display: none;
         }
     </style>
 </head>
@@ -152,7 +151,6 @@
                 var item = document.createElement('div');
                 item.className = "ep-item";
                 
-                // حاوية الاسم القابلة للضغط
                 var nameBox = document.createElement('div');
                 nameBox.className = "ep-name-clickable";
                 nameBox.innerHTML = '<span class="ep-name-text">' + ep.name + '</span>';
@@ -163,7 +161,6 @@
 
                 item.appendChild(nameBox);
 
-                // إضافة زر الحذف إذا كان أدمن
                 if (isAdmin) {
                     var delBtn = document.createElement('button');
                     delBtn.className = "single-delete-btn";
@@ -195,7 +192,9 @@
             updateSyncButtonUI();
 
             var lib = document.getElementById('librarySection');
-            if (!isSyncEnabled) {
+            
+            // التعديل الجديد: إذا كان أدمن تظهر دائماً، إذا كان مشاهد تتبع المزامنة
+            if (isAdmin || !isSyncEnabled) {
                 lib.style.display = "block";
                 renderLibrary(data.library);
             } else {
