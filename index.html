@@ -21,11 +21,12 @@
             box-shadow: 0 4px 25px rgba(0,0,0,0.7); 
             width: 95%; max-width: 650px; box-sizing: border-box;
             border: 1px solid #222; margin-top: 20px;
+            z-index: 10;
         }
         
         video { width: 100%; border-radius: 8px; background: #000; aspect-ratio: 16/9; display: block; }
 
-        #admin { display: none; width: 95%; max-width: 650px; margin-top: 15px; }
+        #admin { display: none; width: 95%; max-width: 650px; margin-top: 15px; z-index: 10; }
         
         input { 
             width: 100%; padding: 12px; margin: 5px 0; 
@@ -51,21 +52,28 @@
         #statusText { text-align: center; font-size: 12px; color: #4caf50; margin: 5px 0; display: none; }
         h2, p, span, h3 { display: none !important; }
 
-        /* ستايل المكتبة */
+        /* ستايل المكتبة المعدل لضمان القابلية للضغط */
         #librarySection {
-            width: 95%; max-width: 650px; margin: 20px 0;
+            width: 95%; max-width: 650px; margin: 20px 0 40px 0;
             background: #111; border-radius: 12px; border: 1px solid #222;
-            padding: 10px; box-sizing: border-box; display: none;
+            padding: 15px; box-sizing: border-box; display: none;
+            z-index: 5;
         }
-        .lib-title { font-size: 16px; margin-bottom: 10px; border-right: 3px solid #4caf50; padding-right: 10px; }
-        .ep-list { max-height: 300px; overflow-y: auto; }
+        .lib-title { font-size: 18px; margin-bottom: 15px; border-right: 4px solid #4caf50; padding-right: 10px; color: #4caf50; font-weight: bold; }
+        .ep-list { max-height: 400px; overflow-y: auto; }
+        
         .ep-item { 
-            display: flex; justify-content: space-between; align-items: center;
-            background: #1a1a1a; padding: 12px; margin-bottom: 8px; border-radius: 8px;
-            border: 1px solid #222;
+            display: block; width: 100%;
+            background: #1a1a1a; padding: 15px; margin-bottom: 10px; border-radius: 8px;
+            border: 1px solid #333; cursor: pointer; text-align: right;
+            transition: background 0.2s, transform 0.1s;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
         }
-        .ep-name { font-size: 14px; color: #eee; flex: 1; cursor: pointer; }
-        .ep-name:hover { color: #4caf50; }
+        .ep-item:active { transform: scale(0.98); background: #222; }
+        .ep-item:hover { background: #252525; border-color: #4caf50; }
+        
+        .ep-name { font-size: 15px; color: #fff; pointer-events: none; }
     </style>
 </head>
 <body>
@@ -77,16 +85,16 @@
     <div id="admin">
         <input type="text" id="urlInput" placeholder="رابط البث المباشر الأساسي..." onpaste="handlePaste(event)">
         
-        <div style="border-top: 1px solid #333; margin-top: 10px; padding-top: 10px;">
-            <input type="text" id="epNameInput" placeholder="اسم الحلقة (مثال: الحلقة 1)">
+        <div style="border-top: 1px solid #333; margin-top: 15px; padding-top: 15px;">
+            <input type="text" id="epNameInput" placeholder="اسم الحلقة (مثال: الحلقة الأولى)">
             <input type="text" id="epUrlInput" placeholder="رابط الحلقة المباشر...">
             <div class="btn-group">
-                <button style="background: #0056b3; color: white;" onclick="addEpisode()">إضافة للمكتبة +</button>
+                <button style="background: #1e40af; color: white; border:none;" onclick="addEpisode()">إضافة للمكتبة +</button>
                 <button class="btn-delete" onclick="clearLibrary()">حذف كل المكتبة 🗑️</button>
             </div>
         </div>
 
-        <div class="btn-group" style="margin-top: 15px;">
+        <div class="btn-group" style="margin-top: 20px; border-top: 1px solid #333; padding-top: 10px;">
             <button id="syncToggleBtn" class="btn-sync" onclick="toggleSync()">جاري التحميل...</button>
             <button class="btn-delete" onclick="deleteVideo()">حذف فيديو البث 🗑️</button>
         </div>
@@ -94,7 +102,7 @@
     </div>
 
     <div id="librarySection">
-        <div class="lib-title">مكتبة العروض</div>
+        <div class="lib-title">مكتبة المسلسلات والأفلام</div>
         <div id="episodesContainer" class="ep-list">
             </div>
     </div>
@@ -108,13 +116,24 @@
         var isSyncEnabled = true;
 
         function playMedia(url) {
+            if (!url) { 
+                videoElement.src = ""; 
+                if (hls) hls.destroy(); 
+                lastUrl = "";
+                return; 
+            }
             if (url === lastUrl) return;
             lastUrl = url;
-            if (!url) { videoElement.src = ""; if (hls) hls.destroy(); return; }
-            if (Hls.isSupported() && url.includes('m3u8')) {
-                hls.destroy(); hls = new Hls();
-                hls.loadSource(url); hls.attachMedia(videoElement);
-            } else { videoElement.src = url; }
+            
+            if (Hls.isSupported() && (url.includes('m3u8') || url.includes('.ts'))) {
+                hls.destroy(); 
+                hls = new Hls();
+                hls.loadSource(url); 
+                hls.attachMedia(videoElement);
+            } else { 
+                videoElement.src = url; 
+            }
+            videoElement.play().catch(function(e){});
         }
 
         function syncPlayer(data) {
@@ -122,7 +141,6 @@
             isSyncEnabled = data.syncEnabled !== false; 
             updateSyncButtonUI();
 
-            // إظهار أو إخفاء المكتبة بناءً على المزامنة
             var lib = document.getElementById('librarySection');
             if (!isSyncEnabled) {
                 lib.style.display = "block";
@@ -141,22 +159,24 @@
                 } else if (data.status === "paused" && !videoElement.paused) {
                     videoElement.pause();
                 }
-            } else {
-                if (data.url !== lastUrl) playMedia(data.url);
             }
         }
 
         function renderLibrary(libData) {
             var container = document.getElementById('episodesContainer');
             container.innerHTML = "";
-            if (!libData) { container.innerHTML = "<p style='display:block !important; text-align:center; color:#666;'>المكتبة فارغة</p>"; return; }
+            if (!libData) { 
+                container.innerHTML = "<div style='text-align:center; padding:20px; color:#555;'>لا توجد حلقات مضافة حالياً</div>"; 
+                return; 
+            }
             
             Object.keys(libData).forEach(function(key) {
                 var ep = libData[key];
-                var div = document.createElement('div');
-                div.className = "ep-item";
-                div.innerHTML = '<span class="ep-name" onclick="playMedia(\''+ep.url+'\')">' + ep.name + '</span>';
-                container.appendChild(div);
+                var item = document.createElement('div');
+                item.className = "ep-item";
+                item.onclick = function() { playMedia(ep.url); window.scrollTo({top: 0, behavior: 'smooth'}); };
+                item.innerHTML = '<span class="ep-name">' + ep.name + '</span>';
+                container.appendChild(item);
             });
         }
 
@@ -195,22 +215,28 @@
         function addEpisode() {
             var name = document.getElementById('epNameInput').value.trim();
             var url = document.getElementById('epUrlInput').value.trim();
-            if (!name || !url) { alert("املا الخانات"); return; }
+            if (!name || !url) { alert("يرجى كتابة الاسم والرابط أولاً"); return; }
             
             var xhr = new XMLHttpRequest();
             xhr.open("POST", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library.json", true);
+            xhr.onload = function() {
+                document.getElementById('epNameInput').value = "";
+                document.getElementById('epUrlInput').value = "";
+                showStatus("تمت إضافة: " + name);
+                loadStream();
+            };
             xhr.send(JSON.stringify({ name: name, url: url }));
-            document.getElementById('epNameInput').value = "";
-            document.getElementById('epUrlInput').value = "";
-            showStatus("تمت إضافة الحلقة 🎬");
         }
 
         function clearLibrary() {
-            if(confirm("حذف كل حلقات المكتبة؟")) {
+            if(confirm("هل أنت متأكد من حذف جميع محتويات المكتبة؟")) {
                 var xhr = new XMLHttpRequest();
                 xhr.open("DELETE", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library.json", true);
+                xhr.onload = function() {
+                    showStatus("تم مسح المكتبة بنجاح");
+                    loadStream();
+                };
                 xhr.send();
-                showStatus("تم تفريغ المكتبة 🗑️");
             }
         }
 
@@ -250,17 +276,17 @@
                     xhr.open("PATCH", dbUrl, true);
                     xhr.send(JSON.stringify({ url: val, status: "playing", time: 0 }));
                     document.getElementById('urlInput').value = ''; 
-                    showStatus("تم تحديث الرابط بنجاح ✅");
+                    showStatus("تم تحديث البث المباشر ✅");
                 }
             }, 100);
         }
 
         function deleteVideo() {
-            if(confirm("حذف الفيديو؟")) {
+            if(confirm("حذف رابط البث المباشر؟")) {
                 var xhr = new XMLHttpRequest();
                 xhr.open("PATCH", dbUrl, true);
                 xhr.send(JSON.stringify({ url: "", status: "paused", time: 0 }));
-                showStatus("تم الحذف 🗑️");
+                showStatus("تم حذف البث 🗑️");
             }
         }
 
@@ -268,7 +294,7 @@
             var status = document.getElementById('statusText');
             status.innerText = msg;
             status.style.display = "block";
-            setTimeout(function() { status.style.display = "none"; }, 2000);
+            setTimeout(function() { status.style.display = "none"; }, 3000);
         }
 
         window.onload = function() {
