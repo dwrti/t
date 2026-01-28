@@ -38,14 +38,23 @@
         .btn-group { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
 
         button { 
-            flex: 1; min-width: 100px; padding: 12px; background-color: #222; 
+            flex: 1; min-width: 100px; padding: 10px; background-color: #222; 
             color: #fff; border: 1px solid #333; border-radius: 8px; 
             cursor: pointer; font-size: 14px; font-weight: bold;
+            transition: 0.3s;
         }
 
         .btn-sync.active { background-color: #1b5e20; border-color: #2e7d32; }
         .btn-sync.inactive { background-color: #b71c1c; border-color: #c62828; }
-        .btn-delete { color: #ff5252; border-color: #5d1b1b; }
+        
+        /* تحسين زر حذف البث الرئيسي */
+        .btn-delete { 
+            background-color: #2a1212; 
+            color: #ff5252; 
+            border: 1px solid #5d1b1b; 
+            flex: 0.6; /* أصغر قليلاً من زر المزامنة */
+        }
+        .btn-delete:hover { background-color: #3d1a1a; }
 
         #statusText { text-align: center; font-size: 13px; color: #4caf50; margin: 10px 0; font-weight: bold; }
         
@@ -70,7 +79,7 @@
         .ep-item { 
             display: flex; align-items: center; justify-content: space-between;
             background: #1a1a1a; margin-bottom: 8px; border-radius: 10px;
-            border: 1px solid #282828; overflow: hidden;
+            border: 1px solid #282828; overflow: hidden; padding-left: 10px;
         }
         
         .ep-name-clickable {
@@ -86,13 +95,16 @@
             pointer-events: none;
         }
 
+        /* تحسين زر حذف الحلقة الفردي ليصبح أيقونة صغيرة دائرية */
         .single-delete-btn {
-            background: #2a1212; color: #ff5252; border: none; 
-            border-right: 1px solid #333; /* الخط الفاصل جهة اليمين لأن الزر يسار */
-            padding: 0 15px; height: 50px; font-size: 18px;
-            cursor: pointer; display: none; flex-shrink: 0;
-            order: 2; /* يضمن ظهوره في أقصى اليسار في وضع RTL */
+            background: #331212; color: #ff5252; border: 1px solid #4a1a1a; 
+            width: 32px; height: 32px; border-radius: 50%; 
+            font-size: 14px; cursor: pointer; display: none; 
+            flex-shrink: 0; align-items: center; justify-content: center;
+            padding: 0; line-height: 1; transition: 0.2s;
+            margin-right: 10px;
         }
+        .single-delete-btn:hover { background: #ff5252; color: #fff; }
         
         .ep-list::-webkit-scrollbar { width: 5px; }
         .ep-list::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
@@ -115,7 +127,7 @@
 
         <div class="btn-group" style="margin-top: 15px; border-top: 1px solid #222; padding-top: 10px;">
             <button id="syncToggleBtn" class="btn-sync" onclick="toggleSync()">جاري التحميل...</button>
-            <button class="btn-delete" onclick="deleteVideo()">حذف فيديو البث 🗑️</button>
+            <button class="btn-delete" onclick="deleteVideo()">حذف البث 🗑️</button>
         </div>
         <div id="statusText">تم التحديث بنجاح ✅</div>
     </div>
@@ -170,14 +182,14 @@
                     window.scrollTo({top: 0, behavior: 'smooth'}); 
                 };
 
-                // النص يضاف أولاً (يمين) ثم الزر يضاف لاحقاً (يسار)
                 item.appendChild(nameBox);
 
                 if (isAdmin) {
                     var delBtn = document.createElement('button');
                     delBtn.className = "single-delete-btn";
-                    delBtn.style.display = "block";
-                    delBtn.innerHTML = "🗑️";
+                    delBtn.style.display = "flex";
+                    delBtn.innerHTML = "✕"; // شكل إكس بدلاً من سلة عريضة
+                    delBtn.title = "حذف";
                     delBtn.onclick = function(e) { e.stopPropagation(); deleteSingleEpisode(key); };
                     item.appendChild(delBtn);
                 }
