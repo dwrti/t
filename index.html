@@ -44,7 +44,7 @@
         }
 
         .btn-sync.active { background-color: #2e7d32; color: #fff; border-color: #4caf50; }
-        .btn-sync.inactive { background-color: #c62828; color: #fff; border-color: #f44336; }
+        .btn-sync.inactive { background-color: #c62828; color: #fff; border-color: #4caf50; }
 
         .btn-delete { color: #ff4d4d; border-color: #442222; }
         .btn-delete:hover { background-color: #441111; }
@@ -52,7 +52,6 @@
         #statusText { text-align: center; font-size: 12px; color: #4caf50; margin: 5px 0; display: none; }
         h2, p, span, h3 { display: none !important; }
 
-        /* ستايل المكتبة */
         #librarySection {
             width: 95%; max-width: 650px; margin: 20px 0 40px 0;
             background: #111; border-radius: 12px; border: 1px solid #222;
@@ -126,10 +125,19 @@
         var lastUrl = ""; 
         var isAdmin = window.location.hash === "#ana";
         var isSyncEnabled = true;
+        var adminWatchingLibrary = false; // متغير جديد لمنع التعارض عند الأدمن
 
-        function playMedia(url) {
+        function playMedia(url, fromLibrary = false) {
             if (!url) { videoElement.src = ""; if (hls) hls.destroy(); lastUrl = ""; return; }
             if (url === lastUrl) return;
+            
+            // إذا كان الأدمن هو من اختار الفلم، نحدد أنه يشاهد من المكتبة
+            if (isAdmin && fromLibrary) {
+                adminWatchingLibrary = true;
+            } else if (!fromLibrary) {
+                adminWatchingLibrary = false;
+            }
+
             lastUrl = url;
             if (Hls.isSupported() && (url.includes('m3u8') || url.includes('.ts'))) {
                 hls.destroy(); hls = new Hls();
@@ -155,7 +163,7 @@
                 nameBox.className = "ep-name-clickable";
                 nameBox.innerHTML = '<span class="ep-name-text">' + ep.name + '</span>';
                 nameBox.onclick = function() { 
-                    playMedia(ep.url); 
+                    playMedia(ep.url, true); // تمرير true ليعرف الكود أنها من المكتبة
                     window.scrollTo({top: 0, behavior: 'smooth'}); 
                 };
 
@@ -193,7 +201,6 @@
 
             var lib = document.getElementById('librarySection');
             
-            // التعديل الجديد: إذا كان أدمن تظهر دائماً، إذا كان مشاهد تتبع المزامنة
             if (isAdmin || !isSyncEnabled) {
                 lib.style.display = "block";
                 renderLibrary(data.library);
@@ -201,11 +208,16 @@
                 lib.style.display = "none";
             }
 
+            // تعديل منطق المزامنة
             if (isSyncEnabled) {
-                if (data.url !== lastUrl) playMedia(data.url);
-                if (Math.abs(videoElement.currentTime - data.time) > 3) videoElement.currentTime = data.time;
-                if (data.status === "playing" && videoElement.paused) videoElement.play().catch(function(e){});
-                else if (data.status === "paused" && !videoElement.paused) videoElement.pause();
+                // للمشاهد العادي: المزامنة إجبارية دائماً
+                // للأدمن: المزامنة تعمل فقط إذا لم يكن يشاهد من المكتبة
+                if (!isAdmin || (isAdmin && !adminWatchingLibrary)) {
+                    if (data.url !== lastUrl) playMedia(data.url);
+                    if (Math.abs(videoElement.currentTime - data.time) > 3) videoElement.currentTime = data.time;
+                    if (data.status === "playing" && videoElement.paused) videoElement.play().catch(function(e){});
+                    else if (data.status === "paused" && !videoElement.paused) videoElement.pause();
+                }
             }
         }
 
@@ -257,7 +269,8 @@
         }
 
         function updateDatabaseState() {
-            if (!isAdmin || !isSyncEnabled) return;
+            // الأدمن يرفع حالته للقاعدة فقط إذا كان يشاهد البث الأساسي (وليس المكتبة)
+            if (!isAdmin || !isSyncEnabled || adminWatchingLibrary) return;
             var xhr = new XMLHttpRequest();
             xhr.open("PATCH", dbUrl, true);
             var state = { status: videoElement.paused ? "paused" : "playing", time: videoElement.currentTime };
@@ -279,6 +292,7 @@
             setTimeout(function() {
                 var val = document.getElementById('urlInput').value.trim();
                 if (val) {
+                    adminWatchingLibrary = false; // العودة لوضع البث عند لصق رابط جديد
                     var xhr = new XMLHttpRequest();
                     xhr.open("PATCH", dbUrl, true);
                     xhr.send(JSON.stringify({ url: val, status: "playing", time: 0 }));
