@@ -25,57 +25,51 @@
         
         video { width: 100%; border-radius: 8px; background: #000; aspect-ratio: 16/9; display: block; }
 
-        /* ستايل لاسم المسلسل فوق الفيديو */
-        #seriesTitleDisplay { text-align: center; margin-bottom: 8px; font-weight: bold; color: #4caf50; display: block !important; }
-
         #admin { display: none; width: 95%; max-width: 650px; margin-top: 15px; }
         
-        .admin-box { background: #1a1a1a; padding: 10px; border-radius: 8px; border: 1px solid #333; margin-bottom: 10px; }
-
         input { 
             width: 100%; padding: 12px; margin: 5px 0; 
             border: 1px solid #333; border-radius: 8px; 
-            font-size: 14px; background: #0c0c0c; color: #fff;
+            font-size: 15px; background: #1a1a1a; color: #fff;
             box-sizing: border-box; text-align: center; outline: none;
         }
 
-        .btn-group { display: flex; gap: 10px; margin-top: 5px; flex-wrap: wrap; }
+        .btn-group { display: flex; gap: 10px; margin-top: 5px; margin-bottom: 5px; }
 
         button { 
             flex: 1; padding: 12px; background-color: #222; 
             color: #ccc; border: 1px solid #333; border-radius: 8px; 
             cursor: pointer; font-size: 14px; transition: 0.3s;
-            min-width: 120px;
         }
 
-        .btn-save { background-color: #1976d2; color: white; border-color: #2196f3; }
+        .btn-series { background-color: #1a237e; color: #fff; border-color: #3f51b5; }
         .btn-sync.active { background-color: #2e7d32; color: #fff; border-color: #4caf50; }
         .btn-sync.inactive { background-color: #c62828; color: #fff; border-color: #f44336; }
+
         .btn-delete { color: #ff4d4d; border-color: #442222; }
+        .btn-delete:hover { background-color: #441111; }
 
         #statusText { text-align: center; font-size: 12px; color: #4caf50; margin-top: 5px; display: none; }
-        
-        /* إخفاء العناصر غير المرغوبة حسب طلبك */
-        h2, p, span:not(#seriesTitleDisplay), h3 { display: none !important; }
+        h2, p, span, h3 { display: none !important; }
     </style>
 </head>
 <body>
 
     <div class="card">
-        <div id="seriesTitleDisplay">جاري التحميل...</div>
         <video id="myPlayer" controls autoplay playsinline></video>
     </div>
 
     <div id="admin">
-        <div class="admin-box">
-            <input type="text" id="seriesNameInput" placeholder="اسم المسلسل / الحلقة">
-            <input type="text" id="seriesUrlInput" placeholder="رابط فيديو المسلسل">
-            <button class="btn-save" onclick="saveSeries()">تحديث المسلسل الآن 🚀</button>
+        <input type="text" id="urlInput" placeholder="ألصق رابط البث المباشر هنا..." onpaste="handlePaste(event)">
+        
+        <div style="border-top: 1px solid #333; margin-top: 10px; padding-top: 10px;">
+            <input type="text" id="seriesInput" placeholder="رابط المسلسل أو الحلقة (MP4/M3U8)...">
+            <button class="btn-series" onclick="updateSeries()">تحديث المسلسل 🎬</button>
         </div>
 
         <div class="btn-group">
-            <button id="syncToggleBtn" class="btn-sync" onclick="toggleSync()">المزامنة</button>
-            <button class="btn-delete" onclick="deleteVideo()">حذف الفيديو 🗑️</button>
+            <button id="syncToggleBtn" class="btn-sync" onclick="toggleSync()">جاري التحميل...</button>
+            <button class="btn-delete" onclick="deleteVideo()">حذف الكل 🗑️</button>
         </div>
         <div id="statusText">تم التحديث بنجاح ✅</div>
     </div>
@@ -89,26 +83,33 @@
         var isSyncEnabled = true;
 
         function playMedia(url) {
-            if (url === lastUrl) return;
+            if (url === lastUrl || !url) return;
             lastUrl = url;
-            if (!url) { videoElement.src = ""; if (hls) hls.destroy(); return; }
             if (Hls.isSupported() && url.includes('m3u8')) {
                 hls.destroy(); hls = new Hls();
                 hls.loadSource(url); hls.attachMedia(videoElement);
-            } else { videoElement.src = url; }
+            } else { 
+                hls.destroy();
+                videoElement.src = url; 
+            }
         }
 
         function syncPlayer(data) {
             if (!data) return;
-
-            // تحديث اسم المسلسل الظاهر
-            document.getElementById('seriesTitleDisplay').innerText = data.title || "بث مباشر";
-
             isSyncEnabled = data.syncEnabled !== false; 
             updateSyncButtonUI();
 
-            if (isSyncEnabled) {
-                if (data.url !== lastUrl) playMedia(data.url);
+            // الأولوية لرابط البث المباشر (url)، إذا كان فارغاً يشغل المسلسل (series_url)
+            var currentTargetUrl = data.url ? data.url : data.series_url;
+
+            if (currentTargetUrl && currentTargetUrl !== lastUrl) {
+                playMedia(currentTargetUrl);
+            } else if (!currentTargetUrl) {
+                videoElement.src = "";
+                lastUrl = "";
+            }
+
+            if (isSyncEnabled && currentTargetUrl) {
                 if (Math.abs(videoElement.currentTime - data.time) > 3) {
                     videoElement.currentTime = data.time;
                 }
@@ -117,8 +118,6 @@
                 } else if (data.status === "paused" && !videoElement.paused) {
                     videoElement.pause();
                 }
-            } else {
-                if (data.url !== lastUrl) playMedia(data.url);
             }
         }
 
@@ -134,26 +133,17 @@
             xhr.send();
         }
 
-        // حفظ بيانات المسلسل الجديد
-        function saveSeries() {
-            var name = document.getElementById('seriesNameInput').value.trim();
-            var url = document.getElementById('seriesUrlInput').value.trim();
-            
-            if(!url) return alert("الرجاء وضع الرابط أولاً");
-
-            var xhr = new XMLHttpRequest();
-            xhr.open("PATCH", dbUrl, true);
-            var data = {
-                title: name || "بدون عنوان",
-                url: url,
-                status: "playing",
-                time: 0
-            };
-            xhr.send(JSON.stringify(data));
-            
-            document.getElementById('seriesNameInput').value = '';
-            document.getElementById('seriesUrlInput').value = '';
-            showStatus("تم تشغيل المسلسل بنجاح 🎬");
+        // تحديث رابط المسلسل
+        function updateSeries() {
+            var val = document.getElementById('seriesInput').value.trim();
+            if (val) {
+                var xhr = new XMLHttpRequest();
+                xhr.open("PATCH", dbUrl, true);
+                // عند إضافة مسلسل، نصفر رابط البث المباشر ليعمل المسلسل فوراً
+                xhr.send(JSON.stringify({ series_url: val, url: "", status: "playing", time: 0 }));
+                document.getElementById('seriesInput').value = '';
+                showStatus("تم إضافة المسلسل بنجاح 🎬");
+            }
         }
 
         function toggleSync() {
@@ -167,12 +157,14 @@
 
         function updateSyncButtonUI() {
             var btn = document.getElementById('syncToggleBtn');
-            if (isSyncEnabled) {
-                btn.innerText = "المزامنة: مفعلة ✅";
-                btn.className = "btn-sync active";
-            } else {
-                btn.innerText = "المزامنة: معطلة ❌";
-                btn.className = "btn-sync inactive";
+            if (btn) {
+                if (isSyncEnabled) {
+                    btn.innerText = "المزامنة: مفعلة ✅";
+                    btn.className = "btn-sync active";
+                } else {
+                    btn.innerText = "المزامنة: معطلة ❌";
+                    btn.className = "btn-sync inactive";
+                }
             }
         }
 
@@ -204,11 +196,25 @@
             });
         }
 
+        function handlePaste(event) {
+            setTimeout(function() {
+                var val = document.getElementById('urlInput').value.trim();
+                if (val) {
+                    var xhr = new XMLHttpRequest();
+                    xhr.open("PATCH", dbUrl, true);
+                    // عند وضع بث مباشر، نمسح رابط المسلسل ليكون له الأولوية
+                    xhr.send(JSON.stringify({ url: val, series_url: "", status: "playing", time: 0 }));
+                    document.getElementById('urlInput').value = ''; 
+                    showStatus("تم تحديث البث المباشر ✅");
+                }
+            }, 100);
+        }
+
         function deleteVideo() {
-            if(confirm("حذف الفيديو الحالي؟")) {
+            if(confirm("حذف جميع الروابط؟")) {
                 var xhr = new XMLHttpRequest();
                 xhr.open("PATCH", dbUrl, true);
-                xhr.send(JSON.stringify({ url: "", status: "paused", time: 0, title: "لا يوجد فيديو" }));
+                xhr.send(JSON.stringify({ url: "", series_url: "", status: "paused", time: 0 }));
                 showStatus("تم الحذف 🗑️");
             }
         }
