@@ -12,25 +12,25 @@
             margin: 0; padding: 0; width: 100%; height: 100%; 
             background-color: #050505; color: #fff;
             display: flex; flex-direction: column;
-            justify-content: flex-start; align-items: center;    
-            overflow-y: auto; font-family: sans-serif;
+            justify-content: center; align-items: center;    
+            overflow: hidden; font-family: sans-serif;
         }
 
         .card { 
             background: #111; padding: 10px; border-radius: 12px; 
             box-shadow: 0 4px 25px rgba(0,0,0,0.7); 
             width: 95%; max-width: 650px; box-sizing: border-box;
-            border: 1px solid #222; margin-top: 20px;
+            border: 1px solid #222;
         }
         
         video { width: 100%; border-radius: 8px; background: #000; aspect-ratio: 16/9; display: block; }
 
-        #admin { display: none; width: 95%; max-width: 650px; margin-top: 15px; }
+        #admin { display: none; width: 95%; max-width: 650px; margin-top: 15px; overflow-y: auto; max-height: 40vh; }
         
         input { 
-            width: 100%; padding: 12px; margin: 5px 0; 
+            width: 100%; padding: 15px; margin: 5px 0; 
             border: 1px solid #333; border-radius: 8px; 
-            font-size: 14px; background: #1a1a1a; color: #fff;
+            font-size: 16px; background: #1a1a1a; color: #fff;
             box-sizing: border-box; text-align: center; outline: none;
         }
 
@@ -44,26 +44,21 @@
 
         .btn-sync.active { background-color: #2e7d32; color: #fff; border-color: #4caf50; }
         .btn-sync.inactive { background-color: #c62828; color: #fff; border-color: #f44336; }
+
         .btn-delete { color: #ff4d4d; border-color: #442222; }
-        .btn-add { background-color: #0056b3; color: white; border: none; margin-top: 5px; width: 100%; }
+        
+        /* ستايل قائمة الروابط المحفوظة */
+        #savedLinks { margin-top: 15px; border-top: 1px solid #333; padding-top: 10px; }
+        .link-item { 
+            background: #1a1a1a; padding: 8px; margin-bottom: 5px; 
+            border-radius: 5px; display: flex; justify-content: space-between; align-items: center;
+            font-size: 13px; border: 1px solid #222;
+        }
+        .link-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 70%; display: inline-block !important; }
+        .btn-play-saved { background: #0056b3; padding: 5px 10px; font-size: 11px; flex: none; width: auto; }
 
         #statusText { text-align: center; font-size: 12px; color: #4caf50; margin-top: 5px; display: none; }
-        
-        /* ستايل المكتبة */
-        #librarySection { width: 95%; max-width: 650px; margin-top: 20px; display: none; padding-bottom: 30px; }
-        .library-title { border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 15px; text-align: center; }
-        .movie-item { 
-            background: #161616; padding: 15px; border-radius: 10px; 
-            margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;
-            border: 1px solid #222;
-        }
-        .movie-info { cursor: pointer; flex-grow: 1; }
-        .movie-name { font-weight: bold; color: #4caf50; display: block; }
-        .movie-url { font-size: 11px; color: #666; word-break: break-all; }
-        .btn-remove-item { 
-            background: #331111; color: #ff4d4d; border: 1px solid #552222; 
-            padding: 5px 10px; border-radius: 5px; font-size: 12px; margin-right: 10px; display: none;
-        }
+        h2, p, span:not(.keep), h3 { display: none !important; }
     </style>
 </head>
 <body>
@@ -73,34 +68,30 @@
     </div>
 
     <div id="admin">
-        <input type="text" id="urlInput" placeholder="رابط البث المباشر (للمزامنة)..." onpaste="handlePaste(event)">
+        <input type="text" id="urlInput" placeholder="ألصق الرابط هنا..." onpaste="handlePaste(event)">
         <div class="btn-group">
             <button id="syncToggleBtn" class="btn-sync" onclick="toggleSync()">جاري التحميل...</button>
             <button class="btn-delete" onclick="deleteVideo()">حذف الفيديو 🗑️</button>
         </div>
         
-        <div style="margin-top: 20px; border-top: 1px dashed #333; padding-top: 15px;">
-            <input type="text" id="libName" placeholder="اسم الفيلم أو المسلسل">
-            <input type="text" id="libUrl" placeholder="رابط الفيديو (mp4/m3u8)">
-            <button class="btn-add" onclick="addToLibrary()">إضافة للمكتبة +</button>
+        <div id="savedLinks">
+            <div style="font-size: 12px; color: #888; margin-bottom: 5px; display: block !important;">الروابط المحفوظة:</div>
+            <div id="linksList"></div>
         </div>
-        <div id="statusText">تم التحديث بنجاح ✅</div>
-    </div>
 
-    <div id="librarySection">
-        <h3 class="library-title">🎬 مكتبة الأفلام والمسلسلات</h3>
-        <div id="libraryList"></div>
+        <div id="statusText">تم التحديث بنجاح ✅</div>
     </div>
 
     <script>
         var videoElement = document.getElementById('myPlayer');
         var hls = new Hls();
-        var baseUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/";
-        var dbUrl = baseUrl + "live_stream.json";
-        var libUrlDb = baseUrl + "library.json";
+        var dbUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream.json";
         var lastUrl = ""; 
         var isAdmin = window.location.hash === "#ana";
         var isSyncEnabled = true;
+
+        // مصفوفة لتخزين الروابط محلياً (يمكنك ربطها بـ Firebase لاحقاً لو أردت)
+        var savedLinksArray = JSON.parse(localStorage.getItem('savedLinks') || "[]");
 
         function playMedia(url) {
             if (url === lastUrl) return;
@@ -110,28 +101,6 @@
                 hls.destroy(); hls = new Hls();
                 hls.loadSource(url); hls.attachMedia(videoElement);
             } else { videoElement.src = url; }
-        }
-
-        function syncPlayer(data) {
-            if (!data) return;
-            isSyncEnabled = data.syncEnabled !== false; 
-            updateSyncButtonUI();
-
-            if (isSyncEnabled) {
-                document.getElementById('librarySection').style.display = "none";
-                if (data.url !== lastUrl) playMedia(data.url);
-                if (Math.abs(videoElement.currentTime - data.time) > 3) {
-                    videoElement.currentTime = data.time;
-                }
-                if (data.status === "playing" && videoElement.paused) {
-                    videoElement.play().catch(function(e){});
-                } else if (data.status === "paused" && !videoElement.paused) {
-                    videoElement.pause();
-                }
-            } else {
-                document.getElementById('librarySection').style.display = "block";
-                loadLibrary(); 
-            }
         }
 
         function loadStream() {
@@ -144,6 +113,26 @@
                 }
             };
             xhr.send();
+        }
+
+        function syncPlayer(data) {
+            if (!data) return;
+            isSyncEnabled = data.syncEnabled !== false; 
+            updateSyncButtonUI();
+
+            if (isSyncEnabled) {
+                if (data.url !== lastUrl) playMedia(data.url);
+                if (Math.abs(videoElement.currentTime - data.time) > 3) {
+                    videoElement.currentTime = data.time;
+                }
+                if (data.status === "playing" && videoElement.paused) {
+                    videoElement.play().catch(function(e){});
+                } else if (data.status === "paused" && !videoElement.paused) {
+                    videoElement.pause();
+                }
+            } else {
+                if (data.url !== lastUrl) playMedia(data.url);
+            }
         }
 
         function toggleSync() {
@@ -166,88 +155,67 @@
             }
         }
 
-        function addToLibrary() {
-            var name = document.getElementById('libName').value.trim();
-            var url = document.getElementById('libUrl').value.trim();
-            if(!name || !url) return alert("امسح الخانات وعبيها صح");
-
-            var xhr = new XMLHttpRequest();
-            xhr.open("POST", libUrlDb, true);
-            xhr.send(JSON.stringify({ name: name, url: url }));
-            document.getElementById('libName').value = "";
-            document.getElementById('libUrl').value = "";
-            showStatus("تمت الإضافة للمكتبة");
-            loadLibrary();
-        }
-
-        function loadLibrary() {
-            var xhr = new XMLHttpRequest();
-            xhr.open("GET", libUrlDb, true);
-            xhr.onload = function() {
-                if(xhr.status === 200) {
-                    var data = JSON.parse(xhr.responseText);
-                    var listHtml = "";
-                    for(var id in data) {
-                        listHtml += `<div class="movie-item">
-                            <div class="movie-info" onclick="playMedia('${data[id].url}')">
-                                <span class="movie-name">${data[id].name}</span>
-                                <span class="movie-url">${data[id].url}</span>
-                            </div>
-                            <button class="btn-remove-item" id="del-${id}" onclick="removeFromLibrary('${id}')">حذف</button>
-                        </div>`;
-                    }
-                    document.getElementById('libraryList').innerHTML = listHtml || "<p style='text-align:center; color:#555;'>المكتبة فارغة</p>";
-                    if(isAdmin) {
-                        var delBtns = document.querySelectorAll('.btn-remove-item');
-                        delBtns.forEach(b => b.style.display = "block");
-                    }
-                }
-            };
-            xhr.send();
-        }
-
-        function removeFromLibrary(id) {
-            if(!confirm("حذف من المكتبة؟")) return;
-            var xhr = new XMLHttpRequest();
-            xhr.open("DELETE", baseUrl + "library/" + id + ".json", true);
-            xhr.onload = function() { loadLibrary(); };
-            xhr.send();
-        }
-
         function updateDatabaseState() {
             if (!isAdmin || !isSyncEnabled) return;
             var xhr = new XMLHttpRequest();
             xhr.open("PATCH", dbUrl, true);
-            var state = { status: videoElement.paused ? "paused" : "playing", time: videoElement.currentTime };
+            var state = {
+                status: videoElement.paused ? "paused" : "playing",
+                time: videoElement.currentTime
+            };
             xhr.send(JSON.stringify(state));
         }
 
-        setInterval(function() {
-            loadStream();
-            if (isAdmin && isSyncEnabled) updateDatabaseState();
-        }, 2000);
-
-        if (isAdmin) {
-            ['play', 'pause', 'seeked'].forEach(function(ev) {
-                videoElement.addEventListener(ev, function() { if(isSyncEnabled) updateDatabaseState(); });
-            });
-        }
+        // --- التعامل مع اللصق والخيارات الجديدة ---
 
         function handlePaste(event) {
             setTimeout(function() {
                 var val = document.getElementById('urlInput').value.trim();
                 if (val) {
-                    var xhr = new XMLHttpRequest();
-                    xhr.open("PATCH", dbUrl, true);
-                    xhr.send(JSON.stringify({ url: val, status: "playing", time: 0 }));
+                    var action = confirm("هل تريد تشغيل الرابط فوراً؟\n(إلغاء سيقوم بحفظه في القائمة بالأسفل فقط)");
+                    
+                    if (action) {
+                        updateLiveLink(val); // تشغيل
+                    } else {
+                        saveLinkToList(val); // حفظ فقط
+                    }
                     document.getElementById('urlInput').value = ''; 
-                    showStatus("تم تحديث الرابط بنجاح ✅");
                 }
             }, 100);
         }
 
+        function updateLiveLink(url) {
+            var xhr = new XMLHttpRequest();
+            xhr.open("PATCH", dbUrl, true);
+            xhr.send(JSON.stringify({ url: url, status: "playing", time: 0 }));
+            showStatus("تم التحديث والتشغيل ✅");
+        }
+
+        function saveLinkToList(url) {
+            if(!savedLinksArray.includes(url)) {
+                savedLinksArray.push(url);
+                localStorage.setItem('savedLinks', JSON.stringify(savedLinksArray));
+                renderSavedLinks();
+                showStatus("تم الحفظ في القائمة أسفله 💾");
+            }
+        }
+
+        function renderSavedLinks() {
+            var listDiv = document.getElementById('linksList');
+            listDiv.innerHTML = '';
+            savedLinksArray.forEach(function(url, index) {
+                var item = document.createElement('div');
+                item.className = 'link-item';
+                item.innerHTML = `
+                    <span class="keep">${url}</span>
+                    <button class="btn-play-saved" onclick="updateLiveLink('${url}')">تشغيل الآن</button>
+                `;
+                listDiv.appendChild(item);
+            });
+        }
+
         function deleteVideo() {
-            if(confirm("حذف الفيديو الحالي؟")) {
+            if(confirm("حذف الفيديو؟")) {
                 var xhr = new XMLHttpRequest();
                 xhr.open("PATCH", dbUrl, true);
                 xhr.send(JSON.stringify({ url: "", status: "paused", time: 0 }));
@@ -262,9 +230,29 @@
             setTimeout(function() { status.style.display = "none"; }, 2000);
         }
 
+        setInterval(function() {
+            if (!isAdmin) {
+                loadStream();
+            } else {
+                if (isSyncEnabled) updateDatabaseState();
+                loadStream(); 
+            }
+        }, 2000);
+
+        if (isAdmin) {
+            ['play', 'pause', 'seeked'].forEach(function(ev) {
+                videoElement.addEventListener(ev, function() {
+                    if(isSyncEnabled) updateDatabaseState();
+                });
+            });
+        }
+
         window.onload = function() {
             loadStream();
-            if(isAdmin) document.getElementById('admin').style.display = "block";
+            if(isAdmin) {
+                document.getElementById('admin').style.display = "block";
+                renderSavedLinks();
+            }
         };
     </script>
 </body>
