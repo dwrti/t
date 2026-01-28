@@ -25,12 +25,18 @@
         
         video { width: 100%; border-radius: 8px; background: #000; aspect-ratio: 16/9; display: block; }
 
-        #admin { display: none; width: 95%; max-width: 650px; margin-top: 15px; overflow-y: auto; max-height: 40vh; }
+        /* منطقة اسم الرابط تحت الفيديو */
+        #displayTitle {
+            margin-top: 10px; text-align: center; font-size: 18px; 
+            font-weight: bold; color: #4caf50; min-height: 24px;
+        }
+
+        #admin { display: none; width: 95%; max-width: 650px; margin-top: 15px; }
         
         input { 
-            width: 100%; padding: 15px; margin: 5px 0; 
+            width: 100%; padding: 12px; margin: 5px 0; 
             border: 1px solid #333; border-radius: 8px; 
-            font-size: 16px; background: #1a1a1a; color: #fff;
+            font-size: 15px; background: #1a1a1a; color: #fff;
             box-sizing: border-box; text-align: center; outline: none;
         }
 
@@ -45,40 +51,35 @@
         .btn-sync.active { background-color: #2e7d32; color: #fff; border-color: #4caf50; }
         .btn-sync.inactive { background-color: #c62828; color: #fff; border-color: #f44336; }
 
+        .btn-save { background-color: #1565c0; color: white; border-color: #1976d2; }
+
         .btn-delete { color: #ff4d4d; border-color: #442222; }
-        
-        /* ستايل قائمة الروابط المحفوظة */
-        #savedLinks { margin-top: 15px; border-top: 1px solid #333; padding-top: 10px; }
-        .link-item { 
-            background: #1a1a1a; padding: 8px; margin-bottom: 5px; 
-            border-radius: 5px; display: flex; justify-content: space-between; align-items: center;
-            font-size: 13px; border: 1px solid #222;
-        }
-        .link-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 70%; display: inline-block !important; }
-        .btn-play-saved { background: #0056b3; padding: 5px 10px; font-size: 11px; flex: none; width: auto; }
+        .btn-delete:hover { background-color: #441111; }
 
         #statusText { text-align: center; font-size: 12px; color: #4caf50; margin-top: 5px; display: none; }
-        h2, p, span:not(.keep), h3 { display: none !important; }
+        h2, p, span, h3 { display: none !important; }
     </style>
 </head>
 <body>
 
     <div class="card">
         <video id="myPlayer" controls autoplay playsinline></video>
+        <div id="displayTitle">جاري جلب البيانات...</div>
     </div>
 
     <div id="admin">
-        <input type="text" id="urlInput" placeholder="ألصق الرابط هنا..." onpaste="handlePaste(event)">
+        <input type="text" id="nameInput" placeholder="أدخل اسم القناة أو الرابط هنا...">
+        <input type="text" id="urlInput" placeholder="أو الصق الرابط هنا مباشرة للمزامنة..." onpaste="handlePaste(event)">
+        
         <div class="btn-group">
+            <button class="btn-save" onclick="updateTitle()">حفظ الاسم فقط 💾</button>
             <button id="syncToggleBtn" class="btn-sync" onclick="toggleSync()">جاري التحميل...</button>
-            <button class="btn-delete" onclick="deleteVideo()">حذف الفيديو 🗑️</button>
         </div>
         
-        <div id="savedLinks">
-            <div style="font-size: 12px; color: #888; margin-bottom: 5px; display: block !important;">الروابط المحفوظة:</div>
-            <div id="linksList"></div>
+        <div class="btn-group">
+            <button class="btn-delete" onclick="deleteVideo()">حذف الكل 🗑️</button>
         </div>
-
+        
         <div id="statusText">تم التحديث بنجاح ✅</div>
     </div>
 
@@ -90,9 +91,6 @@
         var isAdmin = window.location.hash === "#ana";
         var isSyncEnabled = true;
 
-        // مصفوفة لتخزين الروابط محلياً (يمكنك ربطها بـ Firebase لاحقاً لو أردت)
-        var savedLinksArray = JSON.parse(localStorage.getItem('savedLinks') || "[]");
-
         function playMedia(url) {
             if (url === lastUrl) return;
             lastUrl = url;
@@ -103,20 +101,14 @@
             } else { videoElement.src = url; }
         }
 
-        function loadStream() {
-            var xhr = new XMLHttpRequest();
-            xhr.open("GET", dbUrl, true);
-            xhr.onload = function () {
-                if (xhr.status === 200) {
-                    var data = JSON.parse(xhr.responseText);
-                    syncPlayer(data);
-                }
-            };
-            xhr.send();
-        }
+        // --- وظائف المزامنة ---
 
         function syncPlayer(data) {
             if (!data) return;
+
+            // تحديث العنوان للجميع
+            document.getElementById('displayTitle').innerText = data.title || "";
+
             isSyncEnabled = data.syncEnabled !== false; 
             updateSyncButtonUI();
 
@@ -133,6 +125,27 @@
             } else {
                 if (data.url !== lastUrl) playMedia(data.url);
             }
+        }
+
+        function loadStream() {
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", dbUrl, true);
+            xhr.onload = function () {
+                if (xhr.status === 200) {
+                    var data = JSON.parse(xhr.responseText);
+                    syncPlayer(data);
+                }
+            };
+            xhr.send();
+        }
+
+        // تحديث اسم الرابط (للكل يشوفونه)
+        function updateTitle() {
+            var titleVal = document.getElementById('nameInput').value.trim();
+            var xhr = new XMLHttpRequest();
+            xhr.open("PATCH", dbUrl, true);
+            xhr.send(JSON.stringify({ title: titleVal }));
+            showStatus("تم حفظ الاسم بنجاح ✅");
         }
 
         function toggleSync() {
@@ -166,70 +179,6 @@
             xhr.send(JSON.stringify(state));
         }
 
-        // --- التعامل مع اللصق والخيارات الجديدة ---
-
-        function handlePaste(event) {
-            setTimeout(function() {
-                var val = document.getElementById('urlInput').value.trim();
-                if (val) {
-                    var action = confirm("هل تريد تشغيل الرابط فوراً؟\n(إلغاء سيقوم بحفظه في القائمة بالأسفل فقط)");
-                    
-                    if (action) {
-                        updateLiveLink(val); // تشغيل
-                    } else {
-                        saveLinkToList(val); // حفظ فقط
-                    }
-                    document.getElementById('urlInput').value = ''; 
-                }
-            }, 100);
-        }
-
-        function updateLiveLink(url) {
-            var xhr = new XMLHttpRequest();
-            xhr.open("PATCH", dbUrl, true);
-            xhr.send(JSON.stringify({ url: url, status: "playing", time: 0 }));
-            showStatus("تم التحديث والتشغيل ✅");
-        }
-
-        function saveLinkToList(url) {
-            if(!savedLinksArray.includes(url)) {
-                savedLinksArray.push(url);
-                localStorage.setItem('savedLinks', JSON.stringify(savedLinksArray));
-                renderSavedLinks();
-                showStatus("تم الحفظ في القائمة أسفله 💾");
-            }
-        }
-
-        function renderSavedLinks() {
-            var listDiv = document.getElementById('linksList');
-            listDiv.innerHTML = '';
-            savedLinksArray.forEach(function(url, index) {
-                var item = document.createElement('div');
-                item.className = 'link-item';
-                item.innerHTML = `
-                    <span class="keep">${url}</span>
-                    <button class="btn-play-saved" onclick="updateLiveLink('${url}')">تشغيل الآن</button>
-                `;
-                listDiv.appendChild(item);
-            });
-        }
-
-        function deleteVideo() {
-            if(confirm("حذف الفيديو؟")) {
-                var xhr = new XMLHttpRequest();
-                xhr.open("PATCH", dbUrl, true);
-                xhr.send(JSON.stringify({ url: "", status: "paused", time: 0 }));
-                showStatus("تم الحذف 🗑️");
-            }
-        }
-
-        function showStatus(msg) {
-            var status = document.getElementById('statusText');
-            status.innerText = msg;
-            status.style.display = "block";
-            setTimeout(function() { status.style.display = "none"; }, 2000);
-        }
-
         setInterval(function() {
             if (!isAdmin) {
                 loadStream();
@@ -247,12 +196,38 @@
             });
         }
 
+        function handlePaste(event) {
+            setTimeout(function() {
+                var val = document.getElementById('urlInput').value.trim();
+                if (val) {
+                    var xhr = new XMLHttpRequest();
+                    xhr.open("PATCH", dbUrl, true);
+                    xhr.send(JSON.stringify({ url: val, status: "playing", time: 0 }));
+                    document.getElementById('urlInput').value = ''; 
+                    showStatus("تم تحديث الرابط بنجاح ✅");
+                }
+            }, 100);
+        }
+
+        function deleteVideo() {
+            if(confirm("حذف كل البيانات؟")) {
+                var xhr = new XMLHttpRequest();
+                xhr.open("PATCH", dbUrl, true);
+                xhr.send(JSON.stringify({ url: "", status: "paused", time: 0, title: "" }));
+                showStatus("تم حذف كل شيء 🗑️");
+            }
+        }
+
+        function showStatus(msg) {
+            var status = document.getElementById('statusText');
+            status.innerText = msg;
+            status.style.display = "block";
+            setTimeout(function() { status.style.display = "none"; }, 2000);
+        }
+
         window.onload = function() {
             loadStream();
-            if(isAdmin) {
-                document.getElementById('admin').style.display = "block";
-                renderSavedLinks();
-            }
+            if(isAdmin) document.getElementById('admin').style.display = "block";
         };
     </script>
 </body>
