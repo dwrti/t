@@ -62,22 +62,32 @@
         .ep-list { max-height: 400px; overflow-y: auto; }
         
         .ep-item { 
-            display: flex; align-items: center; justify-content: center;
+            display: flex; align-items: center; justify-content: space-between;
             width: 100%; min-height: 50px;
             background: #1a1a1a; margin-bottom: 10px; border-radius: 8px;
-            border: 1px solid #333; cursor: pointer;
-            transition: all 0.2s; box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
+            border: 1px solid #333; padding: 0 15px; box-sizing: border-box;
+            transition: all 0.2s;
         }
-        .ep-item:active { background: #333; transform: scale(0.97); }
         
-        /* تأكد من أن النص يظهر بوضوح */
+        .ep-name-clickable {
+            flex-grow: 1; display: flex; align-items: center; height: 50px;
+            cursor: pointer; -webkit-tap-highlight-color: transparent;
+        }
+        .ep-name-clickable:active { opacity: 0.6; }
+
         .ep-name-text { 
             color: #ffffff !important; 
             font-size: 16px; 
             font-weight: bold;
-            display: block !important; /* إجبار الظهور */
+            display: block !important;
             pointer-events: none;
+        }
+
+        /* زر حذف الحلقة الواحدة */
+        .single-delete-btn {
+            background: #331111; color: #ff4d4d; border: 1px solid #442222;
+            padding: 5px 10px; border-radius: 6px; font-size: 16px;
+            cursor: pointer; margin-right: 10px; display: none; /* يظهر للأدمن فقط */
         }
     </style>
 </head>
@@ -94,8 +104,7 @@
             <input type="text" id="epNameInput" placeholder="اسم الحلقة (مثال: الحلقة الأولى)">
             <input type="text" id="epUrlInput" placeholder="رابط الحلقة المباشر...">
             <div class="btn-group">
-                <button style="background: #1e40af; color: white; border:none;" onclick="addEpisode()">إضافة للمكتبة +</button>
-                <button class="btn-delete" onclick="clearLibrary()">حذف كل المكتبة 🗑️</button>
+                <button style="background: #1e40af; color: white; border:none; width: 100%;" onclick="addEpisode()">إضافة للمكتبة +</button>
             </div>
         </div>
 
@@ -142,14 +151,42 @@
                 var ep = libData[key];
                 var item = document.createElement('div');
                 item.className = "ep-item";
-                // إضافة النص كعنصر Span بستايل صريح للظهور
-                item.innerHTML = '<span class="ep-name-text">' + ep.name + '</span>';
-                item.onclick = function() { 
+                
+                // حاوية الاسم القابلة للضغط
+                var nameBox = document.createElement('div');
+                nameBox.className = "ep-name-clickable";
+                nameBox.innerHTML = '<span class="ep-name-text">' + ep.name + '</span>';
+                nameBox.onclick = function() { 
                     playMedia(ep.url); 
                     window.scrollTo({top: 0, behavior: 'smooth'}); 
                 };
+
+                item.appendChild(nameBox);
+
+                // إضافة زر الحذف إذا كان أدمن
+                if (isAdmin) {
+                    var delBtn = document.createElement('button');
+                    delBtn.className = "single-delete-btn";
+                    delBtn.style.display = "block";
+                    delBtn.innerHTML = "🗑️";
+                    delBtn.onclick = function() { deleteSingleEpisode(key); };
+                    item.appendChild(delBtn);
+                }
+
                 container.appendChild(item);
             });
+        }
+
+        function deleteSingleEpisode(key) {
+            if(confirm("حذف هذه الحلقة؟")) {
+                var xhr = new XMLHttpRequest();
+                xhr.open("DELETE", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library/" + key + ".json", true);
+                xhr.onload = function() {
+                    showStatus("تم حذف الحلقة بنجاح");
+                    loadStream();
+                };
+                xhr.send();
+            }
         }
 
         function syncPlayer(data) {
@@ -218,15 +255,6 @@
                 loadStream();
             };
             xhr.send(JSON.stringify({ name: name, url: url }));
-        }
-
-        function clearLibrary() {
-            if(confirm("حذف كل الحلقات؟")) {
-                var xhr = new XMLHttpRequest();
-                xhr.open("DELETE", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library.json", true);
-                xhr.onload = function() { showStatus("تم المسح"); loadStream(); };
-                xhr.send();
-            }
         }
 
         function updateDatabaseState() {
