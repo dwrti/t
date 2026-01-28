@@ -47,7 +47,6 @@
         .btn-sync.active { background-color: #1b5e20; border-color: #2e7d32; }
         .btn-sync.inactive { background-color: #b71c1c; border-color: #c62828; }
         
-        /* تحسين زر حذف البث الرئيسي */
         .btn-delete { 
             background-color: #2a1212; 
             color: #ff5252; 
@@ -58,7 +57,6 @@
 
         #statusText { text-align: center; font-size: 13px; color: #4caf50; margin: 10px 0; font-weight: bold; }
         
-        /* إخفاء العناصر غير المطلوبة */
         h2, p, span:not(.ep-name-text), h3 { display: none !important; }
 
         /* ستايل المكتبة */
@@ -79,11 +77,12 @@
         .ep-item { 
             display: flex; align-items: center; justify-content: space-between;
             background: #1a1a1a; margin-bottom: 8px; border-radius: 10px;
-            border: 1px solid #282828; overflow: hidden; padding-left: 10px;
+            border: 1px solid #282828; overflow: hidden; padding: 0 10px;
+            gap: 15px; /* مسافة فاصلة بين الاسم والزر */
         }
         
         .ep-name-clickable {
-            flex-grow: 1; padding: 15px;
+            flex-grow: 1; padding: 15px 5px;
             cursor: pointer; -webkit-tap-highlight-color: transparent;
             text-align: right;
         }
@@ -95,14 +94,14 @@
             pointer-events: none;
         }
 
-        /* تم تعديل هذا الجزء لحذف الدائرة */
+        /* زر حذف الحلقة الفردي المطور */
         .single-delete-btn {
             background: #331212; color: #ff5252; border: 1px solid #4a1a1a; 
-            width: 35px; height: 35px; border-radius: 6px; /* تحويل من دائرة إلى مربع بزوايا خفيفة */
+            width: 35px; height: 35px; border-radius: 8px;
             font-size: 14px; cursor: pointer; display: none; 
             flex-shrink: 0; align-items: center; justify-content: center;
             padding: 0; line-height: 1; transition: 0.2s;
-            margin-right: 10px;
+            margin-right: 10px; /* دفع الزر بعيداً عن حافة النص */
         }
         .single-delete-btn:hover { background: #ff5252; color: #fff; }
         
@@ -133,6 +132,7 @@
     </div>
 
     <div id="librarySection">
+        <div class="lib-title">مكتبة المقاطع</div>
         <div id="episodesContainer" class="ep-list"></div>
     </div>
 
@@ -168,6 +168,7 @@
                 var item = document.createElement('div');
                 item.className = "ep-item";
                 
+                // حاوية النص مفصلة تماماً
                 var nameBox = document.createElement('div');
                 nameBox.className = "ep-name-clickable";
                 nameBox.innerHTML = '<span class="ep-name-text">' + ep.name + '</span>';
@@ -184,13 +185,17 @@
 
                 item.appendChild(nameBox);
 
+                // زر الحذف مفصل ومنفصل
                 if (isAdmin) {
                     var delBtn = document.createElement('button');
                     delBtn.className = "single-delete-btn";
                     delBtn.style.display = "flex";
                     delBtn.innerHTML = "✕"; 
                     delBtn.title = "حذف";
-                    delBtn.onclick = function(e) { e.stopPropagation(); deleteSingleEpisode(key); };
+                    delBtn.onclick = function(e) { 
+                        e.stopPropagation(); // منع انتقال الحدث لاسم المقطع
+                        deleteSingleEpisode(key); 
+                    };
                     item.appendChild(delBtn);
                 }
                 
@@ -312,7 +317,7 @@
         }
 
         function deleteVideo() {
-            if(confirm("حذف البث؟")) {
+            if(confirm("حذف البث الأساسي؟")) {
                 var xhr = new XMLHttpRequest();
                 xhr.open("PATCH", dbUrl, true);
                 xhr.send(JSON.stringify({ url: "", status: "paused", time: 0 }));
