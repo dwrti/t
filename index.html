@@ -3,30 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Live Admin Control v2</title>
+    <title>Live Admin & Library</title>
     
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     
     <style>
-        :root { --primary: #007bff; --danger: #ff4d4d; --success: #2e7d32; --bg: #050505; --card-bg: #111; }
         body, html { 
             margin: 0; padding: 0; width: 100%; height: 100%; 
-            background-color: var(--bg); color: #fff;
-            display: flex; flex-direction: column; align-items: center;    
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            overflow-y: auto;
+            background-color: #050505; color: #fff;
+            display: flex; flex-direction: column;
+            align-items: center; font-family: sans-serif;
+            overflow-x: hidden;
         }
 
+        /* حاوية الفيديو */
         .card { 
-            background: var(--card-bg); padding: 15px; border-radius: 12px; 
+            background: #111; padding: 10px; border-radius: 12px; 
             box-shadow: 0 4px 25px rgba(0,0,0,0.7); 
             width: 95%; max-width: 650px; box-sizing: border-box;
-            border: 1px solid #222; margin-top: 20px;
+            border: 1px solid #222; margin-top: 15px;
         }
         
         video { width: 100%; border-radius: 8px; background: #000; aspect-ratio: 16/9; display: block; }
 
-        #admin { display: none; width: 95%; max-width: 650px; margin-top: 15px; }
+        /* لوحة التحكم */
+        #admin { display: none; width: 95%; max-width: 650px; margin-top: 15px; background: #111; padding: 15px; border-radius: 12px; border: 1px solid #222; box-sizing: border-box;}
         
         input { 
             width: 100%; padding: 12px; margin: 5px 0; 
@@ -38,34 +39,37 @@
         .btn-group { display: flex; gap: 8px; margin-top: 5px; flex-wrap: wrap; }
 
         button { 
-            flex: 1; min-width: 120px; padding: 12px; background-color: #222; 
+            flex: 1; padding: 12px; background-color: #222; 
             color: #ccc; border: 1px solid #333; border-radius: 8px; 
-            cursor: pointer; font-size: 14px; transition: 0.3s;
+            cursor: pointer; font-size: 13px; transition: 0.3s;
+            min-width: 120px;
         }
 
-        .btn-sync.active { background-color: var(--success); color: #fff; border-color: #4caf50; }
+        .btn-sync.active { background-color: #2e7d32; color: #fff; border-color: #4caf50; }
         .btn-sync.inactive { background-color: #c62828; color: #fff; border-color: #f44336; }
-        .btn-add { background-color: var(--primary); color: white; border: none; }
-        .btn-delete { color: var(--danger); border-color: #442222; }
+        .btn-add { background-color: #1565c0; color: white; border-color: #1e88e5; }
+        .btn-delete { color: #ff4d4d; border-color: #442222; }
 
-        /* ستايل المكتبة */
+        /* مكتبة الحلقات */
         #library { 
-            width: 95%; max-width: 650px; margin-top: 20px; padding-bottom: 40px;
-            display: none; /* مخفية افتراضياً وتظهر بالكود */
+            width: 95%; max-width: 650px; margin-top: 20px; 
+            display: none; padding-bottom: 30px;
         }
-        .lib-title { border-right: 4px solid var(--primary); padding-right: 10px; margin-bottom: 15px; font-size: 18px; }
-        .episode-card {
-            background: #1a1a1a; padding: 12px; border-radius: 8px; margin-bottom: 8px;
-            display: flex; justify-content: space-between; align-items: center;
-            border: 1px solid #222; transition: 0.2s;
+        .library-title { border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 15px; font-size: 18px; }
+        
+        .episode-item {
+            background: #161616; padding: 12px; border-radius: 8px;
+            margin-bottom: 10px; display: flex; justify-content: space-between;
+            align-items: center; border: 1px solid #222;
         }
-        .episode-card:hover { border-color: #444; }
         .episode-info { cursor: pointer; flex-grow: 1; }
-        .del-ep { color: var(--danger); background: none; border: none; cursor: pointer; font-size: 18px; min-width: auto; padding: 0 10px; }
+        .del-ep-btn { 
+            background: #331111; color: #ff4d4d; border: 1px solid #552222;
+            padding: 5px 10px; font-size: 11px; border-radius: 5px; width: auto; flex: none; margin-right: 10px;
+        }
 
-        #statusText { text-align: center; font-size: 12px; color: #4caf50; margin: 10px 0; display: none; }
-        h2, p, span, h3 { display: none !important; } /* الحفاظ على طلبك بإخفاء النصوص العشوائية */
-        .show-always { display: block !important; } /* لاستثناء العناوين الضرورية */
+        #statusText { text-align: center; font-size: 12px; color: #4caf50; margin-top: 8px; display: none; }
+        h2, p, span, h3 { display: none !important; }
     </style>
 </head>
 <body>
@@ -75,23 +79,23 @@
     </div>
 
     <div id="admin">
-        <input type="text" id="urlInput" placeholder="رابط البث المباشر الموحد...">
-        
-        <div style="margin-top: 15px; border-top: 1px solid #333; pt: 10px;">
-            <input type="text" id="epTitle" placeholder="اسم الحلقة (مثال: الحلقة 1)">
-            <input type="text" id="epUrl" placeholder="رابط الحلقة">
-            <button class="btn-add" onclick="addToLibrary()">إضافة للمكتبة +</button>
-        </div>
-
+        <input type="text" id="urlInput" placeholder="رابط البث المباشر الأساسي">
         <div class="btn-group">
             <button id="syncToggleBtn" class="btn-sync" onclick="toggleSync()">جاري التحميل...</button>
             <button class="btn-delete" onclick="deleteVideo()">حذف فيديو البث 🗑️</button>
         </div>
+        
+        <hr style="border: 0; border-top: 1px solid #333; margin: 15px 0;">
+        
+        <input type="text" id="epName" placeholder="اسم الحلقة (مثال: الحلقة 1)">
+        <input type="text" id="epUrl" placeholder="رابط الحلقة">
+        <button class="btn-add" style="width: 100%;" onclick="addEpisode()">إضافة للمكتبة +</button>
+        
         <div id="statusText">تم التحديث بنجاح ✅</div>
     </div>
 
     <div id="library">
-        <h2 class="lib-title show-always">🎬 مكتبة الأفلام والمسلسلات</h2>
+        <div class="library-title">📺 مكتبة الأفلام والمسلسلات</div>
         <div id="episodesList">
             </div>
     </div>
@@ -100,173 +104,171 @@
         var videoElement = document.getElementById('myPlayer');
         var hls = new Hls();
         var dbUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream.json";
-        var libUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/library.json";
         var lastUrl = ""; 
         var isAdmin = window.location.hash === "#ana";
         var isSyncEnabled = true;
 
         function playMedia(url) {
-            if (url === lastUrl) return;
+            if (url === lastUrl || !url) return;
             lastUrl = url;
-            if (!url) { videoElement.src = ""; if (hls) hls.destroy(); return; }
             if (Hls.isSupported() && url.includes('m3u8')) {
                 hls.destroy(); hls = new Hls();
                 hls.loadSource(url); hls.attachMedia(videoElement);
             } else { videoElement.src = url; }
         }
 
-        // جلب البيانات الأساسية
+        // --- وظائف المزامنة والقاعدة ---
+
         function loadStream() {
             var xhr = new XMLHttpRequest();
             xhr.open("GET", dbUrl, true);
             xhr.onload = function () {
                 if (xhr.status === 200) {
                     var data = JSON.parse(xhr.responseText);
-                    if(data) {
-                        isSyncEnabled = data.syncEnabled !== false;
-                        updateSyncUI();
-                        if (isSyncEnabled) {
-                            syncPlayer(data);
+                    if(!data) return;
+                    
+                    isSyncEnabled = data.syncEnabled !== false;
+                    updateUIState(data);
+                    
+                    if (isSyncEnabled) {
+                        if (data.url !== lastUrl) playMedia(data.url);
+                        if (Math.abs(videoElement.currentTime - data.time) > 3) {
+                            videoElement.currentTime = data.time;
                         }
+                        if (data.status === "playing" && videoElement.paused) videoElement.play().catch(e=>{});
+                        else if (data.status === "paused" && !videoElement.paused) videoElement.pause();
                     }
+                    
+                    renderLibrary(data.library);
                 }
             };
             xhr.send();
-            loadLibrary();
         }
 
-        function syncPlayer(data) {
-            if (data.url !== lastUrl) playMedia(data.url);
-            if (Math.abs(videoElement.currentTime - data.time) > 3) {
-                videoElement.currentTime = data.time;
-            }
-            if (data.status === "playing" && videoElement.paused) {
-                videoElement.play().catch(function(e){});
-            } else if (data.status === "paused" && !videoElement.paused) {
-                videoElement.pause();
-            }
-        }
-
-        // تحديث واجهة المزامنة والمكتبة
-        function updateSyncUI() {
+        function updateUIState(data) {
             var btn = document.getElementById('syncToggleBtn');
-            var libDiv = document.getElementById('library');
+            var lib = document.getElementById('library');
             
             if (isSyncEnabled) {
                 btn.innerText = "المزامنة: مفعلة ✅";
                 btn.className = "btn-sync active";
-                libDiv.style.display = "none"; // إخفاء المكتبة عند تفعيل المزامنة
+                lib.style.display = "none";
             } else {
                 btn.innerText = "المزامنة: معطلة ❌";
                 btn.className = "btn-sync inactive";
-                libDiv.style.display = "block"; // إظهار المكتبة عند تعطيل المزامنة
+                lib.style.display = "block";
             }
         }
 
-        // وظائف المكتبة
-        function addToLibrary() {
-            var title = document.getElementById('epTitle').value;
-            var url = document.getElementById('epUrl').value;
-            if(!title || !url) return alert("املا الخانات أولاً");
-
-            var xhr = new XMLHttpRequest();
-            xhr.open("POST", libUrl, true);
-            xhr.send(JSON.stringify({ title: title, url: url }));
-            document.getElementById('epTitle').value = "";
-            document.getElementById('epUrl').value = "";
-            showStatus("تمت الإضافة للمكتبة ✅");
-            setTimeout(loadLibrary, 500);
-        }
-
-        function loadLibrary() {
-            var xhr = new XMLHttpRequest();
-            xhr.open("GET", libUrl, true);
-            xhr.onload = function () {
-                if (xhr.status === 200) {
-                    var data = JSON.parse(xhr.responseText);
-                    var listHtml = "";
-                    for (var id in data) {
-                        listHtml += `
-                            <div class="episode-card">
-                                <div class="episode-info" onclick="playMedia('${data[id].url}')">
-                                    <span>${data[id].title}</span>
-                                </div>
-                                ${isAdmin ? `<button class="del-ep" onclick="deleteEpisode('${id}')">🗑️</button>` : ''}
-                            </div>
-                        `;
-                    }
-                    document.getElementById('episodesList').innerHTML = listHtml || "<p class='show-always' style='text-align:center; color:#666;'>المكتبة فارغة</p>";
-                }
-            };
-            xhr.send();
-        }
-
-        function deleteEpisode(id) {
-            if(confirm("حذف هذه الحلقة؟")) {
-                var xhr = new XMLHttpRequest();
-                xhr.open("DELETE", `https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/library/${id}.json`, true);
-                xhr.onload = function() { loadLibrary(); };
-                xhr.send();
-            }
-        }
-
-        // التحكم في البث الرئيسي
         function toggleSync() {
             if (!isAdmin) return;
             isSyncEnabled = !isSyncEnabled;
             var xhr = new XMLHttpRequest();
             xhr.open("PATCH", dbUrl, true);
             xhr.send(JSON.stringify({ syncEnabled: isSyncEnabled }));
-            updateSyncUI();
+        }
+
+        // --- إدارة المكتبة ---
+
+        function addEpisode() {
+            var name = document.getElementById('epName').value;
+            var url = document.getElementById('epUrl').value;
+            if(!name || !url) return alert("املا الخانات");
+
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", dbUrl, true);
+            xhr.onload = function() {
+                var data = JSON.parse(xhr.responseText) || {};
+                var lib = data.library || [];
+                lib.push({ name: name, url: url, id: Date.now() });
+                
+                var patchXhr = new XMLHttpRequest();
+                patchXhr.open("PATCH", dbUrl, true);
+                patchXhr.send(JSON.stringify({ library: lib }));
+                
+                document.getElementById('epName').value = '';
+                document.getElementById('epUrl').value = '';
+                showStatus("تمت إضافة الحلقة ✅");
+            };
+            xhr.send();
+        }
+
+        function renderLibrary(lib) {
+            var list = document.getElementById('episodesList');
+            list.innerHTML = "";
+            if(!lib) { list.innerHTML = "<p style='display:block !important; color:#666; text-align:center;'>المكتبة فارغة حالياً</p>"; return; }
+            
+            lib.forEach((ep, index) => {
+                var div = document.createElement('div');
+                div.className = "episode-item";
+                div.innerHTML = `
+                    <div class="episode-info" onclick="playMedia('${ep.url}')">
+                        <b>${ep.name}</b>
+                    </div>
+                    ${isAdmin ? `<button class="del-ep-btn" onclick="deleteEpisode(${index})">حذف</button>` : ''}
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        function deleteEpisode(index) {
+            if(!confirm("حذف هذه الحلقة؟")) return;
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", dbUrl, true);
+            xhr.onload = function() {
+                var data = JSON.parse(xhr.responseText);
+                data.library.splice(index, 1);
+                var patchXhr = new XMLHttpRequest();
+                patchXhr.open("PATCH", dbUrl, true);
+                patchXhr.send(JSON.stringify({ library: data.library }));
+            };
+            xhr.send();
         }
 
         function deleteVideo() {
-            if(confirm("حذف فيديو البث المباشر؟")) {
+            if(confirm("حذف فيديو البث؟")) {
                 var xhr = new XMLHttpRequest();
                 xhr.open("PATCH", dbUrl, true);
                 xhr.send(JSON.stringify({ url: "", status: "paused", time: 0 }));
-                showStatus("تم الحذف 🗑️");
             }
         }
 
-        // مراقبة تغيير رابط البث (الأدمن)
-        document.getElementById('urlInput').onpaste = function() {
-            setTimeout(function() {
-                var val = document.getElementById('urlInput').value.trim();
-                if (val) {
-                    var xhr = new XMLHttpRequest();
-                    xhr.open("PATCH", dbUrl, true);
-                    xhr.send(JSON.stringify({ url: val, status: "playing", time: 0 }));
-                    document.getElementById('urlInput').value = '';
-                    showStatus("تم تحديث البث ✅");
-                }
-            }, 100);
-        };
+        // تحديث الرابط الأساسي عند الإدخال
+        document.getElementById('urlInput').addEventListener('change', function() {
+            var val = this.value.trim();
+            if (val) {
+                var xhr = new XMLHttpRequest();
+                xhr.open("PATCH", dbUrl, true);
+                xhr.send(JSON.stringify({ url: val, status: "playing", time: 0 }));
+                showStatus("تم تحديث البث ✅");
+            }
+        });
+
+        function updateDatabaseState() {
+            if (!isAdmin || !isSyncEnabled) return;
+            var xhr = new XMLHttpRequest();
+            xhr.open("PATCH", dbUrl, true);
+            xhr.send(JSON.stringify({
+                status: videoElement.paused ? "paused" : "playing",
+                time: videoElement.currentTime
+            }));
+        }
+
+        setInterval(loadStream, 2000);
+        if (isAdmin) {
+            document.getElementById('admin').style.display = "block";
+            ['play', 'pause', 'seeked'].forEach(ev => {
+                videoElement.addEventListener(ev, () => { if(isSyncEnabled) updateDatabaseState(); });
+            });
+        }
 
         function showStatus(msg) {
             var status = document.getElementById('statusText');
-            status.innerText = msg;
-            status.style.display = "block";
-            setTimeout(function() { status.style.display = "none"; }, 2000);
+            status.innerText = msg; status.style.display = "block";
+            setTimeout(() => { status.style.display = "none"; }, 2000);
         }
 
-        // التحديث الدوري
-        setInterval(function() {
-            loadStream();
-            if (isAdmin && isSyncEnabled && !videoElement.paused) {
-                var xhr = new XMLHttpRequest();
-                xhr.open("PATCH", dbUrl, true);
-                xhr.send(JSON.stringify({
-                    status: videoElement.paused ? "paused" : "playing",
-                    time: videoElement.currentTime
-                }));
-            }
-        }, 3000);
-
-        window.onload = function() {
-            loadStream();
-            if(isAdmin) document.getElementById('admin').style.display = "block";
-        };
+        window.onload = loadStream;
     </script>
 </body>
 </html>
