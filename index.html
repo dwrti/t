@@ -16,7 +16,6 @@
             overflow-x: hidden; overflow-y: auto; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
-        /* حاوية الفيديو */
         .card { 
             background: #000; padding: 0; border-radius: 0; 
             width: 100%; max-width: 650px; box-sizing: border-box;
@@ -25,7 +24,6 @@
         
         video { width: 100%; display: block; aspect-ratio: 16/9; background: #000; }
 
-        /* منطقة التحكم للأدمن */
         #admin { display: none; width: 95%; max-width: 650px; margin-top: 15px; }
         
         input { 
@@ -69,7 +67,7 @@
             display: flex; align-items: center; 
             background: #1a1a1a; margin-bottom: 8px; border-radius: 10px;
             border: 1px solid #282828; overflow: hidden;
-            flex-direction: row-reverse; /* لجعل الزر في اليسار والنص في اليمين */
+            flex-direction: row-reverse;
         }
         
         .ep-name-clickable {
@@ -85,26 +83,21 @@
             pointer-events: none;
         }
 
-        /* زر الحذف المحدث: علامة X حمراء في اليسار وبدون إطار */
-        .single-delete-btn {
+        /* أزرار التحكم في المكتبة */
+        .lib-control-btn {
             background: transparent; 
-            color: #ff4444; 
             border: none; 
-            padding: 0 20px; 
             height: 50px; 
-            font-size: 22px; 
-            font-weight: bold;
+            font-size: 18px; 
             cursor: pointer; 
             display: none; 
             flex-shrink: 0;
             outline: none;
-            transition: transform 0.2s;
+            padding: 0 12px;
         }
         
-        .single-delete-btn:hover {
-            transform: scale(1.2);
-            color: #ff0000;
-        }
+        .single-delete-btn { color: #ff4444; }
+        .single-edit-btn { color: #4caf50; }
         
         .ep-list::-webkit-scrollbar { width: 5px; }
         .ep-list::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
@@ -183,17 +176,48 @@
                 };
 
                 if (isAdmin) {
+                    // زر الحذف
                     var delBtn = document.createElement('button');
-                    delBtn.className = "single-delete-btn";
+                    delBtn.className = "lib-control-btn single-delete-btn";
                     delBtn.style.display = "block";
-                    delBtn.innerHTML = "✕"; // علامة X بدلاً من السلة
+                    delBtn.innerHTML = "✕";
                     delBtn.onclick = function(e) { e.stopPropagation(); deleteSingleEpisode(key); };
+                    
+                    // زر التعديل
+                    var editBtn = document.createElement('button');
+                    editBtn.className = "lib-control-btn single-edit-btn";
+                    editBtn.style.display = "block";
+                    editBtn.innerHTML = "✏️";
+                    editBtn.onclick = function(e) { e.stopPropagation(); editSingleEpisode(key, ep.name, ep.url); };
+
                     item.appendChild(delBtn);
+                    item.appendChild(editBtn);
                 }
                 
                 item.appendChild(nameBox);
                 container.appendChild(item);
             });
+        }
+
+        function editSingleEpisode(key, oldName, oldUrl) {
+            var newName = prompt("تعديل اسم المقطع:", oldName);
+            if (newName === null) return; // إلغاء
+            
+            var newUrl = prompt("تعديل رابط المقطع:", oldUrl);
+            if (newUrl === null) return; // إلغاء
+
+            if (newName.trim() === "" || newUrl.trim() === "") {
+                alert("لا يمكن ترك الحقول فارغة");
+                return;
+            }
+
+            var xhr = new XMLHttpRequest();
+            xhr.open("PATCH", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library/" + key + ".json", true);
+            xhr.onload = function() {
+                showStatus("تم التعديل بنجاح ✅");
+                loadStream();
+            };
+            xhr.send(JSON.stringify({ name: newName, url: newUrl }));
         }
 
         function deleteSingleEpisode(key) {
