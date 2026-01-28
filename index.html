@@ -49,13 +49,11 @@
 
         #statusText { text-align: center; font-size: 13px; color: #4caf50; margin: 10px 0; font-weight: bold; }
         
-        /* إخفاء العناصر غير المطلوبة حسب طلبك الأصلي */
         h2, p, span:not(.ep-name-text), h3 { display: none !important; }
 
-        /* ستايل المكتبة - تم زيادة الهامش العلوي لفك الالتصاق */
         #librarySection {
             width: 95%; max-width: 650px; 
-            margin: 40px 0 50px 0; /* زدت المسافة العلوية لـ 40px */
+            margin: 40px 0 50px 0; 
             background: #111; border-radius: 12px; border: 1px solid #222;
             padding: 15px; box-sizing: border-box; display: none;
         }
@@ -71,11 +69,13 @@
             display: flex; align-items: center; 
             background: #1a1a1a; margin-bottom: 8px; border-radius: 10px;
             border: 1px solid #282828; overflow: hidden;
+            flex-direction: row-reverse; /* لجعل الزر في اليسار والنص في اليمين */
         }
         
         .ep-name-clickable {
             flex-grow: 1; padding: 15px;
             cursor: pointer; -webkit-tap-highlight-color: transparent;
+            text-align: right;
         }
 
         .ep-name-text { 
@@ -85,13 +85,27 @@
             pointer-events: none;
         }
 
+        /* زر الحذف المحدث: علامة X حمراء في اليسار وبدون إطار */
         .single-delete-btn {
-            background: #2a1212; color: #ff5252; border: none; border-right: 1px solid #333;
-            padding: 0 15px; height: 50px; font-size: 18px;
-            cursor: pointer; display: none; flex-shrink: 0;
+            background: transparent; 
+            color: #ff4444; 
+            border: none; 
+            padding: 0 20px; 
+            height: 50px; 
+            font-size: 22px; 
+            font-weight: bold;
+            cursor: pointer; 
+            display: none; 
+            flex-shrink: 0;
+            outline: none;
+            transition: transform 0.2s;
         }
         
-        /* شريط التمرير للمكتبة */
+        .single-delete-btn:hover {
+            transform: scale(1.2);
+            color: #ff0000;
+        }
+        
         .ep-list::-webkit-scrollbar { width: 5px; }
         .ep-list::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
     </style>
@@ -172,7 +186,7 @@
                     var delBtn = document.createElement('button');
                     delBtn.className = "single-delete-btn";
                     delBtn.style.display = "block";
-                    delBtn.innerHTML = "🗑️";
+                    delBtn.innerHTML = "✕"; // علامة X بدلاً من السلة
                     delBtn.onclick = function(e) { e.stopPropagation(); deleteSingleEpisode(key); };
                     item.appendChild(delBtn);
                 }
