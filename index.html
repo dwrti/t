@@ -27,14 +27,15 @@
 
         #admin { display: none; width: 95%; max-width: 650px; margin-top: 15px; }
         
-        input { 
-            width: 100%; padding: 12px; margin: 5px 0; 
+        input, select { 
+            width: 100%; padding: 15px; margin: 5px 0; 
             border: 1px solid #333; border-radius: 8px; 
-            font-size: 15px; background: #1a1a1a; color: #fff;
+            font-size: 16px; background: #1a1a1a; color: #fff;
             box-sizing: border-box; text-align: center; outline: none;
+            appearance: none; -webkit-appearance: none;
         }
 
-        .btn-group { display: flex; gap: 10px; margin-top: 5px; margin-bottom: 5px; }
+        .btn-group { display: flex; gap: 10px; margin-top: 5px; }
 
         button { 
             flex: 1; padding: 12px; background-color: #222; 
@@ -42,7 +43,6 @@
             cursor: pointer; font-size: 14px; transition: 0.3s;
         }
 
-        .btn-series { background-color: #1a237e; color: #fff; border-color: #3f51b5; }
         .btn-sync.active { background-color: #2e7d32; color: #fff; border-color: #4caf50; }
         .btn-sync.inactive { background-color: #c62828; color: #fff; border-color: #f44336; }
 
@@ -60,16 +60,18 @@
     </div>
 
     <div id="admin">
-        <input type="text" id="urlInput" placeholder="ألصق رابط البث المباشر هنا..." onpaste="handlePaste(event)">
-        
-        <div style="border-top: 1px solid #333; margin-top: 10px; padding-top: 10px;">
-            <input type="text" id="seriesInput" placeholder="رابط المسلسل أو الحلقة (MP4/M3U8)...">
-            <button class="btn-series" onclick="updateSeries()">تحديث المسلسل 🎬</button>
-        </div>
+        <select id="movieLibrary" onchange="selectMovie(this.value)">
+            <option value="">🎬 اختر من مكتبة الأفلام/المسلسلات</option>
+            <option value="https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8">فيديو تجريبي 1 (HLS)</option>
+            <option value="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4">فيلم الأرنب (MP4)</option>
+            <option value="رابط_فيلم_آخر_هنا">اسم الفيلم الجديد</option>
+        </select>
 
+        <input type="text" id="urlInput" placeholder="أو ألصق الرابط المباشر هنا..." onpaste="handlePaste(event)">
+        
         <div class="btn-group">
             <button id="syncToggleBtn" class="btn-sync" onclick="toggleSync()">جاري التحميل...</button>
-            <button class="btn-delete" onclick="deleteVideo()">حذف الكل 🗑️</button>
+            <button class="btn-delete" onclick="deleteVideo()">حذف الفيديو 🗑️</button>
         </div>
         <div id="statusText">تم التحديث بنجاح ✅</div>
     </div>
@@ -83,33 +85,21 @@
         var isSyncEnabled = true;
 
         function playMedia(url) {
-            if (url === lastUrl || !url) return;
+            if (url === lastUrl) return;
             lastUrl = url;
+            if (!url) { videoElement.src = ""; if (hls) hls.destroy(); return; }
             if (Hls.isSupported() && url.includes('m3u8')) {
                 hls.destroy(); hls = new Hls();
                 hls.loadSource(url); hls.attachMedia(videoElement);
-            } else { 
-                hls.destroy();
-                videoElement.src = url; 
-            }
+            } else { videoElement.src = url; }
         }
 
         function syncPlayer(data) {
             if (!data) return;
             isSyncEnabled = data.syncEnabled !== false; 
             updateSyncButtonUI();
-
-            // الأولوية لرابط البث المباشر (url)، إذا كان فارغاً يشغل المسلسل (series_url)
-            var currentTargetUrl = data.url ? data.url : data.series_url;
-
-            if (currentTargetUrl && currentTargetUrl !== lastUrl) {
-                playMedia(currentTargetUrl);
-            } else if (!currentTargetUrl) {
-                videoElement.src = "";
-                lastUrl = "";
-            }
-
-            if (isSyncEnabled && currentTargetUrl) {
+            if (isSyncEnabled) {
+                if (data.url !== lastUrl) playMedia(data.url);
                 if (Math.abs(videoElement.currentTime - data.time) > 3) {
                     videoElement.currentTime = data.time;
                 }
@@ -118,6 +108,8 @@
                 } else if (data.status === "paused" && !videoElement.paused) {
                     videoElement.pause();
                 }
+            } else {
+                if (data.url !== lastUrl) playMedia(data.url);
             }
         }
 
@@ -133,17 +125,14 @@
             xhr.send();
         }
 
-        // تحديث رابط المسلسل
-        function updateSeries() {
-            var val = document.getElementById('seriesInput').value.trim();
-            if (val) {
-                var xhr = new XMLHttpRequest();
-                xhr.open("PATCH", dbUrl, true);
-                // عند إضافة مسلسل، نصفر رابط البث المباشر ليعمل المسلسل فوراً
-                xhr.send(JSON.stringify({ series_url: val, url: "", status: "playing", time: 0 }));
-                document.getElementById('seriesInput').value = '';
-                showStatus("تم إضافة المسلسل بنجاح 🎬");
-            }
+        // وظيفة اختيار فيلم من المكتبة
+        function selectMovie(url) {
+            if (!url) return;
+            var xhr = new XMLHttpRequest();
+            xhr.open("PATCH", dbUrl, true);
+            xhr.send(JSON.stringify({ url: url, status: "playing", time: 0 }));
+            showStatus("تم تشغيل الفيلم من المكتبة 🎬");
+            document.getElementById('movieLibrary').selectedIndex = 0; // إعادة تصفير القائمة
         }
 
         function toggleSync() {
@@ -157,14 +146,12 @@
 
         function updateSyncButtonUI() {
             var btn = document.getElementById('syncToggleBtn');
-            if (btn) {
-                if (isSyncEnabled) {
-                    btn.innerText = "المزامنة: مفعلة ✅";
-                    btn.className = "btn-sync active";
-                } else {
-                    btn.innerText = "المزامنة: معطلة ❌";
-                    btn.className = "btn-sync inactive";
-                }
+            if (isSyncEnabled) {
+                btn.innerText = "المزامنة: مفعلة ✅";
+                btn.className = "btn-sync active";
+            } else {
+                btn.innerText = "المزامنة: معطلة ❌";
+                btn.className = "btn-sync inactive";
             }
         }
 
@@ -202,19 +189,18 @@
                 if (val) {
                     var xhr = new XMLHttpRequest();
                     xhr.open("PATCH", dbUrl, true);
-                    // عند وضع بث مباشر، نمسح رابط المسلسل ليكون له الأولوية
-                    xhr.send(JSON.stringify({ url: val, series_url: "", status: "playing", time: 0 }));
+                    xhr.send(JSON.stringify({ url: val, status: "playing", time: 0 }));
                     document.getElementById('urlInput').value = ''; 
-                    showStatus("تم تحديث البث المباشر ✅");
+                    showStatus("تم تحديث الرابط بنجاح ✅");
                 }
             }, 100);
         }
 
         function deleteVideo() {
-            if(confirm("حذف جميع الروابط؟")) {
+            if(confirm("حذف الفيديو؟")) {
                 var xhr = new XMLHttpRequest();
                 xhr.open("PATCH", dbUrl, true);
-                xhr.send(JSON.stringify({ url: "", series_url: "", status: "paused", time: 0 }));
+                xhr.send(JSON.stringify({ url: "", status: "paused", time: 0 }));
                 showStatus("تم الحذف 🗑️");
             }
         }
