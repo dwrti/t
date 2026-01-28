@@ -9,11 +9,11 @@
     
     <style>
         body, html { 
-            margin: 0; padding: 0; width: 100%; min-height: 100%; 
+            margin: 0; padding: 0; width: 100%; height: 100%; 
             background-color: #050505; color: #fff;
             display: flex; flex-direction: column;
-            align-items: center;    
-            font-family: sans-serif; overflow-x: hidden;
+            justify-content: flex-start; align-items: center;    
+            overflow-x: hidden; overflow-y: auto; font-family: sans-serif;
         }
 
         .card { 
@@ -27,8 +27,6 @@
 
         #admin { display: none; width: 95%; max-width: 650px; margin-top: 15px; }
         
-        .input-group { margin-bottom: 15px; background: #111; padding: 10px; border-radius: 10px; border: 1px solid #222; }
-        
         input { 
             width: 100%; padding: 12px; margin: 5px 0; 
             border: 1px solid #333; border-radius: 8px; 
@@ -36,35 +34,38 @@
             box-sizing: border-box; text-align: center; outline: none;
         }
 
-        .btn-group { display: flex; gap: 8px; margin-top: 5px; }
+        .btn-group { display: flex; gap: 8px; margin-top: 5px; flex-wrap: wrap; }
 
         button { 
-            flex: 1; padding: 12px; background-color: #222; 
+            flex: 1; min-width: 120px; padding: 12px; background-color: #222; 
             color: #ccc; border: 1px solid #333; border-radius: 8px; 
-            cursor: pointer; font-size: 14px; transition: 0.3s;
+            cursor: pointer; font-size: 13px; transition: 0.3s;
         }
 
-        .btn-add { background-color: #0066ff !important; color: white !important; border: none; }
         .btn-sync.active { background-color: #2e7d32; color: #fff; border-color: #4caf50; }
         .btn-sync.inactive { background-color: #c62828; color: #fff; border-color: #f44336; }
+
         .btn-delete { color: #ff4d4d; border-color: #442222; }
+        .btn-delete:hover { background-color: #441111; }
+
+        #statusText { text-align: center; font-size: 12px; color: #4caf50; margin: 5px 0; display: none; }
+        h2, p, span, h3 { display: none !important; }
 
         /* ستايل المكتبة */
-        #librarySection { width: 95%; max-width: 650px; margin-top: 20px; padding-bottom: 40px; }
-        .library-title { font-size: 18px; margin-bottom: 10px; border-right: 4px solid #0066ff; padding-right: 10px; }
-        .episodes-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
-        .episode-item { 
-            background: #161616; padding: 15px; border-radius: 10px; 
+        #librarySection {
+            width: 95%; max-width: 650px; margin: 20px 0;
+            background: #111; border-radius: 12px; border: 1px solid #222;
+            padding: 10px; box-sizing: border-box; display: none;
+        }
+        .lib-title { font-size: 16px; margin-bottom: 10px; border-right: 3px solid #4caf50; padding-right: 10px; }
+        .ep-list { max-height: 300px; overflow-y: auto; }
+        .ep-item { 
             display: flex; justify-content: space-between; align-items: center;
+            background: #1a1a1a; padding: 12px; margin-bottom: 8px; border-radius: 8px;
             border: 1px solid #222;
         }
-        .ep-info { cursor: pointer; flex-grow: 1; }
-        .ep-name { font-weight: bold; color: #fff; display: block; }
-        .ep-del-btn { background: #331111; color: #ff4d4d; border: 1px solid #441111; padding: 5px 10px; border-radius: 5px; font-size: 12px; margin-right: 10px; flex-shrink: 0; }
-
-        #statusText { text-align: center; font-size: 12px; color: #4caf50; margin-top: 10px; display: none; }
-        h2, p, span, h3 { display: none !important; }
-        .hidden { display: none !important; }
+        .ep-name { font-size: 14px; color: #eee; flex: 1; cursor: pointer; }
+        .ep-name:hover { color: #4caf50; }
     </style>
 </head>
 <body>
@@ -74,127 +75,99 @@
     </div>
 
     <div id="admin">
-        <div class="input-group">
-            <input type="text" id="urlInput" placeholder="رابط البث المباشر السريع..." onpaste="handlePaste(event)">
+        <input type="text" id="urlInput" placeholder="رابط البث المباشر الأساسي..." onpaste="handlePaste(event)">
+        
+        <div style="border-top: 1px solid #333; margin-top: 10px; padding-top: 10px;">
+            <input type="text" id="epNameInput" placeholder="اسم الحلقة (مثال: الحلقة 1)">
+            <input type="text" id="epUrlInput" placeholder="رابط الحلقة المباشر...">
             <div class="btn-group">
-                <button id="syncToggleBtn" class="btn-sync" onclick="toggleSync()">جاري التحميل...</button>
-                <button class="btn-delete" onclick="deleteVideo()">حذف فيديو البث 🗑️</button>
+                <button style="background: #0056b3; color: white;" onclick="addEpisode()">إضافة للمكتبة +</button>
+                <button class="btn-delete" onclick="clearLibrary()">حذف كل المكتبة 🗑️</button>
             </div>
         </div>
 
-        <div class="input-group">
-            <input type="text" id="epName" placeholder="اسم الحلقة (مثال: الحلقة 1)">
-            <input type="text" id="epUrl" placeholder="رابط الحلقة">
-            <button class="btn-add" onclick="addEpisode()">إضافة للمكتبة +</button>
+        <div class="btn-group" style="margin-top: 15px;">
+            <button id="syncToggleBtn" class="btn-sync" onclick="toggleSync()">جاري التحميل...</button>
+            <button class="btn-delete" onclick="deleteVideo()">حذف فيديو البث 🗑️</button>
         </div>
         <div id="statusText">تم التحديث بنجاح ✅</div>
     </div>
 
     <div id="librarySection">
-        <div class="library-title">مكتبة الأفلام والمسلسلات</div>
-        <div id="episodesList" class="episodes-grid">
+        <div class="lib-title">مكتبة العروض</div>
+        <div id="episodesContainer" class="ep-list">
             </div>
     </div>
 
     <script>
         var videoElement = document.getElementById('myPlayer');
         var hls = new Hls();
-        var baseUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/";
-        var dbUrl = baseUrl + "live_stream.json";
-        var libUrl = baseUrl + "library.json";
-        
+        var dbUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream.json";
         var lastUrl = ""; 
         var isAdmin = window.location.hash === "#ana";
         var isSyncEnabled = true;
 
-        // تشغيل الفيديو
         function playMedia(url) {
-            if (!url || url === lastUrl) return;
+            if (url === lastUrl) return;
             lastUrl = url;
-            if (Hls.isSupported() && (url.includes('m3u8') || url.includes('.ts'))) {
+            if (!url) { videoElement.src = ""; if (hls) hls.destroy(); return; }
+            if (Hls.isSupported() && url.includes('m3u8')) {
                 hls.destroy(); hls = new Hls();
                 hls.loadSource(url); hls.attachMedia(videoElement);
             } else { videoElement.src = url; }
-            videoElement.play().catch(e => {});
         }
-
-        // --- وظائف المكتبة ---
-
-        function addEpisode() {
-            var name = document.getElementById('epName').value;
-            var url = document.getElementById('epUrl').value;
-            if(!name || !url) return alert("امسح الخانات وعبيها صح");
-
-            var xhr = new XMLHttpRequest();
-            xhr.open("POST", libUrl, true);
-            xhr.send(JSON.stringify({ name: name, url: url }));
-            
-            document.getElementById('epName').value = "";
-            document.getElementById('epUrl').value = "";
-            showStatus("تمت إضافة الحلقة للمكتبة ✅");
-            loadLibrary();
-        }
-
-        function loadLibrary() {
-            var xhr = new XMLHttpRequest();
-            xhr.open("GET", libUrl, true);
-            xhr.onload = function() {
-                if (xhr.status === 200) {
-                    var data = JSON.parse(xhr.responseText);
-                    var container = document.getElementById('episodesList');
-                    container.innerHTML = "";
-                    for (var id in data) {
-                        var item = data[id];
-                        var html = `
-                            <div class="episode-item">
-                                <div class="ep-info" onclick="playMedia('${item.url}')">
-                                    <span class="ep-name">${item.name}</span>
-                                </div>
-                                ${isAdmin ? `<button class="ep-del-btn" onclick="deleteEpisode('${id}')">حذف 🗑️</button>` : ''}
-                            </div>
-                        `;
-                        container.innerHTML += html;
-                    }
-                }
-            };
-            xhr.send();
-        }
-
-        function deleteEpisode(id) {
-            if(!confirm("حذف هذه الحلقة نهائياً؟")) return;
-            var xhr = new XMLHttpRequest();
-            xhr.open("DELETE", baseUrl + "library/" + id + ".json", true);
-            xhr.onload = function() { loadLibrary(); };
-            xhr.send();
-        }
-
-        // --- وظائف المزامنة ---
 
         function syncPlayer(data) {
             if (!data) return;
-            isSyncEnabled = data.syncEnabled !== false;
+            isSyncEnabled = data.syncEnabled !== false; 
             updateSyncButtonUI();
 
-            // إخفاء/إظهار المكتبة بناءً على المزامنة
+            // إظهار أو إخفاء المكتبة بناءً على المزامنة
             var lib = document.getElementById('librarySection');
+            if (!isSyncEnabled) {
+                lib.style.display = "block";
+                renderLibrary(data.library);
+            } else {
+                lib.style.display = "none";
+            }
+
             if (isSyncEnabled) {
-                lib.classList.add('hidden');
                 if (data.url !== lastUrl) playMedia(data.url);
                 if (Math.abs(videoElement.currentTime - data.time) > 3) {
                     videoElement.currentTime = data.time;
                 }
-                if (data.status === "playing" && videoElement.paused) videoElement.play().catch(e=>{});
-                else if (data.status === "paused" && !videoElement.paused) videoElement.pause();
+                if (data.status === "playing" && videoElement.paused) {
+                    videoElement.play().catch(function(e){});
+                } else if (data.status === "paused" && !videoElement.paused) {
+                    videoElement.pause();
+                }
             } else {
-                lib.classList.remove('hidden');
+                if (data.url !== lastUrl) playMedia(data.url);
             }
+        }
+
+        function renderLibrary(libData) {
+            var container = document.getElementById('episodesContainer');
+            container.innerHTML = "";
+            if (!libData) { container.innerHTML = "<p style='display:block !important; text-align:center; color:#666;'>المكتبة فارغة</p>"; return; }
+            
+            Object.keys(libData).forEach(function(key) {
+                var ep = libData[key];
+                var div = document.createElement('div');
+                div.className = "ep-item";
+                div.innerHTML = '<span class="ep-name" onclick="playMedia(\''+ep.url+'\')">' + ep.name + '</span>';
+                container.appendChild(div);
+            });
         }
 
         function loadStream() {
             var xhr = new XMLHttpRequest();
             xhr.open("GET", dbUrl, true);
             xhr.onload = function () {
-                if (xhr.status === 200) syncPlayer(JSON.parse(xhr.responseText));
+                if (xhr.status === 200) {
+                    var data = JSON.parse(xhr.responseText);
+                    syncPlayer(data);
+                }
             };
             xhr.send();
         }
@@ -214,8 +187,30 @@
                 btn.innerText = "المزامنة: مفعلة ✅";
                 btn.className = "btn-sync active";
             } else {
-                btn.innerText = "المزامنة: معطلة (المكتبة ظاهرة) ❌";
+                btn.innerText = "المزامنة: معطلة ❌";
                 btn.className = "btn-sync inactive";
+            }
+        }
+
+        function addEpisode() {
+            var name = document.getElementById('epNameInput').value.trim();
+            var url = document.getElementById('epUrlInput').value.trim();
+            if (!name || !url) { alert("املا الخانات"); return; }
+            
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library.json", true);
+            xhr.send(JSON.stringify({ name: name, url: url }));
+            document.getElementById('epNameInput').value = "";
+            document.getElementById('epUrlInput').value = "";
+            showStatus("تمت إضافة الحلقة 🎬");
+        }
+
+        function clearLibrary() {
+            if(confirm("حذف كل حلقات المكتبة؟")) {
+                var xhr = new XMLHttpRequest();
+                xhr.open("DELETE", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library.json", true);
+                xhr.send();
+                showStatus("تم تفريغ المكتبة 🗑️");
             }
         }
 
@@ -223,16 +218,29 @@
             if (!isAdmin || !isSyncEnabled) return;
             var xhr = new XMLHttpRequest();
             xhr.open("PATCH", dbUrl, true);
-            xhr.send(JSON.stringify({
+            var state = {
                 status: videoElement.paused ? "paused" : "playing",
                 time: videoElement.currentTime
-            }));
+            };
+            xhr.send(JSON.stringify(state));
         }
 
         setInterval(function() {
-            loadStream();
-            if (isAdmin && isSyncEnabled) updateDatabaseState();
+            if (!isAdmin) {
+                loadStream();
+            } else {
+                if (isSyncEnabled) updateDatabaseState();
+                loadStream(); 
+            }
         }, 2000);
+
+        if (isAdmin) {
+            ['play', 'pause', 'seeked'].forEach(function(ev) {
+                videoElement.addEventListener(ev, function() {
+                    if(isSyncEnabled) updateDatabaseState();
+                });
+            });
+        }
 
         function handlePaste(event) {
             setTimeout(function() {
@@ -240,30 +248,31 @@
                 if (val) {
                     var xhr = new XMLHttpRequest();
                     xhr.open("PATCH", dbUrl, true);
-                    xhr.send(JSON.stringify({ url: val, status: "playing", time: 0, syncEnabled: true }));
+                    xhr.send(JSON.stringify({ url: val, status: "playing", time: 0 }));
                     document.getElementById('urlInput').value = ''; 
-                    showStatus("تم إرسال رابط البث ✅");
+                    showStatus("تم تحديث الرابط بنجاح ✅");
                 }
             }, 100);
         }
 
         function deleteVideo() {
-            var xhr = new XMLHttpRequest();
-            xhr.open("PATCH", dbUrl, true);
-            xhr.send(JSON.stringify({ url: "", status: "paused", time: 0 }));
-            showStatus("تم حذف رابط البث 🗑️");
+            if(confirm("حذف الفيديو؟")) {
+                var xhr = new XMLHttpRequest();
+                xhr.open("PATCH", dbUrl, true);
+                xhr.send(JSON.stringify({ url: "", status: "paused", time: 0 }));
+                showStatus("تم الحذف 🗑️");
+            }
         }
 
         function showStatus(msg) {
             var status = document.getElementById('statusText');
             status.innerText = msg;
             status.style.display = "block";
-            setTimeout(function() { status.style.display = "none"; }, 2500);
+            setTimeout(function() { status.style.display = "none"; }, 2000);
         }
 
         window.onload = function() {
             loadStream();
-            loadLibrary();
             if(isAdmin) document.getElementById('admin').style.display = "block";
         };
     </script>
