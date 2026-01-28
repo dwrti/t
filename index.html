@@ -3,162 +3,166 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Live Admin Control</title>
+    <title>Streaming Library - Dark Pro</title>
     
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
     
     <style>
         :root {
-            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --accent-color: #00d2ff;
-            --danger-color: #ff4b2b;
-            --bg-dark: #0f0c29;
-            --card-bg: rgba(255, 255, 255, 0.05);
+            --primary-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            --accent-color: #8b5cf6;
+            --bg-dark: #09090b;
+            --card-bg: #18181b;
+            --input-bg: #27272a;
+            --text-main: #f4f4f5;
+            --text-dim: #a1a1aa;
         }
 
         body, html { 
-            margin: 0; padding: 0; width: 100%; min-height: 100%; 
-            background: linear-gradient(to bottom, #0f0c29, #302b63, #24243e); 
-            color: #fff;
+            margin: 0; padding: 0; width: 100%; height: 100%; 
+            background-color: var(--bg-dark); color: var(--text-main);
             display: flex; flex-direction: column;
             align-items: center;    
-            overflow-x: hidden; font-family: 'Tajawal', sans-serif;
+            overflow-x: hidden; overflow-y: auto; 
+            font-family: 'Tajawal', sans-serif;
         }
 
         /* حاوية الفيديو */
-        .card { 
-            background: #000; padding: 5px; border-radius: 15px; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5); 
-            width: 92%; max-width: 650px; box-sizing: border-box;
-            border: 1px solid rgba(255,255,255,0.1); margin-top: 20px;
-            overflow: hidden;
+        .video-container { 
+            width: 100%; max-width: 650px; 
+            background: #000;
+            position: sticky; top: 0; z-index: 100;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
         
-        video { width: 100%; border-radius: 10px; display: block; }
+        video { width: 100%; aspect-ratio: 16/9; display: block; }
 
-        /* منطقة التحكم (الأدمن) */
-        #admin { 
-            display: none; width: 92%; max-width: 650px; 
-            background: var(--card-bg); backdrop-filter: blur(10px);
-            border-radius: 20px; padding: 20px; margin-top: 15px;
-            border: 1px solid rgba(255,255,255,0.1); box-sizing: border-box;
+        /* الأقسام الرئيسية */
+        .content-wrapper {
+            width: 92%; max-width: 650px;
+            padding-bottom: 40px;
         }
+
+        .section-card { 
+            background: var(--card-bg); padding: 20px; border-radius: 20px; 
+            border: 1px solid #27272a; margin-top: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        #admin { display: none; }
         
         input { 
             width: 100%; padding: 14px; margin: 8px 0; 
-            border: 1px solid rgba(255,255,255,0.2); border-radius: 12px; 
-            font-size: 14px; background: rgba(0,0,0,0.3); color: #fff;
-            box-sizing: border-box; text-align: center; outline: none;
-            font-family: 'Tajawal'; transition: 0.3s;
+            border: 1px solid #3f3f46; border-radius: 12px; 
+            font-size: 14px; background: var(--input-bg); color: #fff;
+            box-sizing: border-box; outline: none; transition: 0.3s;
         }
-        input:focus { border-color: var(--accent-color); box-shadow: 0 0 10px rgba(0,210,255,0.3); }
+        input:focus { border-color: var(--accent-color); box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2); }
 
         .btn-group { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
 
         button { 
-            flex: 1; min-width: 120px; padding: 12px; 
-            background: rgba(255,255,255,0.1); 
-            color: #fff; border: 1px solid rgba(255,255,255,0.1); 
-            border-radius: 12px; cursor: pointer; font-size: 14px; 
-            font-weight: bold; font-family: 'Tajawal'; transition: 0.3s;
+            flex: 1; min-width: 100px; padding: 14px; 
+            background-color: #27272a; color: #fff; 
+            border: none; border-radius: 12px; 
+            cursor: pointer; font-size: 14px; font-weight: bold;
+            transition: transform 0.2s, background 0.2s;
         }
+        button:active { transform: scale(0.96); }
 
-        .btn-add { background: var(--primary-gradient) !important; border: none !important; }
-        .btn-sync.active { background: #2ecc71 !important; color: #fff; border: none; }
-        .btn-sync.inactive { background: #e74c3c !important; color: #fff; border: none; }
-        .btn-delete { background: rgba(231, 76, 60, 0.2); color: #ff6b6b; border: 1px solid #e74c3c; }
+        .btn-add { background: var(--primary-gradient) !important; color: white; }
+        .btn-sync.active { background: #065f46 !important; color: #34d399; }
+        .btn-sync.inactive { background: #7f1d1d !important; color: #f87171; }
+        .btn-delete { background: #450a0a !important; color: #f87171; border: 1px solid #7f1d1d; }
 
-        /* ستايل المكتبة */
-        #librarySection {
-            width: 92%; max-width: 650px; margin: 20px 0 40px 0;
-            background: var(--card-bg); backdrop-filter: blur(10px);
-            border-radius: 20px; border: 1px solid rgba(255,255,255,0.1);
-            padding: 20px; box-sizing: border-box; display: none;
+        /* تصميم المكتبة */
+        .lib-header { 
+            display: flex; align-items: center; gap: 10px; 
+            margin-bottom: 20px; padding-right: 5px;
         }
-        
-        .lib-title { 
-            font-size: 20px; margin-bottom: 20px; 
-            color: var(--accent-color); font-weight: bold;
-            display: flex; align-items: center; gap: 10px;
+        .lib-header h2 { 
+            font-size: 1.2rem; margin: 0; color: var(--text-main); 
+            display: block !important; 
         }
-        .lib-title::before { content: '🎬'; }
+        .dot { height: 10px; width: 10px; background: var(--accent-color); border-radius: 50%; box-shadow: 0 0 10px var(--accent-color); }
 
-        .ep-list { max-height: 450px; overflow-y: auto; padding-right: 5px; }
+        .ep-list { display: flex; flex-direction: column; gap: 12px; }
         
         .ep-item { 
-            display: flex; align-items: center; justify-content: space-between;
-            width: 100%; background: rgba(255,255,255,0.05); 
-            margin-bottom: 12px; border-radius: 15px;
-            border: 1px solid rgba(255,255,255,0.05); padding: 5px 15px; 
-            box-sizing: border-box; transition: 0.3s;
+            display: flex; align-items: center; 
+            background: #212124; border-radius: 15px;
+            padding: 12px 15px; border: 1px solid #2d2d30;
+            transition: background 0.3s;
         }
-        .ep-item:hover { background: rgba(255,255,255,0.1); transform: translateY(-2px); }
         
-        .ep-name-clickable {
-            flex-grow: 1; display: flex; align-items: center; height: 55px;
+        .ep-info {
+            flex-grow: 1; display: flex; align-items: center; gap: 12px;
             cursor: pointer; text-decoration: none;
         }
 
-        .ep-name-text { 
-            color: #fff !important; font-size: 15px; font-weight: 500;
-            display: flex !important; align-items: center; gap: 10px;
+        .play-icon {
+            width: 35px; height: 35px; background: rgba(139, 92, 246, 0.1);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            color: var(--accent-color); font-size: 18px;
         }
-        .ep-name-text::before { content: '▶️'; font-size: 12px; opacity: 0.7; }
+
+        .ep-name-text { 
+            color: var(--text-main) !important; font-size: 15px; font-weight: 500;
+            display: block !important;
+        }
 
         .single-delete-btn {
-            background: rgba(231, 76, 60, 0.2); color: #ff6b6b; 
-            border: 1px solid rgba(231, 76, 60, 0.3);
-            width: 35px; height: 35px; border-radius: 10px; 
-            display: flex; align-items: center; justify-content: center;
-            font-size: 14px; cursor: pointer;
+            background: transparent; color: #ef4444; border: none;
+            padding: 8px; font-size: 18px; cursor: pointer;
         }
 
         #statusText { 
-            text-align: center; font-size: 13px; color: #2ecc71; 
-            background: rgba(46, 204, 113, 0.1); padding: 8px;
-            border-radius: 8px; margin-top: 10px; display: none; 
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.8); padding: 10px 20px; border-radius: 50px;
+            border: 1px solid var(--accent-color); font-size: 13px; z-index: 1000;
         }
 
-        /* تخصيص السكرول بار */
-        ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
-
-        h2, p, span:not(.ep-name-text), h3 { display: none !important; }
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 10px; }
     </style>
 </head>
 <body>
 
-    <div class="card">
+    <div class="video-container">
         <video id="myPlayer" controls autoplay playsinline></video>
     </div>
 
-    <div id="admin">
-        <input type="text" id="urlInput" placeholder="رابط البث المباشر الأساسي..." onpaste="handlePaste(event)">
-        
-        <div style="border-top: 1px solid rgba(255,255,255,0.1); margin-top: 15px; padding-top: 15px;">
-            <input type="text" id="epNameInput" placeholder="اسم الفيلم أو الحلقة">
-            <input type="text" id="epUrlInput" placeholder="رابط الفيديو المباشر...">
-            <div class="btn-group">
-                <button class="btn-add" onclick="addEpisode()">إضافة للمكتبة +</button>
+    <div class="content-wrapper">
+        <div id="admin" class="section-card">
+            <input type="text" id="urlInput" placeholder="رابط البث الأساسي (لصق سريع)..." onpaste="handlePaste(event)">
+            
+            <div style="margin-top: 15px; border-top: 1px solid #2d2d30; padding-top: 15px;">
+                <input type="text" id="epNameInput" placeholder="اسم الحلقة أو الفيلم">
+                <input type="text" id="epUrlInput" placeholder="رابط الفيديو المباشر">
+                <button class="btn-add" onclick="addEpisode()" style="width: 100%; margin-top: 5px;">إضافة للمكتبة +</button>
+            </div>
+
+            <div class="btn-group" style="margin-top: 15px;">
+                <button id="syncToggleBtn" class="btn-sync" onclick="toggleSync()">جاري التحميل...</button>
+                <button class="btn-delete" onclick="deleteVideo()">حذف البث 🗑️</button>
             </div>
         </div>
 
-        <div class="btn-group" style="margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">
-            <button id="syncToggleBtn" class="btn-sync" onclick="toggleSync()">جاري التحميل...</button>
-            <button class="btn-delete" onclick="deleteVideo()">حذف فيديو البث 🗑️</button>
+        <div id="librarySection" class="section-card" style="display: none;">
+            <div class="lib-header">
+                <div class="dot"></div>
+                <h2>المكتبة</h2>
+            </div>
+            <div id="episodesContainer" class="ep-list"></div>
         </div>
-        <div id="statusText">تم التحديث بنجاح ✅</div>
     </div>
 
-    <div id="librarySection">
-        <div class="lib-title">مكتبة المحتوى</div>
-        <div id="episodesContainer" class="ep-list"></div>
-    </div>
+    <div id="statusText" style="display: none;"></div>
 
     <script>
-        // الكود البرمجي كما هو مع تعديلات بسيطة للتحسين الوظيفي
+        // الكود البرمجي (Javascript) يبقى كما هو لضمان عمل الوظائف
         var videoElement = document.getElementById('myPlayer');
         var hls = new Hls();
         var dbUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream.json";
@@ -181,7 +185,7 @@
             var container = document.getElementById('episodesContainer');
             container.innerHTML = "";
             if (!libData) { 
-                container.innerHTML = "<div style='text-align:center; padding:20px; color:rgba(255,255,255,0.4);'>المكتبة فارغة حالياً</div>"; 
+                container.innerHTML = "<div style='text-align:center; padding:20px; color:#555;'>المكتبة فارغة حالياً</div>"; 
                 return; 
             }
             
@@ -190,32 +194,33 @@
                 var item = document.createElement('div');
                 item.className = "ep-item";
                 
-                var nameBox = document.createElement('div');
-                nameBox.className = "ep-name-clickable";
-                nameBox.innerHTML = '<span class="ep-name-text">' + ep.name + '</span>';
-                nameBox.onclick = function() { 
+                var info = document.createElement('div');
+                info.className = "ep-info";
+                info.innerHTML = `
+                    <div class="play-icon">▶</div>
+                    <span class="ep-name-text">${ep.name}</span>
+                `;
+                info.onclick = function() { 
                     if (isAdmin) {
                         var xhr = new XMLHttpRequest();
                         xhr.open("PATCH", dbUrl, true);
                         xhr.send(JSON.stringify({ url: ep.url, status: "playing", time: 0 }));
-                        showStatus("جاري تشغيل: " + ep.name);
+                        showStatus("تم التغيير للجميع: " + ep.name);
                     }
                     playMedia(ep.url); 
                     window.scrollTo({top: 0, behavior: 'smooth'}); 
                 };
 
-                item.appendChild(nameBox);
+                item.appendChild(info);
 
                 if (isAdmin) {
                     var delBtn = document.createElement('button');
                     delBtn.className = "single-delete-btn";
                     delBtn.innerHTML = "🗑️";
-                    delBtn.onclick = function(e) { 
-                        e.stopPropagation();
-                        deleteSingleEpisode(key); 
-                    };
+                    delBtn.onclick = function() { deleteSingleEpisode(key); };
                     item.appendChild(delBtn);
                 }
+
                 container.appendChild(item);
             });
         }
@@ -224,10 +229,7 @@
             if(confirm("حذف هذه الحلقة؟")) {
                 var xhr = new XMLHttpRequest();
                 xhr.open("DELETE", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library/" + key + ".json", true);
-                xhr.onload = function() {
-                    showStatus("تم حذف الحلقة بنجاح");
-                    loadStream();
-                };
+                xhr.onload = function() { showStatus("تم الحذف"); loadStream(); };
                 xhr.send();
             }
         }
@@ -236,7 +238,6 @@
             if (!data) return;
             isSyncEnabled = data.syncEnabled !== false; 
             updateSyncButtonUI();
-
             var lib = document.getElementById('librarySection');
             if (isAdmin || !isSyncEnabled) {
                 lib.style.display = "block";
@@ -244,7 +245,6 @@
             } else {
                 lib.style.display = "none";
             }
-
             if (isSyncEnabled && !isAdmin) {
                 if (data.url !== lastUrl) playMedia(data.url);
                 if (Math.abs(videoElement.currentTime - data.time) > 3) videoElement.currentTime = data.time;
@@ -256,12 +256,7 @@
         function loadStream() {
             var xhr = new XMLHttpRequest();
             xhr.open("GET", dbUrl, true);
-            xhr.onload = function () {
-                if (xhr.status === 200) {
-                    var data = JSON.parse(xhr.responseText);
-                    syncPlayer(data);
-                }
-            };
+            xhr.onload = function () { if (xhr.status === 200) syncPlayer(JSON.parse(xhr.responseText)); };
             xhr.send();
         }
 
@@ -304,8 +299,7 @@
             if (!isAdmin || !isSyncEnabled) return;
             var xhr = new XMLHttpRequest();
             xhr.open("PATCH", dbUrl, true);
-            var state = { status: videoElement.paused ? "paused" : "playing", time: videoElement.currentTime };
-            xhr.send(JSON.stringify(state));
+            xhr.send(JSON.stringify({ status: videoElement.paused ? "paused" : "playing", time: videoElement.currentTime }));
         }
 
         setInterval(function() {
@@ -327,7 +321,7 @@
                     xhr.open("PATCH", dbUrl, true);
                     xhr.send(JSON.stringify({ url: val, status: "playing", time: 0 }));
                     document.getElementById('urlInput').value = ''; 
-                    showStatus("تم التحديث ✅");
+                    showStatus("تم تحديث الرابط الأساسي ✅");
                 }
             }, 100);
         }
