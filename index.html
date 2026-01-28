@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>دورتي 📺</title>
+    <title>Live Admin Control</title>
     
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     
@@ -12,8 +12,11 @@
             margin: 0; padding: 0; width: 100%; height: 100%; 
             background-color: #050505; color: #fff;
             display: flex; flex-direction: column;
-            justify-content: center; align-items: center;    
-            overflow: hidden; font-family: sans-serif;
+            align-items: center;    
+            /* تم تغيير overflow للسماح بالتمرير */
+            overflow-x: hidden; overflow-y: auto; 
+            font-family: sans-serif;
+            padding-top: 20px;
         }
 
         .card { 
@@ -42,7 +45,6 @@
             cursor: pointer; font-size: 14px; transition: 0.3s;
         }
 
-        /* ستايل زر التفعيل */
         .btn-sync.active { background-color: #2e7d32; color: #fff; border-color: #4caf50; }
         .btn-sync.inactive { background-color: #c62828; color: #fff; border-color: #f44336; }
 
@@ -50,7 +52,25 @@
         .btn-delete:hover { background-color: #441111; }
 
         #statusText { text-align: center; font-size: 12px; color: #4caf50; margin-top: 5px; display: none; }
-        h2, p, span, h3 { display: none !important; }
+        
+        /* ستايل المكتبة الجديد */
+        .library-section { 
+            width: 95%; max-width: 650px; margin-top: 30px; padding-bottom: 50px;
+            display: none; /* تظهر فقط للأدمن */
+        }
+        .library-title { border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 15px; color: #888; }
+        .grid-container { 
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); 
+            gap: 15px; 
+        }
+        .movie-card {
+            background: #151515; border: 1px solid #222; border-radius: 8px;
+            overflow: hidden; cursor: pointer; transition: 0.2s; text-align: center;
+        }
+        .movie-card:hover { border-color: #4caf50; transform: scale(1.02); }
+        .movie-card img { width: 100%; height: 180px; object-fit: cover; background: #000; }
+        .movie-card p { display: block !important; font-size: 13px; padding: 8px; margin: 0; color: #ddd; }
+
     </style>
 </head>
 <body>
@@ -68,13 +88,29 @@
         <div id="statusText">تم التحديث بنجاح ✅</div>
     </div>
 
+    <div id="library" class="library-section">
+        <div class="library-title">مكتبة الأفلام والمسلسلات 🎬</div>
+        <div class="grid-container">
+            
+            <div class="movie-card" onclick="loadLibraryItem('https://example.com/movie1.mp4')">
+                <img src="https://via.placeholder.com/150x200?text=Movie+1" alt="فيلم 1">
+                <p>اسم الفيلم الأول</p>
+            </div>
+
+            <div class="movie-card" onclick="loadLibraryItem('https://example.com/movie2.m3u8')">
+                <img src="https://via.placeholder.com/150x200?text=Movie+2" alt="فيلم 2">
+                <p>اسم الفيلم الثاني</p>
+            </div>
+            </div>
+    </div>
+
     <script>
         var videoElement = document.getElementById('myPlayer');
         var hls = new Hls();
         var dbUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream.json";
         var lastUrl = ""; 
         var isAdmin = window.location.hash === "#ana";
-        var isSyncEnabled = true; // الحالة الافتراضية
+        var isSyncEnabled = true; 
 
         function playMedia(url) {
             if (url === lastUrl) return;
@@ -86,16 +122,10 @@
             } else { videoElement.src = url; }
         }
 
-        // --- وظائف المزامنة ---
-
         function syncPlayer(data) {
             if (!data) return;
-
-            // تحديث حالة زر المزامنة للأدمن وللمشاهد
             isSyncEnabled = data.syncEnabled !== false; 
             updateSyncButtonUI();
-
-            // المزامنة تتم فقط إذا كانت مفعلة في القاعدة
             if (isSyncEnabled) {
                 if (data.url !== lastUrl) playMedia(data.url);
                 if (Math.abs(videoElement.currentTime - data.time) > 3) {
@@ -107,7 +137,6 @@
                     videoElement.pause();
                 }
             } else {
-                // إذا تعطلت المزامنة، فقط نحدث الرابط إذا تغير (اختياري)
                 if (data.url !== lastUrl) playMedia(data.url);
             }
         }
@@ -124,7 +153,6 @@
             xhr.send();
         }
 
-        // للأدمن: تبديل حالة المزامنة وحفظها
         function toggleSync() {
             if (!isAdmin) return;
             isSyncEnabled = !isSyncEnabled;
@@ -156,24 +184,30 @@
             xhr.send(JSON.stringify(state));
         }
 
-        // تحديث دوري
         setInterval(function() {
             if (!isAdmin) {
                 loadStream();
             } else {
                 if (isSyncEnabled) updateDatabaseState();
-                // الأدمن يسحب الحالة أيضاً ليتأكد من الزر إذا فتح من جهاز آخر
                 loadStream(); 
             }
         }, 2000);
 
-        // إرسال الحالة عند التغيير اليدوي للأدمن
         if (isAdmin) {
             ['play', 'pause', 'seeked'].forEach(function(ev) {
                 videoElement.addEventListener(ev, function() {
                     if(isSyncEnabled) updateDatabaseState();
                 });
             });
+        }
+
+        // دالة مخصصة للمكتبة لإرسال الرابط فوراً
+        function loadLibraryItem(url) {
+            if (!isAdmin) return;
+            var xhr = new XMLHttpRequest();
+            xhr.open("PATCH", dbUrl, true);
+            xhr.send(JSON.stringify({ url: url, status: "playing", time: 0 }));
+            showStatus("جاري تشغيل المادة من المكتبة 🎬");
         }
 
         function handlePaste(event) {
@@ -207,7 +241,10 @@
 
         window.onload = function() {
             loadStream();
-            if(isAdmin) document.getElementById('admin').style.display = "block";
+            if(isAdmin) {
+                document.getElementById('admin').style.display = "block";
+                document.getElementById('library').style.display = "block";
+            }
         };
     </script>
 </body>
