@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Live Admin Control</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    
+    <style>
+        body, html { 
+            margin: 0; padding: 0; width: 100%; height: 100%; 
+            background-color: #050505; color: #fff;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;    
+            overflow: hidden; font-family: sans-serif;
+        }
+
+        .card { 
+            background: #111; padding: 10px; border-radius: 12px; 
+            box-shadow: 0 4px 25px rgba(0,0,0,0.7); 
+            width: 95%; max-width: 650px; box-sizing: border-box;
+            border: 1px solid #222;
+        }
+        
+        video { width: 100%; border-radius: 8px; background: #000; aspect-ratio: 16/9; display: block; }
+
+        #admin { display: none; width: 95%; max-width: 650px; margin-top: 15px; }
+        
+        input { 
+            width: 100%; padding: 15px; margin: 5px 0; 
+            border: 1px solid #333; border-radius: 8px; 
+            font-size: 16px; background: #1a1a1a; color: #fff;
+            box-sizing: border-box; text-align: center; outline: none;
+        }
+
+        .btn-group { display: flex; gap: 10px; margin-top: 5px; }
+
+        button { 
+            flex: 1; padding: 12px; background-color: #222; 
+            color: #ccc; border: 1px solid #333; border-radius: 8px; 
+            cursor: pointer; font-size: 14px; transition: 0.3s;
+        }
+
+        /* ستايل زر التفعيل */
+        .btn-sync.active { background-color: #2e7d32; color: #fff; border-color: #4caf50; }
+        .btn-sync.inactive { background-color: #c62828; color: #fff; border-color: #f44336; }
+
+        .btn-delete { color: #ff4d4d; border-color: #442222; }
+        .btn-delete:hover { background-color: #441111; }
+
+        #statusText { text-align: center; font-size: 12px; color: #4caf50; margin-top: 5px; display: none; }
+        h2, p, span, h3 { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <video id="myPlayer" controls autoplay playsinline></video>
+    </div>
+
+    <div id="admin">
+        <input type="text" id="urlInput" placeholder="ألصق الرابط هنا..." onpaste="handlePaste(event)">
+        <div class="btn-group">
+            <button id="syncToggleBtn" class="btn-sync" onclick="toggleSync()">جاري التحميل...</button>
+            <button class="btn-delete" onclick="deleteVideo()">حذف الفيديو 🗑️</button>
+        </div>
+        <div id="statusText">تم التحديث بنجاح ✅</div>
+    </div>
+
+    <script>
+        var videoElement = document.getElementById('myPlayer');
+        var hls = new Hls();
+        var dbUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream.json";
+        var lastUrl = ""; 
+        var isAdmin = window.location.hash === "#ana";
+        var isSyncEnabled = true; // الحالة الافتراضية
+
+        function playMedia(url) {
+            if (url === lastUrl) return;
+            lastUrl = url;
+            if (!url) { videoElement.src = ""; if (hls) hls.destroy(); return; }
+            if (Hls.isSupported() && url.includes('m3u8')) {
+                hls.destroy(); hls = new Hls();
+                hls.loadSource(url); hls.attachMedia(videoElement);
+            } else { videoElement.src = url; }
+        }
+
+        // --- وظائف المزامنة ---
+
+        function syncPlayer(data) {
+            if (!data) return;
+
+            // تحديث حالة زر المزامنة للأدمن وللمشاهد
+            isSyncEnabled = data.syncEnabled !== false; 
+            updateSyncButtonUI();
+
+            // المزامنة تتم فقط إذا كانت مفعلة في القاعدة
+            if (isSyncEnabled) {
+                if (data.url !== lastUrl) playMedia(data.url);
+                if (Math.abs(videoElement.currentTime - data.time) > 3) {
+                    videoElement.currentTime = data.time;
+                }
+                if (data.status === "playing" && videoElement.paused) {
+                    videoElement.play().catch(function(e){});
+                } else if (data.status === "paused" && !videoElement.paused) {
+                    videoElement.pause();
+                }
+            } else {
+                // إذا تعطلت المزامنة، فقط نحدث الرابط إذا تغير (اختياري)
+                if (data.url !== lastUrl) playMedia(data.url);
+            }
+        }
+
+        function loadStream() {
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", dbUrl, true);
+            xhr.onload = function () {
+                if (xhr.status === 200) {
+                    var data = JSON.parse(xhr.responseText);
+                    syncPlayer(data);
+                }
+            };
+            xhr.send();
+        }
+
+        // للأدمن: تبديل حالة المزامنة وحفظها
+        function toggleSync() {
+            if (!isAdmin) return;
+            isSyncEnabled = !isSyncEnabled;
+            var xhr = new XMLHttpRequest();
+            xhr.open("PATCH", dbUrl, true);
+            xhr.send(JSON.stringify({ syncEnabled: isSyncEnabled }));
+            updateSyncButtonUI();
+        }
+
+        function updateSyncButtonUI() {
+            var btn = document.getElementById('syncToggleBtn');
+            if (isSyncEnabled) {
+                btn.innerText = "المزامنة: مفعلة ✅";
+                btn.className = "btn-sync active";
+            } else {
+                btn.innerText = "المزامنة: معطلة ❌";
+                btn.className = "btn-sync inactive";
+            }
+        }
+
+        function updateDatabaseState() {
+            if (!isAdmin || !isSyncEnabled) return;
+            var xhr = new XMLHttpRequest();
+            xhr.open("PATCH", dbUrl, true);
+            var state = {
+                status: videoElement.paused ? "paused" : "playing",
+                time: videoElement.currentTime
+            };
+            xhr.send(JSON.stringify(state));
+        }
+
+        // تحديث دوري
+        setInterval(function() {
+            if (!isAdmin) {
+                loadStream();
+            } else {
+                if (isSyncEnabled) updateDatabaseState();
+                // الأدمن يسحب الحالة أيضاً ليتأكد من الزر إذا فتح من جهاز آخر
+                loadStream(); 
+            }
+        }, 2000);
+
+        // إرسال الحالة عند التغيير اليدوي للأدمن
+        if (isAdmin) {
+            ['play', 'pause', 'seeked'].forEach(function(ev) {
+                videoElement.addEventListener(ev, function() {
+                    if(isSyncEnabled) updateDatabaseState();
+                });
+            });
+        }
+
+        function handlePaste(event) {
+            setTimeout(function() {
+                var val = document.getElementById('urlInput').value.trim();
+                if (val) {
+                    var xhr = new XMLHttpRequest();
+                    xhr.open("PATCH", dbUrl, true);
+                    xhr.send(JSON.stringify({ url: val, status: "playing", time: 0 }));
+                    document.getElementById('urlInput').value = ''; 
+                    showStatus("تم تحديث الرابط بنجاح ✅");
+                }
+            }, 100);
+        }
+
+        function deleteVideo() {
+            if(confirm("حذف الفيديو؟")) {
+                var xhr = new XMLHttpRequest();
+                xhr.open("PATCH", dbUrl, true);
+                xhr.send(JSON.stringify({ url: "", status: "paused", time: 0 }));
+                showStatus("تم الحذف 🗑️");
+            }
+        }
+
+        function showStatus(msg) {
+            var status = document.getElementById('statusText');
+            status.innerText = msg;
+            status.style.display = "block";
+            setTimeout(function() { status.style.display = "none"; }, 2000);
+        }
+
+        window.onload = function() {
+            loadStream();
+            if(isAdmin) document.getElementById('admin').style.display = "block";
+        };
+    </script>
+</body>
+</html>
