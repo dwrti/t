@@ -12,15 +12,15 @@
             margin: 0; padding: 0; width: 100%; height: 100%; 
             background-color: #050505; color: #fff;
             display: flex; flex-direction: column;
-            justify-content: center; align-items: center;    
-            overflow: hidden; font-family: sans-serif;
+            align-items: center;    
+            overflow-y: auto; font-family: sans-serif;
         }
 
         .card { 
             background: #111; padding: 10px; border-radius: 12px; 
             box-shadow: 0 4px 25px rgba(0,0,0,0.7); 
             width: 95%; max-width: 650px; box-sizing: border-box;
-            border: 1px solid #222;
+            border: 1px solid #222; margin-top: 20px;
         }
         
         video { width: 100%; border-radius: 8px; background: #000; aspect-ratio: 16/9; display: block; }
@@ -28,24 +28,11 @@
         #admin { display: none; width: 95%; max-width: 650px; margin-top: 15px; }
         
         input { 
-            width: 100%; padding: 12px; margin: 5px 0; 
+            width: 100%; padding: 15px; margin: 5px 0; 
             border: 1px solid #333; border-radius: 8px; 
             font-size: 16px; background: #1a1a1a; color: #fff;
             box-sizing: border-box; text-align: center; outline: none;
         }
-
-        /* قائمة المقاطع المحفوظة */
-        #playlistContainer {
-            width: 95%; max-width: 650px; margin-top: 10px;
-            background: #111; border-radius: 8px; border: 1px solid #222;
-            max-height: 150px; overflow-y: auto; display: none;
-        }
-        .playlist-item {
-            padding: 10px; border-bottom: 1px solid #222;
-            cursor: pointer; display: flex; justify-content: space-between; align-items: center;
-        }
-        .playlist-item:hover { background: #1a1a1a; }
-        .playlist-item span { font-size: 14px; color: #ccc; }
 
         .btn-group { display: flex; gap: 10px; margin-top: 5px; }
 
@@ -61,8 +48,25 @@
         .btn-delete { color: #ff4d4d; border-color: #442222; }
         .btn-delete:hover { background-color: #441111; }
 
+        /* ستايل قائمة المقاطع */
+        #playlistContainer { 
+            width: 95%; max-width: 650px; margin-top: 15px; 
+            background: #111; border-radius: 12px; padding: 10px;
+            border: 1px solid #222; display: none; box-sizing: border-box;
+        }
+        .playlist-title { font-size: 14px; color: #888; margin-bottom: 10px; text-align: center; border-bottom: 1px solid #222; padding-bottom: 5px; }
+        .video-item { 
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px; background: #1a1a1a; margin-bottom: 5px; border-radius: 6px;
+            cursor: pointer; transition: 0.2s;
+        }
+        .video-item:hover { background: #252525; }
+        .video-item span { font-size: 14px; }
+        .remove-vid { color: #ff4d4d; font-size: 18px; padding: 0 10px; }
+
         #statusText { text-align: center; font-size: 12px; color: #4caf50; margin-top: 5px; display: none; }
-        h2, p, span, h3 { display: none !important; }
+        h2, p, span, h3 { color: inherit; } /* ألغيت خاصية الإخفاء العام للسماح برؤية القائمة */
+        h2, p, h3 { display: none !important; } /* الحفاظ على إخفاء العناوين كما طلبت سابقاً */
     </style>
 </head>
 <body>
@@ -71,14 +75,17 @@
         <video id="myPlayer" controls autoplay playsinline></video>
     </div>
 
-    <div id="playlistContainer"></div>
+    <div id="playlistContainer">
+        <div class="playlist-title">المقاطع المحفوظة (تظهر عند إيقاف المزامنة)</div>
+        <div id="items"></div>
+    </div>
 
     <div id="admin">
-        <input type="text" id="titleInput" placeholder="اسم المقطع (اختياري للحفظ)">
+        <input type="text" id="nameInput" placeholder="اسم المقطع (اختياري للحفظ)">
         <input type="text" id="urlInput" placeholder="ألصق الرابط هنا..." onpaste="handlePaste(event)">
         <div class="btn-group">
             <button id="syncToggleBtn" class="btn-sync" onclick="toggleSync()">جاري التحميل...</button>
-            <button class="btn-delete" onclick="deleteVideo()">حذف الفيديو 🗑️</button>
+            <button class="btn-delete" onclick="deleteVideo()">حذف الفيديو الحالي 🗑️</button>
         </div>
         <div id="statusText">تم التحديث بنجاح ✅</div>
     </div>
@@ -86,10 +93,8 @@
     <script>
         var videoElement = document.getElementById('myPlayer');
         var hls = new Hls();
-        // تم استخدام رابط القاعدة الخاص بك
         var dbUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream.json";
         var playlistUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/playlist.json";
-        
         var lastUrl = ""; 
         var isAdmin = window.location.hash === "#ana";
         var isSyncEnabled = true;
@@ -98,7 +103,7 @@
             if (url === lastUrl) return;
             lastUrl = url;
             if (!url) { videoElement.src = ""; if (hls) hls.destroy(); return; }
-            if (Hls.isSupported() && (url.includes('m3u8') || url.includes('stream'))) {
+            if (Hls.isSupported() && url.includes('m3u8')) {
                 hls.destroy(); hls = new Hls();
                 hls.loadSource(url); hls.attachMedia(videoElement);
             } else { videoElement.src = url; }
@@ -108,8 +113,8 @@
             if (!data) return;
             isSyncEnabled = data.syncEnabled !== false; 
             updateSyncButtonUI();
-
-            // إظهار أو إخفاء القائمة بناءً على المزامنة
+            
+            // التحكم في ظهور قائمة التشغيل بناءً على المزامنة
             document.getElementById('playlistContainer').style.display = isSyncEnabled ? "none" : "block";
 
             if (isSyncEnabled) {
@@ -130,12 +135,11 @@
             xhr.open("GET", dbUrl, true);
             xhr.onload = function () {
                 if (xhr.status === 200) {
-                    syncPlayer(JSON.parse(xhr.responseText));
+                    var data = JSON.parse(xhr.responseText);
+                    syncPlayer(data);
                 }
             };
             xhr.send();
-            
-            // تحميل قائمة المقاطع بشكل مستمر
             loadPlaylist();
         }
 
@@ -145,51 +149,34 @@
             xhr.onload = function () {
                 if (xhr.status === 200) {
                     var list = JSON.parse(xhr.responseText);
-                    var container = document.getElementById('playlistContainer');
-                    container.innerHTML = "";
-                    for (var id in list) {
-                        (function(item) {
-                            var div = document.createElement('div');
-                            div.className = "playlist-item";
-                            div.innerHTML = `<span>${item.title || 'بدون عنوان'}</span>`;
-                            div.onclick = function() { playMedia(item.url); };
-                            container.appendChild(div);
-                        })(list[id]);
-                    }
+                    renderPlaylist(list);
                 }
             };
             xhr.send();
         }
 
-        function handlePaste(event) {
-            setTimeout(function() {
-                var urlVal = document.getElementById('urlInput').value.trim();
-                var titleVal = document.getElementById('titleInput').value.trim() || "مقطع جديد";
-                
-                if (urlVal) {
-                    if (confirm("هل تريد حفظ هذا المقطع في القائمة؟ (إلغاء للتشغيل فقط)")) {
-                        saveToPlaylist(titleVal, urlVal);
-                    } else {
-                        updateLiveStream(urlVal);
-                    }
-                    document.getElementById('urlInput').value = '';
-                    document.getElementById('titleInput').value = '';
+        function renderPlaylist(list) {
+            var container = document.getElementById('items');
+            container.innerHTML = "";
+            if (!list) return;
+            Object.keys(list).forEach(function(key) {
+                var item = list[key];
+                var div = document.createElement('div');
+                div.className = "video-item";
+                div.innerHTML = `<span onclick="playFromPlaylist('${item.url}')">${item.name}</span>`;
+                if(isAdmin) {
+                    div.innerHTML += `<span class="remove-vid" onclick="removeFromPlaylist('${key}')">×</span>`;
                 }
-            }, 100);
+                container.appendChild(div);
+            });
         }
 
-        function saveToPlaylist(title, url) {
-            var xhr = new XMLHttpRequest();
-            xhr.open("POST", playlistUrl, true);
-            xhr.send(JSON.stringify({ title: title, url: url }));
-            showStatus("تم الحفظ في القائمة ✅");
-        }
-
-        function updateLiveStream(url) {
-            var xhr = new XMLHttpRequest();
-            xhr.open("PATCH", dbUrl, true);
-            xhr.send(JSON.stringify({ url: url, status: "playing", time: 0 }));
-            showStatus("تم تشغيل المقطع مباشر ✅");
+        function playFromPlaylist(url) {
+            if (!isSyncEnabled) {
+                playMedia(url);
+            } else {
+                alert("المزامنة مفعلة، لا يمكنك تغيير المقطع يدوياً.");
+            }
         }
 
         function toggleSync() {
@@ -212,21 +199,43 @@
             }
         }
 
-        function updateDatabaseState() {
-            if (!isAdmin || !isSyncEnabled) return;
-            var xhr = new XMLHttpRequest();
-            xhr.open("PATCH", dbUrl, true);
-            var state = {
-                status: videoElement.paused ? "paused" : "playing",
-                time: videoElement.currentTime
-            };
-            xhr.send(JSON.stringify(state));
+        function handlePaste(event) {
+            setTimeout(function() {
+                var url = document.getElementById('urlInput').value.trim();
+                var name = document.getElementById('nameInput').value.trim() || "مقطع بدون اسم";
+                if (url) {
+                    var action = confirm("هل تريد حفظ المقطع في القائمة وتشغيله؟\n(إلغاء سيقوم بالتشغيل فقط بدون حفظ)");
+                    if (action) {
+                        saveToPlaylist(name, url);
+                    }
+                    updateCurrentVideo(url);
+                    document.getElementById('urlInput').value = ''; 
+                    document.getElementById('nameInput').value = '';
+                }
+            }, 100);
         }
 
-        setInterval(function() {
-            loadStream();
-            if (isAdmin && isSyncEnabled) updateDatabaseState();
-        }, 2000);
+        function saveToPlaylist(name, url) {
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", playlistUrl, true);
+            xhr.send(JSON.stringify({ name: name, url: url }));
+        }
+
+        function removeFromPlaylist(key) {
+            if(confirm("حذف من القائمة؟")) {
+                var xhr = new XMLHttpRequest();
+                xhr.open("DELETE", `https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/playlist/${key}.json`, true);
+                xhr.onload = function() { loadPlaylist(); };
+                xhr.send();
+            }
+        }
+
+        function updateCurrentVideo(url) {
+            var xhr = new XMLHttpRequest();
+            xhr.open("PATCH", dbUrl, true);
+            xhr.send(JSON.stringify({ url: url, status: "playing", time: 0 }));
+            showStatus("تم التحديث بنجاح ✅");
+        }
 
         function deleteVideo() {
             if(confirm("حذف الفيديو الحالي؟")) {
@@ -243,6 +252,8 @@
             status.style.display = "block";
             setTimeout(function() { status.style.display = "none"; }, 2000);
         }
+
+        setInterval(loadStream, 3000);
 
         window.onload = function() {
             loadStream();
