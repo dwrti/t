@@ -21,22 +21,17 @@
             box-shadow: 0 4px 25px rgba(0,0,0,0.7); 
             width: 95%; max-width: 650px; box-sizing: border-box;
             border: 1px solid #222;
+            z-index: 2;
         }
         
         video { width: 100%; border-radius: 8px; background: #000; aspect-ratio: 16/9; display: block; }
 
-        /* منطقة اسم الرابط تحت الفيديو */
-        #displayTitle {
-            margin-top: 10px; text-align: center; font-size: 18px; 
-            font-weight: bold; color: #4caf50; min-height: 24px;
-        }
-
-        #admin { display: none; width: 95%; max-width: 650px; margin-top: 15px; }
+        #admin { display: none; width: 95%; max-width: 650px; margin-top: 15px; z-index: 2; }
         
         input { 
-            width: 100%; padding: 12px; margin: 5px 0; 
+            width: 100%; padding: 15px; margin: 5px 0; 
             border: 1px solid #333; border-radius: 8px; 
-            font-size: 15px; background: #1a1a1a; color: #fff;
+            font-size: 16px; background: #1a1a1a; color: #fff;
             box-sizing: border-box; text-align: center; outline: none;
         }
 
@@ -51,37 +46,41 @@
         .btn-sync.active { background-color: #2e7d32; color: #fff; border-color: #4caf50; }
         .btn-sync.inactive { background-color: #c62828; color: #fff; border-color: #f44336; }
 
-        .btn-save { background-color: #1565c0; color: white; border-color: #1976d2; }
-
         .btn-delete { color: #ff4d4d; border-color: #442222; }
         .btn-delete:hover { background-color: #441111; }
 
         #statusText { text-align: center; font-size: 12px; color: #4caf50; margin-top: 5px; display: none; }
         h2, p, span, h3 { display: none !important; }
+
+        /* --- شريط الرابط المحفوظ أسفل الشاشة --- */
+        #linkHistory {
+            position: fixed; bottom: 0; left: 0; width: 100%;
+            background: rgba(20, 20, 20, 0.95);
+            border-top: 1px solid #333;
+            padding: 12px; text-align: center;
+            font-size: 13px; color: #aaa;
+            z-index: 100; box-sizing: border-box;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        #linkHistory a { color: #4caf50; text-decoration: none; font-weight: bold; margin-right: 5px; }
     </style>
 </head>
 <body>
 
     <div class="card">
         <video id="myPlayer" controls autoplay playsinline></video>
-        <div id="displayTitle">جاري جلب البيانات...</div>
     </div>
 
     <div id="admin">
-        <input type="text" id="nameInput" placeholder="أدخل اسم القناة أو الرابط هنا...">
-        <input type="text" id="urlInput" placeholder="أو الصق الرابط هنا مباشرة للمزامنة..." onpaste="handlePaste(event)">
-        
+        <input type="text" id="urlInput" placeholder="ألصق الرابط هنا..." onpaste="handlePaste(event)">
         <div class="btn-group">
-            <button class="btn-save" onclick="updateTitle()">حفظ الاسم فقط 💾</button>
             <button id="syncToggleBtn" class="btn-sync" onclick="toggleSync()">جاري التحميل...</button>
+            <button class="btn-delete" onclick="deleteVideo()">حذف الفيديو 🗑️</button>
         </div>
-        
-        <div class="btn-group">
-            <button class="btn-delete" onclick="deleteVideo()">حذف الكل 🗑️</button>
-        </div>
-        
         <div id="statusText">تم التحديث بنجاح ✅</div>
     </div>
+
+    <div id="linkHistory">الرابط الحالي: <a id="savedLink" href="#" target="_blank">لا يوجد رابط نشط</a></div>
 
     <script>
         var videoElement = document.getElementById('myPlayer');
@@ -94,6 +93,17 @@
         function playMedia(url) {
             if (url === lastUrl) return;
             lastUrl = url;
+            
+            // تحديث رابط الشريط في الأسفل
+            var linkDisplay = document.getElementById('savedLink');
+            if (url) {
+                linkDisplay.innerText = url;
+                linkDisplay.href = url;
+            } else {
+                linkDisplay.innerText = "تم حذف الرابط";
+                linkDisplay.href = "#";
+            }
+
             if (!url) { videoElement.src = ""; if (hls) hls.destroy(); return; }
             if (Hls.isSupported() && url.includes('m3u8')) {
                 hls.destroy(); hls = new Hls();
@@ -101,19 +111,20 @@
             } else { videoElement.src = url; }
         }
 
-        // --- وظائف المزامنة ---
-
         function syncPlayer(data) {
             if (!data) return;
-
-            // تحديث العنوان للجميع
-            document.getElementById('displayTitle').innerText = data.title || "";
 
             isSyncEnabled = data.syncEnabled !== false; 
             updateSyncButtonUI();
 
+            // تحديث الشريط دائماً حتى لو المزامنة معطلة ليعرف الجميع ماذا يشاهدون
+            if (data.url && data.url !== lastUrl) {
+                playMedia(data.url);
+            } else if (!data.url && lastUrl !== "") {
+                playMedia("");
+            }
+
             if (isSyncEnabled) {
-                if (data.url !== lastUrl) playMedia(data.url);
                 if (Math.abs(videoElement.currentTime - data.time) > 3) {
                     videoElement.currentTime = data.time;
                 }
@@ -122,8 +133,6 @@
                 } else if (data.status === "paused" && !videoElement.paused) {
                     videoElement.pause();
                 }
-            } else {
-                if (data.url !== lastUrl) playMedia(data.url);
             }
         }
 
@@ -137,15 +146,6 @@
                 }
             };
             xhr.send();
-        }
-
-        // تحديث اسم الرابط (للكل يشوفونه)
-        function updateTitle() {
-            var titleVal = document.getElementById('nameInput').value.trim();
-            var xhr = new XMLHttpRequest();
-            xhr.open("PATCH", dbUrl, true);
-            xhr.send(JSON.stringify({ title: titleVal }));
-            showStatus("تم حفظ الاسم بنجاح ✅");
         }
 
         function toggleSync() {
@@ -210,11 +210,11 @@
         }
 
         function deleteVideo() {
-            if(confirm("حذف كل البيانات؟")) {
+            if(confirm("حذف الفيديو؟")) {
                 var xhr = new XMLHttpRequest();
                 xhr.open("PATCH", dbUrl, true);
-                xhr.send(JSON.stringify({ url: "", status: "paused", time: 0, title: "" }));
-                showStatus("تم حذف كل شيء 🗑️");
+                xhr.send(JSON.stringify({ url: "", status: "paused", time: 0 }));
+                showStatus("تم الحذف 🗑️");
             }
         }
 
