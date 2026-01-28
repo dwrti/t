@@ -27,13 +27,25 @@
 
         #admin { display: none; width: 95%; max-width: 650px; margin-top: 15px; }
         
-        input, select { 
-            width: 100%; padding: 15px; margin: 5px 0; 
+        input { 
+            width: 100%; padding: 12px; margin: 5px 0; 
             border: 1px solid #333; border-radius: 8px; 
             font-size: 16px; background: #1a1a1a; color: #fff;
             box-sizing: border-box; text-align: center; outline: none;
-            appearance: none; -webkit-appearance: none;
         }
+
+        /* قائمة المقاطع المحفوظة */
+        #playlistContainer {
+            width: 95%; max-width: 650px; margin-top: 10px;
+            background: #111; border-radius: 8px; border: 1px solid #222;
+            max-height: 150px; overflow-y: auto; display: none;
+        }
+        .playlist-item {
+            padding: 10px; border-bottom: 1px solid #222;
+            cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+        }
+        .playlist-item:hover { background: #1a1a1a; }
+        .playlist-item span { font-size: 14px; color: #ccc; }
 
         .btn-group { display: flex; gap: 10px; margin-top: 5px; }
 
@@ -59,16 +71,11 @@
         <video id="myPlayer" controls autoplay playsinline></video>
     </div>
 
-    <div id="admin">
-        <select id="movieLibrary" onchange="selectMovie(this.value)">
-            <option value="">🎬 اختر من مكتبة الأفلام/المسلسلات</option>
-            <option value="https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8">فيديو تجريبي 1 (HLS)</option>
-            <option value="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4">فيلم الأرنب (MP4)</option>
-            <option value="رابط_فيلم_آخر_هنا">اسم الفيلم الجديد</option>
-        </select>
+    <div id="playlistContainer"></div>
 
-        <input type="text" id="urlInput" placeholder="أو ألصق الرابط المباشر هنا..." onpaste="handlePaste(event)">
-        
+    <div id="admin">
+        <input type="text" id="titleInput" placeholder="اسم المقطع (اختياري للحفظ)">
+        <input type="text" id="urlInput" placeholder="ألصق الرابط هنا..." onpaste="handlePaste(event)">
         <div class="btn-group">
             <button id="syncToggleBtn" class="btn-sync" onclick="toggleSync()">جاري التحميل...</button>
             <button class="btn-delete" onclick="deleteVideo()">حذف الفيديو 🗑️</button>
@@ -79,7 +86,10 @@
     <script>
         var videoElement = document.getElementById('myPlayer');
         var hls = new Hls();
+        // تم استخدام رابط القاعدة الخاص بك
         var dbUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream.json";
+        var playlistUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/playlist.json";
+        
         var lastUrl = ""; 
         var isAdmin = window.location.hash === "#ana";
         var isSyncEnabled = true;
@@ -88,7 +98,7 @@
             if (url === lastUrl) return;
             lastUrl = url;
             if (!url) { videoElement.src = ""; if (hls) hls.destroy(); return; }
-            if (Hls.isSupported() && url.includes('m3u8')) {
+            if (Hls.isSupported() && (url.includes('m3u8') || url.includes('stream'))) {
                 hls.destroy(); hls = new Hls();
                 hls.loadSource(url); hls.attachMedia(videoElement);
             } else { videoElement.src = url; }
@@ -98,6 +108,10 @@
             if (!data) return;
             isSyncEnabled = data.syncEnabled !== false; 
             updateSyncButtonUI();
+
+            // إظهار أو إخفاء القائمة بناءً على المزامنة
+            document.getElementById('playlistContainer').style.display = isSyncEnabled ? "none" : "block";
+
             if (isSyncEnabled) {
                 if (data.url !== lastUrl) playMedia(data.url);
                 if (Math.abs(videoElement.currentTime - data.time) > 3) {
@@ -108,8 +122,6 @@
                 } else if (data.status === "paused" && !videoElement.paused) {
                     videoElement.pause();
                 }
-            } else {
-                if (data.url !== lastUrl) playMedia(data.url);
             }
         }
 
@@ -118,21 +130,66 @@
             xhr.open("GET", dbUrl, true);
             xhr.onload = function () {
                 if (xhr.status === 200) {
-                    var data = JSON.parse(xhr.responseText);
-                    syncPlayer(data);
+                    syncPlayer(JSON.parse(xhr.responseText));
+                }
+            };
+            xhr.send();
+            
+            // تحميل قائمة المقاطع بشكل مستمر
+            loadPlaylist();
+        }
+
+        function loadPlaylist() {
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", playlistUrl, true);
+            xhr.onload = function () {
+                if (xhr.status === 200) {
+                    var list = JSON.parse(xhr.responseText);
+                    var container = document.getElementById('playlistContainer');
+                    container.innerHTML = "";
+                    for (var id in list) {
+                        (function(item) {
+                            var div = document.createElement('div');
+                            div.className = "playlist-item";
+                            div.innerHTML = `<span>${item.title || 'بدون عنوان'}</span>`;
+                            div.onclick = function() { playMedia(item.url); };
+                            container.appendChild(div);
+                        })(list[id]);
+                    }
                 }
             };
             xhr.send();
         }
 
-        // وظيفة اختيار فيلم من المكتبة
-        function selectMovie(url) {
-            if (!url) return;
+        function handlePaste(event) {
+            setTimeout(function() {
+                var urlVal = document.getElementById('urlInput').value.trim();
+                var titleVal = document.getElementById('titleInput').value.trim() || "مقطع جديد";
+                
+                if (urlVal) {
+                    if (confirm("هل تريد حفظ هذا المقطع في القائمة؟ (إلغاء للتشغيل فقط)")) {
+                        saveToPlaylist(titleVal, urlVal);
+                    } else {
+                        updateLiveStream(urlVal);
+                    }
+                    document.getElementById('urlInput').value = '';
+                    document.getElementById('titleInput').value = '';
+                }
+            }, 100);
+        }
+
+        function saveToPlaylist(title, url) {
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", playlistUrl, true);
+            xhr.send(JSON.stringify({ title: title, url: url }));
+            showStatus("تم الحفظ في القائمة ✅");
+        }
+
+        function updateLiveStream(url) {
             var xhr = new XMLHttpRequest();
             xhr.open("PATCH", dbUrl, true);
             xhr.send(JSON.stringify({ url: url, status: "playing", time: 0 }));
-            showStatus("تم تشغيل الفيلم من المكتبة 🎬");
-            document.getElementById('movieLibrary').selectedIndex = 0; // إعادة تصفير القائمة
+            showStatus("تم تشغيل المقطع مباشر ✅");
         }
 
         function toggleSync() {
@@ -167,37 +224,12 @@
         }
 
         setInterval(function() {
-            if (!isAdmin) {
-                loadStream();
-            } else {
-                if (isSyncEnabled) updateDatabaseState();
-                loadStream(); 
-            }
+            loadStream();
+            if (isAdmin && isSyncEnabled) updateDatabaseState();
         }, 2000);
 
-        if (isAdmin) {
-            ['play', 'pause', 'seeked'].forEach(function(ev) {
-                videoElement.addEventListener(ev, function() {
-                    if(isSyncEnabled) updateDatabaseState();
-                });
-            });
-        }
-
-        function handlePaste(event) {
-            setTimeout(function() {
-                var val = document.getElementById('urlInput').value.trim();
-                if (val) {
-                    var xhr = new XMLHttpRequest();
-                    xhr.open("PATCH", dbUrl, true);
-                    xhr.send(JSON.stringify({ url: val, status: "playing", time: 0 }));
-                    document.getElementById('urlInput').value = ''; 
-                    showStatus("تم تحديث الرابط بنجاح ✅");
-                }
-            }, 100);
-        }
-
         function deleteVideo() {
-            if(confirm("حذف الفيديو؟")) {
+            if(confirm("حذف الفيديو الحالي؟")) {
                 var xhr = new XMLHttpRequest();
                 xhr.open("PATCH", dbUrl, true);
                 xhr.send(JSON.stringify({ url: "", status: "paused", time: 0 }));
