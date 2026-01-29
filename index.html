@@ -3,26 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>دورتي الكرتونية 🎨📺</title>
+    <title>دورتي الكرتونية 📺</title>
     
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     
     <style>
-        /* ثيم الكرتون - ألوان مبهجة وزوايا مستديرة */
-        :root {
-            --bg-color: #fffae5; /* أصفر فاتح جداً */
-            --primary-color: #ff6b6b; /* أحمر كرتوني */
-            --secondary-color: #4ecdc4; /* تركواز */
-            --accent-color: #ffe66d; /* أصفر مشرق */
-            --text-dark: #2d3436;
-            --border-style: 4px solid #2d3436; /* إطار أسود عريض كرتوني */
-        }
-
+        /* ستايل عالم الكرتون المبهج */
         html, body { 
             margin: 0; padding: 0; width: 100%; height: 100%; 
-            background-color: var(--bg-color); 
-            color: var(--text-dark);
-            font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f9ff; /* لون سماوي فاتح كرتوني */
+            background-image: radial-gradient(#d1e9ff 2px, transparent 2px);
+            background-size: 30px 30px; /* نمط نقاط كرتوني خفيف */
+            color: #333;
+            font-family: 'Segoe UI', 'Comic Sans MS', cursive, sans-serif;
             overflow-x: hidden;
             overflow-y: scroll; 
             -webkit-overflow-scrolling: touch; 
@@ -32,24 +25,22 @@
         body {
             display: flex; flex-direction: column;
             align-items: center;
-            background-image: radial-gradient(#ffe66d 2px, transparent 2px); /* خلفية منقطة كرتونية */
-            background-size: 30px 30px;
         }
 
         /* إطار المشغل الكرتوني */
         .card { 
             background: #fff; 
             padding: 10px; 
-            border-radius: 30px; 
+            border-radius: 25px; 
             width: 92%; 
-            max-width: 700px; 
+            max-width: 650px; 
             box-sizing: border-box;
-            border: var(--border-style);
-            box-shadow: 8px 8px 0px #2d3436; /* ظل حاد كرتوني */
-            z-index: 10;
-            position: sticky; 
-            top: 15px;
+            border: 6px solid #333; /* حدود سميكة كرتونية */
+            box-shadow: 10px 10px 0px #ffcf00; /* ظل بارز أصفر */
+            z-index: 100;
+            position: sticky; top: 15px; 
             margin-top: 15px;
+            overflow: hidden;
         }
         
         video { 
@@ -57,109 +48,115 @@
             display: block; 
             aspect-ratio: 16/9; 
             background: #000; 
-            border-radius: 20px;
-            border: 2px solid #2d3436;
+            border-radius: 15px;
         }
 
         #admin { 
             display: none; 
             width: 90%; 
             max-width: 650px; 
-            margin-top: 30px;
-            background: #fff;
+            margin-top: 30px; 
+            background: #ffffff;
             padding: 20px;
-            border-radius: 25px;
-            border: var(--border-style);
-            box-shadow: 6px 6px 0px #2d3436;
+            border-radius: 20px;
+            border: 4px solid #333;
+            box-shadow: 8px 8px 0px #ff6b6b;
         }
         
         #viewerCount {
-            background: var(--accent-color);
-            color: #2d3436;
+            background: #ffcf00;
+            color: #333;
             padding: 10px;
-            border-radius: 15px;
+            border-radius: 50px;
             text-align: center;
             font-size: 16px;
             margin-bottom: 15px;
-            border: 2px solid #2d3436;
+            border: 3px solid #333;
             font-weight: bold;
         }
 
         input { 
             width: 100%; padding: 12px; margin: 8px 0; 
-            border: 3px solid #2d3436; border-radius: 15px; 
-            font-size: 14px; background: #fff; color: #333;
+            border: 3px solid #333; border-radius: 12px; 
+            font-size: 15px; background: #fff; color: #333;
             box-sizing: border-box; outline: none;
-            transition: transform 0.2s;
         }
-        
-        input:focus { transform: scale(1.02); border-color: var(--primary-color); }
 
         .btn-group { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
 
         button { 
             flex: 1; min-width: 100px; padding: 12px; 
-            background-color: var(--secondary-color); 
-            color: #fff; border: 3px solid #2d3436; border-radius: 15px; 
-            cursor: pointer; font-size: 14px; font-weight: 900;
-            box-shadow: 4px 4px 0px #2d3436;
-            transition: all 0.2s;
+            background-color: #4cc9f0; 
+            color: #fff; border: 3px solid #333; border-radius: 15px; 
+            cursor: pointer; font-size: 15px; font-weight: bold;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 4px 4px 0px #333;
+            text-shadow: 1px 1px 0px rgba(0,0,0,0.2);
         }
 
-        button:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0px #2d3436; }
+        button:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0px #333; }
 
-        .btn-sync.active { background-color: #4caf50; }
+        .btn-sync.active { background-color: #4CAF50; }
         .btn-sync.inactive { background-color: #f44336; }
-        .btn-delete { background-color: #ff5252; }
+        .btn-delete { background-color: #ff9f1c; color: white; }
 
-        #statusText { text-align: center; font-size: 14px; color: #2d3436; margin: 10px 0; font-weight: bold; }
+        #statusText { 
+            text-align: center; font-size: 15px; color: #e91e63; 
+            margin: 10px 0; font-weight: bold; 
+        }
         
+        /* إخفاء العناصر غير المرغوبة حسب طلبك الأصلي */
         h2, p, span:not(.ep-name-text), h3 { display: none !important; }
 
         /* قسم المكتبة الكرتوني */
         #librarySection {
             width: 90%; max-width: 650px; 
-            margin: 40px auto 100px auto; 
-            background: #fff; border-radius: 25px; 
-            border: var(--border-style);
-            padding: 20px; box-sizing: border-box; 
+            margin: 120px auto 100px auto; 
+            background: #fff; 
+            border-radius: 25px; 
+            border: 4px solid #333;
+            padding: 20px; 
+            box-sizing: border-box; 
             display: none;
-            box-shadow: 10px 10px 0px rgba(0,0,0,0.05);
+            box-shadow: 12px 12px 0px #4cc9f0;
         }
         
         .lib-title { 
-            font-size: 20px; margin-bottom: 20px; text-align: center;
-            color: var(--primary-color); font-weight: 900; 
-            border-bottom: 3px dashed var(--secondary-color);
-            padding-bottom: 10px;
+            font-size: 20px; margin-bottom: 15px; text-align: center;
+            color: #333; font-weight: 900; 
+            min-height: 1.2em; 
         }
 
+        .ep-list { max-height: none; overflow: visible; }
+        
         .ep-item { 
             display: flex; align-items: center; 
-            background: #f1f2f6; margin-bottom: 12px; border-radius: 18px;
-            border: 3px solid #2d3436; overflow: hidden;
+            background: #f9f9f9; margin-bottom: 12px; border-radius: 18px;
+            border: 3px solid #333; overflow: hidden;
             flex-direction: row-reverse;
             transition: all 0.2s;
+            box-shadow: 4px 4px 0px #eee;
         }
         
-        .ep-item:hover { transform: translateY(-3px); box-shadow: 4px 4px 0px #2d3436; }
+        .ep-item:hover { transform: translateY(-3px); box-shadow: 6px 6px 0px #ddd; }
 
         .ep-name-clickable {
-            flex-grow: 1; padding: 15px;
+            flex-grow: 1; padding: 18px;
             cursor: pointer; -webkit-tap-highlight-color: transparent;
             text-align: right;
         }
 
         .ep-name-text { 
-            color: #2d3436 !important; 
-            font-size: 16px; 
+            color: #333 !important; 
+            font-size: 17px; 
             font-weight: bold;
             display: block !important;
+            pointer-events: none;
         }
 
         .lib-control-btn {
-            background: #fff; border: none; border-left: 3px solid #2d3436;
-            height: 50px; font-size: 18px; 
+            background: #fff; border: none; border-left: 3px solid #333;
+            height: 55px; font-size: 20px; 
             cursor: pointer; display: none; 
             flex-shrink: 0; outline: none; padding: 0 15px;
         }
@@ -167,11 +164,6 @@
         .single-delete-btn { color: #ff4444; }
         .single-edit-btn { color: #4caf50; }
         
-        /* إضافة سكرول بار جميل */
-        ::-webkit-scrollbar { width: 10px; }
-        ::-webkit-scrollbar-track { background: var(--bg-color); }
-        ::-webkit-scrollbar-thumb { background: var(--secondary-color); border-radius: 10px; border: 2px solid #2d3436; }
-
     </style>
 </head>
 <body>
@@ -181,30 +173,30 @@
     </div>
 
     <div id="admin">
-        <div id="viewerCount">عدد المتفرجين الآن: 0 🎈</div>
+        <div id="viewerCount">عدد المتصلين الآن: جاري التحميل...</div>
 
         <input type="text" id="urlInput" placeholder="رابط البث المباشر الأساسي..." onpaste="handlePaste(event)">
         
         <div style="border-top: 3px dashed #ddd; margin-top: 15px; padding-top: 15px;">
-            <input type="text" id="epNameInput" placeholder="اسم العمل الجديد 🎬">
+            <input type="text" id="epNameInput" placeholder="اسم العمل / الحلقة">
             <input type="text" id="epUrlInput" placeholder="رابط الفيديو المباشر...">
-            <button style="background: var(--primary-color); color: white; width: 100%; margin-top: 10px;" onclick="addEpisode()">إضافة للمكتبة +</button>
+            <button style="background: #7209b7; color: white; width: 100%; border: 3px solid #333; margin-top: 10px;" onclick="addEpisode()">إضافة للمكتبة ➕</button>
         </div>
 
-        <div class="btn-group" style="margin-top: 15px; border-top: 3px dashed #ddd; padding-top: 15px;">
+        <div class="btn-group" style="margin-top: 20px; border-top: 3px dashed #ddd; padding-top: 15px;">
             <button id="syncToggleBtn" class="btn-sync" onclick="toggleSync()">جاري التحميل...</button>
-            <button class="btn-delete" onclick="deleteVideo()">حذف البث 🗑️</button>
+            <button class="btn-delete" onclick="deleteVideo()">حذف فيديو البث 🗑️</button>
         </div>
-        <div id="statusText">جاهز للانطلاق! ✨</div>
+        <div id="statusText">تم التحديث بنجاح ✅</div>
     </div>
 
     <div id="librarySection">
-        <div class="lib-title">قائمة المشاهدة 📺✨</div> 
+        <div class="lib-title">🎬 قائمة العروض الممتعة</div> 
         <div id="episodesContainer" class="ep-list"></div>
     </div>
 
     <script>
-        // الكود البرمجي (Javascript) يبقى كما هو تماماً لضمان عدم حدوث أي عطل في الوظائف
+        // الكود البرمجي (السكربت) يبقى كما هو لضمان عمل الوظائف 100%
         var videoElement = document.getElementById('myPlayer');
         var hls = new Hls();
         var dbUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream.json";
@@ -239,7 +231,7 @@
                             }
                         });
                     }
-                    document.getElementById('viewerCount').innerText = "عدد المتصلين الآن: " + count + " 🎈";
+                    document.getElementById('viewerCount').innerText = "المشاهدون الآن: " + count + " 👀";
                 }
             };
             xhr.send();
@@ -260,7 +252,7 @@
             var container = document.getElementById('episodesContainer');
             container.innerHTML = "";
             if (!libData) { 
-                container.innerHTML = "<div style='text-align:center; padding:30px; color:#999; display:block !important; font-weight:bold;'>المكتبة خالية حالياً 😴</div>"; 
+                container.innerHTML = "<div style='text-align:center; padding:30px; color:#999; font-weight:bold;'>المكتبة فارغة حالياً 🎈</div>"; 
                 return; 
             }
             
@@ -271,13 +263,13 @@
                 
                 var nameBox = document.createElement('div');
                 nameBox.className = "ep-name-clickable";
-                nameBox.innerHTML = '<span class="ep-name-text">🎬 ' + ep.name + '</span>';
+                nameBox.innerHTML = '<span class="ep-name-text">' + ep.name + '</span>';
                 nameBox.onclick = function() { 
                     if (isAdmin) {
                         var xhr = new XMLHttpRequest();
                         xhr.open("PATCH", dbUrl, true);
                         xhr.send(JSON.stringify({ url: ep.url, status: "playing", time: 0 }));
-                        showStatus("جاري تشغيل: " + ep.name);
+                        showStatus("جاري عرض: " + ep.name);
                     }
                     playMedia(ep.url); 
                     window.scrollTo({top: 0, behavior: 'smooth'}); 
@@ -313,7 +305,7 @@
             if (newName.trim() === "" || newUrl.trim() === "") { alert("لا يمكن ترك الحقول فارغة"); return; }
             var xhr = new XMLHttpRequest();
             xhr.open("PATCH", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library/" + key + ".json", true);
-            xhr.onload = function() { showStatus("تم التعديل بنجاح ✅"); loadStream(); };
+            xhr.onload = function() { showStatus("تم التعديل ✅"); loadStream(); };
             xhr.send(JSON.stringify({ name: newName, url: newUrl }));
         }
 
@@ -321,7 +313,7 @@
             if(confirm("حذف هذه الحلقة؟")) {
                 var xhr = new XMLHttpRequest();
                 xhr.open("DELETE", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library/" + key + ".json", true);
-                xhr.onload = function() { showStatus("تم حذف الحلقة بنجاح"); loadStream(); };
+                xhr.onload = function() { showStatus("تم الحذف"); loadStream(); };
                 xhr.send();
             }
         }
@@ -370,10 +362,10 @@
             var btn = document.getElementById('syncToggleBtn');
             if (btn) {
                 if (isSyncEnabled) {
-                    btn.innerText = "المزامنة: مفعلة ✅";
+                    btn.innerText = "المزامنة: تعمل 📡";
                     btn.className = "btn-sync active";
                 } else {
-                    btn.innerText = "المزامنة: معطلة ❌";
+                    btn.innerText = "المزامنة: متوقفة 💤";
                     btn.className = "btn-sync inactive";
                 }
             }
@@ -388,7 +380,7 @@
             xhr.onload = function() {
                 document.getElementById('epNameInput').value = "";
                 document.getElementById('epUrlInput').value = "";
-                showStatus("تمت إضافة: " + name);
+                showStatus("تمت الإضافة 🎨");
                 loadStream();
             };
             xhr.send(JSON.stringify({ name: name, url: url }));
