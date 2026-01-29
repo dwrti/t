@@ -73,7 +73,8 @@
 
         #librarySection {
             width: 95%; max-width: 650px; 
-            margin: 20px 0 50px 0; 
+            /* تم تعديل الـ margin هنا لإنزال القائمة */
+            margin: 60px auto 100px auto; 
             background: #111; border-radius: 12px; border: 1px solid #222;
             padding: 15px; box-sizing: border-box; display: none;
         }
@@ -163,14 +164,12 @@
         var isSyncEnabled = true;
         var myUserId = Math.random().toString(36).substring(7);
 
-        // وظيفة تسجيل حضور المستخدم
         function updatePresence() {
             var xhr = new XMLHttpRequest();
             xhr.open("PUT", presenceUrl + "/" + myUserId + ".json", true);
             xhr.send(JSON.stringify(Date.now()));
         }
 
-        // وظيفة جلب عدد المتصلين (للأدمن فقط)
         function fetchViewerCount() {
             if (!isAdmin) return;
             var xhr = new XMLHttpRequest();
@@ -182,9 +181,7 @@
                     var now = Date.now();
                     if (data) {
                         Object.keys(data).forEach(function(key) {
-                            // إذا كان المستخدم حدث حالته خلال آخر 10 ثواني نعتبره متصل
                             if (now - data[key] < 10000) count++;
-                            // تنظيف المستخدمين غير النشطين (اختياري للأدمن)
                             else if (now - data[key] > 60000) {
                                 var delXhr = new XMLHttpRequest();
                                 delXhr.open("DELETE", presenceUrl + "/" + key + ".json", true);
@@ -355,16 +352,15 @@
             xhr.send(JSON.stringify(state));
         }
 
-        // التحديثات الدورية
         setInterval(function() {
-            updatePresence(); // تحديث وجود المستخدم الحالي كل 5 ثواني
+            updatePresence();
             if (!isAdmin) loadStream();
             else { 
                 if (isSyncEnabled) updateDatabaseState(); 
                 loadStream();
-                fetchViewerCount(); // جلب العدد للأدمن فقط
+                fetchViewerCount();
             }
-        }, 5000); // جعلناه كل 5 ثواني لتقليل الضغط على قاعدة البيانات
+        }, 5000);
 
         if (isAdmin) {
             ['play', 'pause', 'seeked'].forEach(function(ev) {
