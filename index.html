@@ -29,12 +29,12 @@
             width: 100%; max-width: 650px; box-sizing: border-box;
             border-bottom: 2px solid #222; z-index: 10;
             position: sticky; top: 0; 
-            margin-bottom: 10px; /* المسافة الصغيرة التي تم إضافتها أسفل المشغل */
+            margin-bottom: 15px; /* تم إضافة هذه المسافة لتبعد المشغل عما تحته */
         }
         
         video { width: 100%; display: block; aspect-ratio: 16/9; background: #000; }
 
-        #admin { display: none; width: 95%; max-width: 650px; margin-top: 15px; }
+        #admin { display: none; width: 95%; max-width: 650px; margin-top: 5px; }
         
         input { 
             width: 100%; padding: 12px; margin: 6px 0; 
@@ -62,7 +62,7 @@
 
         #librarySection {
             width: 95%; max-width: 650px; 
-            margin: 20px 0 50px 0; 
+            margin: 10px 0 50px 0; 
             background: #111; border-radius: 12px; border: 1px solid #222;
             padding: 15px; box-sizing: border-box; display: none;
         }
@@ -72,9 +72,8 @@
             color: #fff; font-weight: bold; border-right: 4px solid #4caf50;
         }
 
-        /* تحسين قائمة الحلقات لمنع تعليق المتصفح */
         .ep-list { 
-            max-height: none; /* جعل القائمة تفتح بالكامل مع الصفحة لسحب أسهل */
+            max-height: none; 
             overflow: visible; 
         }
         
@@ -86,7 +85,7 @@
             transition: transform 0.1s;
         }
         
-        .ep-item:active { transform: scale(0.98); } /* تأثير بسيط عند الضغط */
+        .ep-item:active { transform: scale(0.98); }
 
         .ep-name-clickable {
             flex-grow: 1; padding: 15px;
