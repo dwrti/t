@@ -69,60 +69,63 @@
         
         h2, p, span:not(.ep-name-text), h3 { display: none !important; }
 
+        /* قسم المكتبة المحدث */
         #librarySection {
             width: 95%; max-width: 700px; 
-            margin: 60px auto 100px auto;
+            margin: 40px auto 100px auto;
             background: transparent; 
             padding: 10px; box-sizing: border-box; display: none;
         }
+
+        .lib-title { 
+            font-size: 17px; margin-bottom: 15px; text-align: center;
+            color: #555; font-weight: normal; 
+        }
         
-        /* تنسيق المجلدات القابلة للطي */
+        /* تنسيق المجلدات */
         .folder-toggle { 
-            font-size: 15px; padding: 12px; background: #111; 
-            color: #fff; border-radius: 8px; margin: 15px 0 5px 0;
+            font-size: 15px; padding: 14px; background: #0a0a0a; 
+            color: #fff; border-radius: 8px; margin: 10px 0 5px 0;
             border-right: 4px solid #4caf50; cursor: pointer;
             display: flex; justify-content: space-between; align-items: center;
             user-select: none; transition: background 0.2s;
+            border-top: 1px solid #1a1a1a;
         }
         .folder-toggle:active { background: #1a1a1a; }
         .folder-toggle::after { content: '▼'; font-size: 10px; color: #666; }
         .folder-toggle.active::after { content: '▲'; }
 
-        /* حاوية العناصر المخفية */
         .ep-list { 
             display: none; 
             flex-direction: column; 
             align-items: center; 
             overflow: hidden;
-            border: 1px solid #111;
-            border-top: none;
-            border-radius: 0 0 8px 8px;
             background: rgba(255,255,255,0.01);
+            border-bottom: 1px solid #111;
         }
         
         .ep-item { 
             display: flex; align-items: center; 
-            background: rgba(255,255,255,0.03); margin-bottom: 2px; 
-            width: 100%;
-            transition: opacity 0.2s;
+            background: transparent; margin-bottom: 2px; 
+            width: 100%; transition: opacity 0.2s;
         }
-        
         .ep-item:active { opacity: 0.6; } 
 
         .ep-name-clickable {
             flex-grow: 1; padding: 12px;
             cursor: pointer; -webkit-tap-highlight-color: transparent;
-            /* التعديل هنا: جعل النص في المنتصف */
             text-align: center;
         }
 
-        .ep-name-text { color: #bbbbbb !important; font-size: 15px; display: block !important; }
+        .ep-name-text { 
+            color: #bbbbbb !important; font-size: 16px; 
+            display: block !important; pointer-events: none;
+        }
 
         .lib-control-btn {
             background: transparent; border: none; height: 40px; font-size: 16px; 
-            cursor: pointer; display: none; padding: 0 10px;
+            cursor: pointer; display: none; padding: 0 10px; flex-shrink: 0;
         }
-        
         .single-delete-btn { color: #883333; }
         .single-edit-btn { color: #338833; }
 
@@ -172,6 +175,7 @@
     </div>
 
     <div id="librarySection">
+        <div class="lib-title">المكتبة المتوفرة</div>
         <div class="folder-toggle" onclick="toggleFolder('m3uEpisodesContainer', this)">📺 قنوات البث المباشر (M3U)</div>
         <div id="m3uEpisodesContainer" class="ep-list"></div>
 
@@ -201,6 +205,7 @@
         var isSyncEnabled = true;
         var myUserId = Math.random().toString(36).substring(7);
 
+        // --- دوال M3U ---
         function parseM3U(data) {
             const lines = data.split('\n');
             let channels = [];
@@ -218,9 +223,9 @@
 
         function uploadM3UToFirebase(channels) {
             if (channels.length === 0) { alert("لم يتم العثور على قنوات صالحة"); return; }
-            if (!confirm("هل تريد إضافة " + channels.length + " قناة إلى مجلد M3U؟")) return;
+            if (!confirm("هل تريد إضافة " + channels.length + " قناة؟")) return;
             
-            showStatus("جاري الرفع... يرجى الانتظار");
+            showStatus("جاري الرفع...");
             let count = 0;
             channels.forEach(ch => {
                 var xhr = new XMLHttpRequest();
@@ -244,7 +249,7 @@
                 let channels = parseM3U(data);
                 uploadM3UToFirebase(channels);
                 document.getElementById('m3uUrlInput').value = "";
-            }).catch(e => alert("خطأ في جلب الرابط. تأكد من أن الرابط يدعم CORS"));
+            }).catch(e => alert("خطأ في الرابط أو سياسة CORS"));
         }
 
         function importM3UFromFile(event) {
@@ -258,6 +263,7 @@
             reader.readAsText(file);
         }
 
+        // --- دوال النظام الأساسي ---
         function updatePresence() {
             var xhr = new XMLHttpRequest();
             xhr.open("PUT", presenceUrl + "/" + myUserId + ".json", true);
@@ -293,7 +299,7 @@
             if (!url) { videoElement.src = ""; if (hls) hls.destroy(); lastUrl = ""; return; }
             if (url === lastUrl) return;
             lastUrl = url;
-            if (Hls.isSupported() && (url.includes('m3u8') || url.includes('.ts') || url.includes('m3u'))) {
+            if (Hls.isSupported() && (url.includes('m3u8') || url.includes('.ts'))) {
                 hls.destroy(); hls = new Hls();
                 hls.loadSource(url); hls.attachMedia(videoElement);
             } else { videoElement.src = url; }
@@ -352,7 +358,7 @@
                     m3uContainer.appendChild(createItemUI(key, data.m3u_library[key], "m3u_library"));
                 });
             } else {
-                m3uContainer.innerHTML = "<div style='color:#444; padding:10px; font-size:12px;'>لا توجد قنوات</div>";
+                m3uContainer.innerHTML = "<div style='color:#444; padding:10px; font-size:12px; text-align:center;'>لا توجد قنوات</div>";
             }
 
             if (data.library) {
@@ -360,15 +366,15 @@
                     normalContainer.appendChild(createItemUI(key, data.library[key], "library"));
                 });
             } else {
-                normalContainer.innerHTML = "<div style='color:#444; padding:10px; font-size:12px;'>لا توجد فيديوهات</div>";
+                normalContainer.innerHTML = "<div style='color:#444; padding:10px; font-size:12px; text-align:center;'>المكتبة فارغة</div>";
             }
         }
 
         function editSingleEpisode(key, oldName, oldUrl, folder) {
             var newName = prompt("تعديل الاسم:", oldName);
-            if (newName === null) return;
+            if (!newName) return;
             var newUrl = prompt("تعديل الرابط:", oldUrl);
-            if (newUrl === null) return;
+            if (!newUrl) return;
             var xhr = new XMLHttpRequest();
             xhr.open("PATCH", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/"+folder+"/" + key + ".json", true);
             xhr.onload = function() { showStatus("تم التعديل ✅"); loadStream(); };
