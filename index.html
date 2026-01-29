@@ -14,8 +14,8 @@
             background-color: #0a0a0a; color: #eee;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             overflow-x: hidden;
-            overflow-y: scroll; /* إجبار التمرير العمودي */
-            -webkit-overflow-scrolling: touch; /* سحب سلس جداً على آيفون وأندرويد */
+            overflow-y: scroll; 
+            -webkit-overflow-scrolling: touch; 
             scroll-behavior: smooth;
         }
 
@@ -28,14 +28,13 @@
             background: #000; padding: 0; border-radius: 0; 
             width: 100%; max-width: 650px; box-sizing: border-box;
             border-bottom: 2px solid #222; z-index: 10;
-            position: sticky; top: 0; /* يبقى الفيديو ثابت أثناء السحب إذا أردت */
+            position: sticky; top: 0; 
         }
         
         video { width: 100%; display: block; aspect-ratio: 16/9; background: #000; }
 
         #admin { display: none; width: 95%; max-width: 650px; margin-top: 15px; }
         
-        /* إضافة ستايل لعداد المتصلين */
         #viewerCount {
             background: #1a1a1a;
             color: #4caf50;
@@ -73,8 +72,8 @@
 
         #librarySection {
             width: 95%; max-width: 650px; 
-            /* تم تعديل الـ margin هنا لإنزال القائمة */
-            margin: 60px auto 100px auto; 
+            /* تم زيادة الـ margin العلوي هنا لإنزال القائمة أكثر */
+            margin: 150px auto 100px auto; 
             background: #111; border-radius: 12px; border: 1px solid #222;
             padding: 15px; box-sizing: border-box; display: none;
         }
@@ -84,9 +83,8 @@
             color: #fff; font-weight: bold; border-right: 4px solid #4caf50;
         }
 
-        /* تحسين قائمة الحلقات لمنع تعليق المتصفح */
         .ep-list { 
-            max-height: none; /* جعل القائمة تفتح بالكامل مع الصفحة لسحب أسهل */
+            max-height: none; 
             overflow: visible; 
         }
         
@@ -98,7 +96,7 @@
             transition: transform 0.1s;
         }
         
-        .ep-item:active { transform: scale(0.98); } /* تأثير بسيط عند الضغط */
+        .ep-item:active { transform: scale(0.98); } 
 
         .ep-name-clickable {
             flex-grow: 1; padding: 15px;
@@ -150,7 +148,7 @@
     </div>
 
     <div id="librarySection">
-        <div class="lib-title"></div> <div id="episodesContainer" class="ep-list"></div>
+        <div class="lib-title">المكتبة</div> <div id="episodesContainer" class="ep-list"></div>
     </div>
 
     <script>
