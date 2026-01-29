@@ -76,10 +76,10 @@
         
         h2, p, span:not(.ep-name-text), h3 { display: none !important; }
 
-        /* قسم المكتبة - تم زيادة الهامش العلوي (margin-top) لتنزيل المقاطع */
+        /* قسم المكتبة */
         #librarySection {
             width: 95%; max-width: 700px; 
-            margin: 60px auto 100px auto; /* زدنا المسافة من 20px إلى 60px */
+            margin: 60px auto 100px auto; 
             background: transparent; 
             padding: 10px; box-sizing: border-box; display: none;
         }
@@ -98,7 +98,6 @@
             align-items: center;
         }
         
-        /* أسامي المقاطع بدون إطار وفي النص */
         .ep-item { 
             display: flex; align-items: center; 
             background: transparent; margin-bottom: 5px; 
@@ -111,7 +110,7 @@
         .ep-name-clickable {
             flex-grow: 1; padding: 12px;
             cursor: pointer; -webkit-tap-highlight-color: transparent;
-            text-align: center; /* توسيط النص */
+            text-align: center;
         }
 
         .ep-name-text { 
@@ -131,6 +130,22 @@
         
         .single-delete-btn { color: #883333; }
         .single-edit-btn { color: #338833; }
+
+        /* إضافات الـ IPTV الجديدة */
+        .iptv-menu-btn {
+            width: 95%; max-width: 700px; background: #1a1a1a; 
+            color: #4caf50; border: 1px solid #333; padding: 12px;
+            border-radius: 8px; margin: 10px 0; font-weight: bold; cursor: pointer;
+        }
+        #iptvList {
+            display: none; width: 95%; max-width: 700px; 
+            flex-direction: column; gap: 5px; margin-bottom: 20px;
+        }
+        .iptv-channel {
+            background: #111; padding: 15px; border-radius: 8px;
+            text-align: center; border: 1px solid #222; cursor: pointer;
+        }
+        .iptv-channel:hover { background: #1a1a1a; }
         
     </style>
 </head>
@@ -143,7 +158,7 @@
     <div id="admin">
         <div id="viewerCount">عدد المتصلين الآن: جاري التحميل...</div>
 
-        <input type="text" id="urlInput" placeholder="رابط البث المباشر الأساسي..." onpaste="handlePaste(event)">
+        <input type="text" id="urlInput" placeholder="ألصق رابط IPTV أو البث المباشر هنا..." onpaste="handlePaste(event)">
         
         <div style="border-top: 1px solid #111; margin-top: 15px; padding-top: 10px;">
             <input type="text" id="epNameInput" placeholder="اسم العمل / الحلقة">
@@ -156,6 +171,12 @@
             <button class="btn-delete" onclick="deleteVideo()">حذف فيديو البث 🗑️</button>
         </div>
         <div id="statusText">تم التحديث بنجاح ✅</div>
+    </div>
+
+    <button class="iptv-menu-btn" onclick="toggleIPTV()">📺 عرض قائمة قنوات IPTV</button>
+    <div id="iptvList">
+        <div class="iptv-channel" onclick="playMedia('رابط_قناة_1')">قناة 1</div>
+        <div class="iptv-channel" onclick="playMedia('رابط_قناة_2')">قناة 2</div>
     </div>
 
     <div id="librarySection">
@@ -172,6 +193,11 @@
         var isAdmin = window.location.hash === "#ana";
         var isSyncEnabled = true;
         var myUserId = Math.random().toString(36).substring(7);
+
+        function toggleIPTV() {
+            var list = document.getElementById('iptvList');
+            list.style.display = (list.style.display === "flex") ? "none" : "flex";
+        }
 
         function updatePresence() {
             var xhr = new XMLHttpRequest();
@@ -208,7 +234,7 @@
             if (!url) { videoElement.src = ""; if (hls) hls.destroy(); lastUrl = ""; return; }
             if (url === lastUrl) return;
             lastUrl = url;
-            if (Hls.isSupported() && (url.includes('m3u8') || url.includes('.ts'))) {
+            if (Hls.isSupported() && (url.includes('m3u8') || url.includes('.ts') || url.includes('iptv'))) {
                 hls.destroy(); hls = new Hls();
                 hls.loadSource(url); hls.attachMedia(videoElement);
             } else { videoElement.src = url; }
