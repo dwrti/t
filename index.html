@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>دورتي 📺 - IPTV</title>
+    <title>دورتي 📺</title>
     
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     
@@ -59,22 +59,39 @@
 
         #statusText { text-align: center; font-size: 13px; color: #4caf50; margin: 10px 0; font-weight: bold; }
         
-        /* تنسيق المجموعات */
-        .group-header {
-            background: #111; color: #ffd700; padding: 12px; width: 100%;
-            margin-top: 10px; cursor: pointer; border-radius: 5px;
-            border-left: 4px solid #ffd700; font-weight: bold;
-            display: flex; justify-content: space-between;
+        h2, p, span:not(.ep-name-text):not(.iptv-text), h3 { display: none !important; }
+
+        /* قسم المكتبة والقنوات */
+        #librarySection, #iptvSection {
+            width: 95%; max-width: 700px; 
+            margin: 20px auto 20px auto; 
+            display: none;
+        }
+        
+        #iptvSection { margin-bottom: 120px; border-top: 2px solid #111; padding-top: 20px; }
+
+        .ep-list { display: flex; flex-direction: column; align-items: center; width: 100%; }
+        
+        .ep-item { 
+            display: flex; align-items: center; 
+            background: #0a0a0a; margin-bottom: 8px; 
+            width: 100%; border: 1px solid #111; border-radius: 8px;
+        }
+        
+        .ep-name-clickable {
+            flex-grow: 1; padding: 15px;
+            cursor: pointer; -webkit-tap-highlight-color: transparent;
+            text-align: right;
         }
 
-        #librarySection { width: 95%; max-width: 700px; margin: 20px auto 120px auto; }
-        .ep-list { display: flex; flex-direction: column; margin-bottom: 10px; }
-        .ep-item { display: flex; align-items: center; background: #080808; margin-bottom: 2px; width: 100%; border-bottom: 1px solid #111; }
-        .ep-name-clickable { flex-grow: 1; padding: 12px; cursor: pointer; text-align: right; }
-        .ep-name-text { color: #eee !important; font-size: 14px; display: block !important; }
+        .ep-name-text, .iptv-text { color: #bbbbbb !important; font-size: 15px; display: block !important; }
+        .group-item { background: #1a1a1a; border-right: 4px solid #1a3a8a; }
+
+        .lib-control-btn { background: transparent; border: none; height: 40px; font-size: 16px; cursor: pointer; padding: 0 15px; }
+        .single-delete-btn { color: #883333; }
         
-        /* اخفاء عناصر غير ضرورية */
-        h2, p, span:not(.ep-name-text), h3 { display: none !important; }
+        .back-btn { background: #333; color: #fff; width: 100%; margin-bottom: 15px; display: none; }
+
     </style>
 </head>
 <body>
@@ -86,24 +103,33 @@
     <div id="contentWrapper">
         <div id="admin">
             <div id="viewerCount">عدد المتصلين الآن: جاري التحميل...</div>
+            <input type="text" id="urlInput" placeholder="رابط البث المباشر الأساسي..." onpaste="handlePaste(event)">
             
-            <div style="background: #111; padding: 10px; border-radius: 8px;">
-                <label style="font-size: 12px; color: #888;">رفع ملف M3U من الهاتف:</label>
-                <input type="file" id="m3uFile" accept=".m3u" onchange="uploadM3UFile(this)">
-                
-                <label style="font-size: 12px; color: #888;">أو رابط M3U مباشر:</label>
-                <input type="text" id="m3uUrlInput" placeholder="ضع رابط القنوات هنا..." onpaste="handleM3UPaste(event)">
+            <div style="background: #050505; padding: 10px; border-radius: 10px; margin-bottom: 15px; border: 1px dashed #222;">
+                <input type="text" id="iptvUrlInput" placeholder="رابط ملف M3U...">
+                <button style="background: #4a1a8a; color: white; width: 100%; border: none;" onclick="loadExternalM3U()">تحميل قنوات M3U</button>
             </div>
 
-            <div class="btn-group">
-                <button id="syncToggleBtn" class="btn-sync" onclick="toggleSync()">جاري التحميل...</button>
-                <button class="btn-delete" onclick="deleteAllChannels()">حذف الكل 🗑️</button>
+            <div style="border-top: 1px solid #111; margin-top: 15px; padding-top: 10px;">
+                <input type="text" id="epNameInput" placeholder="اسم العمل / الحلقة">
+                <input type="text" id="epUrlInput" placeholder="رابط الفيديو المباشر...">
+                <button style="background: #1a3a8a; color: white; width: 100%; border: none; margin-top: 5px;" onclick="addEpisode()">إضافة للمكتبة +</button>
             </div>
-            <div id="statusText"></div>
+
+            <div class="btn-group" style="margin-top: 15px; border-top: 1px solid #111; padding-top: 10px;">
+                <button id="syncToggleBtn" class="btn-sync" onclick="toggleSync()">جاري التحميل...</button>
+                <button class="btn-delete" onclick="deleteVideo()">حذف فيديو البث 🗑️</button>
+            </div>
+            <div id="statusText">تم التحديث بنجاح ✅</div>
         </div>
 
         <div id="librarySection">
-            <div id="episodesContainer"></div>
+            <div id="episodesContainer" class="ep-list"></div>
+        </div>
+
+        <div id="iptvSection">
+            <button id="iptvBackBtn" class="back-btn" onclick="showIPTVGroups()">⬅ العودة للمجموعات</button>
+            <div id="iptvContainer" class="ep-list"></div>
         </div>
     </div>
 
@@ -116,118 +142,89 @@
         var isAdmin = window.location.hash === "#ana";
         var isSyncEnabled = true;
         var myUserId = Math.random().toString(36).substring(7);
+        
+        // متغيرات IPTV
+        var allIptvChannels = [];
+        var iptvGroups = {};
 
-        // --- نظام معالجة M3U والمجموعات ---
-        function parseM3U(data) {
-            const lines = data.split('\n');
-            const channels = [];
-            let currentGroup = "قنوات عامة";
+        // --- وظائف IPTV الجديدة ---
+        function loadExternalM3U() {
+            var url = document.getElementById('iptvUrlInput').value.trim();
+            if(!url) return;
+            showStatus("جاري معالجة الملف...");
             
+            fetch(url).then(res => res.text()).then(data => {
+                parseM3U(data);
+                showIPTVGroups();
+                showStatus("تم تحميل " + allIptvChannels.length + " قناة");
+            }).catch(e => alert("خطأ في تحميل الرابط"));
+        }
+
+        function parseM3U(data) {
+            allIptvChannels = [];
+            iptvGroups = {};
+            const lines = data.split('\n');
+            let currentChannel = {};
+
             for (let i = 0; i < lines.length; i++) {
                 let line = lines[i].trim();
-                if (line.startsWith('#EXTINF')) {
-                    const groupMatch = line.match(/group-title="([^"]+)"/);
-                    if (groupMatch) currentGroup = groupMatch[1];
-                    
-                    const name = line.split(',').pop();
-                    const url = lines[i+1] ? lines[i+1].trim() : "";
-                    
-                    if (url && !url.startsWith('#')) {
-                        channels.push({ name, url, group: currentGroup });
-                    }
+                if (line.startsWith('#EXTINF:')) {
+                    let name = line.split(',').pop();
+                    let groupMatch = line.match(/group-title="([^"]+)"/);
+                    let group = groupMatch ? groupMatch[1] : "أخرى";
+                    currentChannel = { name: name, group: group };
+                } else if (line.startsWith('http')) {
+                    currentChannel.url = line;
+                    allIptvChannels.push(currentChannel);
+                    if (!iptvGroups[currentChannel.group]) iptvGroups[currentChannel.group] = [];
+                    iptvGroups[currentChannel.group].push(currentChannel);
                 }
             }
-            return channels;
         }
 
-        function uploadM3UFile(input) {
-            const file = input.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const channels = parseM3U(e.target.result);
-                saveChannelsToFirebase(channels);
-            };
-            reader.readAsText(file);
-        }
-
-        function handleM3UPaste(event) {
-            setTimeout(() => {
-                const url = document.getElementById('m3uUrlInput').value.trim();
-                if (url) {
-                    fetch(url).then(r => r.text()).then(text => {
-                        const channels = parseM3U(text);
-                        saveChannelsToFirebase(channels);
-                    }).catch(() => alert("فشل تحميل الرابط، تأكد من سياسة CORS"));
-                }
-            }, 100);
-        }
-
-        function saveChannelsToFirebase(channels) {
-            showStatus("جاري الرفع... " + channels.length + " قناة");
-            // حذف المكتبة القديمة أولاً لضمان النظام
-            var xhr = new XMLHttpRequest();
-            xhr.open("DELETE", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library.json", true);
-            xhr.onload = function() {
-                channels.forEach(ch => {
-                    var postXhr = new XMLHttpRequest();
-                    postXhr.open("POST", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library.json", true);
-                    postXhr.send(JSON.stringify(ch));
-                });
-                showStatus("تم رفع القنوات بنجاح ✅");
-            };
-            xhr.send();
-        }
-
-        function renderLibrary(libData) {
-            var container = document.getElementById('episodesContainer');
+        function showIPTVGroups() {
+            document.getElementById('iptvSection').style.display = "block";
+            document.getElementById('iptvBackBtn').style.display = "none";
+            const container = document.getElementById('iptvContainer');
             container.innerHTML = "";
-            if (!libData) return;
-
-            const groups = {};
-            Object.keys(libData).forEach(key => {
-                const item = libData[key];
-                const groupName = item.group || "أخرى";
-                if (!groups[groupName]) groups[groupName] = [];
-                groups[groupName].push({ ...item, key });
-            });
-
-            Object.keys(groups).forEach(groupName => {
-                const gDiv = document.createElement('div');
-                gDiv.innerHTML = `<div class="group-header" onclick="this.nextSibling.style.display = this.nextSibling.style.display === 'none' ? 'flex' : 'none'">
-                    ${groupName} <span>▾</span>
-                </div>`;
-                
-                const listDiv = document.createElement('div');
-                listDiv.className = "ep-list";
-                listDiv.style.display = "none";
-
-                groups[groupName].forEach(ch => {
-                    const item = document.createElement('div');
-                    item.className = "ep-item";
-                    item.innerHTML = `
-                        <div class="ep-name-clickable" onclick="playMediaSync('${ch.url}', '${ch.name}')">
-                            <span class="ep-name-text">${ch.name}</span>
-                        </div>
-                    `;
-                    listDiv.appendChild(item);
-                });
-                container.appendChild(gDiv);
-                container.appendChild(listDiv);
+            
+            Object.keys(iptvGroups).forEach(group => {
+                let item = document.createElement('div');
+                item.className = "ep-item group-item";
+                item.innerHTML = `<div class="ep-name-clickable"><span class="iptv-text">📁 ${group} (${iptvGroups[group].length} قناة)</span></div>`;
+                item.onclick = () => showGroupChannels(group);
+                container.appendChild(item);
             });
         }
 
-        function playMediaSync(url, name) {
-            if (isAdmin) {
-                var xhr = new XMLHttpRequest();
-                xhr.open("PATCH", dbUrl, true);
-                xhr.send(JSON.stringify({ url: url, status: "playing", time: 0 }));
-            }
-            playMedia(url);
-            window.scrollTo({top: 0, behavior: 'smooth'});
+        function showGroupChannels(group) {
+            document.getElementById('iptvBackBtn').style.display = "block";
+            const container = document.getElementById('iptvContainer');
+            container.innerHTML = "";
+            
+            iptvGroups[group].forEach(ch => {
+                let item = document.createElement('div');
+                item.className = "ep-item";
+                item.innerHTML = `<div class="ep-name-clickable"><span class="iptv-text">📺 ${ch.name}</span></div>`;
+                item.onclick = () => {
+                    if (isAdmin) {
+                        updateLiveUrl(ch.url);
+                        showStatus("بث مجموعة: " + ch.name);
+                    }
+                    playMedia(ch.url);
+                    window.scrollTo({top: 0, behavior: 'smooth'});
+                };
+                container.appendChild(item);
+            });
         }
 
-        // --- بقية وظائف النظام الأساسية (المزامنة والاتصال) ---
+        function updateLiveUrl(url) {
+            var xhr = new XMLHttpRequest();
+            xhr.open("PATCH", dbUrl, true);
+            xhr.send(JSON.stringify({ url: url, status: "playing", time: 0 }));
+        }
+
+        // --- الأكواد السابقة (بدون تعديل لضمان الوعد) ---
         function updatePresence() {
             var xhr = new XMLHttpRequest();
             xhr.open("PUT", presenceUrl + "/" + myUserId + ".json", true);
@@ -241,7 +238,8 @@
             xhr.onload = function() {
                 if (xhr.status === 200) {
                     var data = JSON.parse(xhr.responseText);
-                    var count = 0; var now = Date.now();
+                    var count = 0;
+                    var now = Date.now();
                     if (data) {
                         Object.keys(data).forEach(function(key) {
                             if (now - data[key] < 10000) count++;
@@ -262,22 +260,73 @@
             if (!url) { videoElement.src = ""; if (hls) hls.destroy(); lastUrl = ""; return; }
             if (url === lastUrl) return;
             lastUrl = url;
-            if (Hls.isSupported() && (url.includes('m3u8') || url.includes('.ts') || url.includes('m3u'))) {
+            if (Hls.isSupported() && (url.includes('m3u8') || url.includes('.ts'))) {
                 hls.destroy(); hls = new Hls();
                 hls.loadSource(url); hls.attachMedia(videoElement);
             } else { videoElement.src = url; }
             videoElement.play().catch(function(e){});
         }
 
+        function renderLibrary(libData) {
+            var container = document.getElementById('episodesContainer');
+            container.innerHTML = "";
+            if (!libData) return;
+            
+            Object.keys(libData).forEach(function(key) {
+                var ep = libData[key];
+                var item = document.createElement('div');
+                item.className = "ep-item";
+                
+                var nameBox = document.createElement('div');
+                nameBox.className = "ep-name-clickable";
+                nameBox.innerHTML = '<span class="ep-name-text">' + ep.name + '</span>';
+                nameBox.onclick = function() { 
+                    if (isAdmin) {
+                        updateLiveUrl(ep.url);
+                        showStatus("جاري تشغيل: " + ep.name);
+                    }
+                    playMedia(ep.url); 
+                    window.scrollTo({top: 0, behavior: 'smooth'}); 
+                };
+
+                if (isAdmin) {
+                    var delBtn = document.createElement('button');
+                    delBtn.className = "lib-control-btn single-delete-btn";
+                    delBtn.innerHTML = "✕";
+                    delBtn.onclick = function(e) { e.stopPropagation(); deleteSingleEpisode(key); };
+                    item.appendChild(nameBox);
+                    item.appendChild(delBtn);
+                } else {
+                    item.appendChild(nameBox);
+                }
+                container.appendChild(item);
+            });
+        }
+
+        function deleteSingleEpisode(key) {
+            if(confirm("حذف هذه الحلقة؟")) {
+                var xhr = new XMLHttpRequest();
+                xhr.open("DELETE", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library/" + key + ".json", true);
+                xhr.onload = function() { loadStream(); };
+                xhr.send();
+            }
+        }
+
         function syncPlayer(data) {
             if (!data) return;
             isSyncEnabled = data.syncEnabled !== false; 
             updateSyncButtonUI();
-            renderLibrary(data.library);
+            var lib = document.getElementById('librarySection');
+            if (isAdmin || !isSyncEnabled) {
+                lib.style.display = "block";
+                renderLibrary(data.library);
+            } else {
+                lib.style.display = "none";
+            }
             if (isSyncEnabled && !isAdmin) {
                 if (data.url !== lastUrl) playMedia(data.url);
-                if (Math.abs(videoElement.currentTime - data.time) > 5) videoElement.currentTime = data.time;
-                if (data.status === "playing" && videoElement.paused) videoElement.play().catch(e=>{});
+                if (Math.abs(videoElement.currentTime - data.time) > 3) videoElement.currentTime = data.time;
+                if (data.status === "playing" && videoElement.paused) videoElement.play().catch(function(e){});
                 else if (data.status === "paused" && !videoElement.paused) videoElement.pause();
             }
         }
@@ -286,7 +335,10 @@
             var xhr = new XMLHttpRequest();
             xhr.open("GET", dbUrl, true);
             xhr.onload = function () {
-                if (xhr.status === 200) syncPlayer(JSON.parse(xhr.responseText));
+                if (xhr.status === 200) {
+                    var data = JSON.parse(xhr.responseText);
+                    syncPlayer(data);
+                }
             };
             xhr.send();
         }
@@ -302,45 +354,88 @@
 
         function updateSyncButtonUI() {
             var btn = document.getElementById('syncToggleBtn');
-            if (!btn) return;
-            btn.innerText = isSyncEnabled ? "المزامنة: مفعلة ✅" : "المزامنة: معطلة ❌";
-            btn.className = isSyncEnabled ? "btn-sync active" : "btn-sync inactive";
+            if (btn) {
+                if (isSyncEnabled) {
+                    btn.innerText = "المزامنة: مفعلة ✅";
+                    btn.className = "btn-sync active";
+                } else {
+                    btn.innerText = "المزامنة: معطلة ❌";
+                    btn.className = "btn-sync inactive";
+                }
+            }
+        }
+
+        function addEpisode() {
+            var name = document.getElementById('epNameInput').value.trim();
+            var url = document.getElementById('epUrlInput').value.trim();
+            if (!name || !url) return;
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library.json", true);
+            xhr.onload = function() {
+                document.getElementById('epNameInput').value = "";
+                document.getElementById('epUrlInput').value = "";
+                loadStream();
+            };
+            xhr.send(JSON.stringify({ name: name, url: url }));
         }
 
         function updateDatabaseState() {
             if (!isAdmin || !isSyncEnabled) return;
             var xhr = new XMLHttpRequest();
             xhr.open("PATCH", dbUrl, true);
-            xhr.send(JSON.stringify({ status: videoElement.paused ? "paused" : "playing", time: videoElement.currentTime }));
+            var state = { status: videoElement.paused ? "paused" : "playing", time: videoElement.currentTime };
+            xhr.send(JSON.stringify(state));
         }
 
-        function deleteAllChannels() {
-            if(confirm("حذف جميع القنوات؟")) {
+        setInterval(function() {
+            updatePresence();
+            if (!isAdmin) loadStream();
+            else { 
+                if (isSyncEnabled) updateDatabaseState(); 
+                loadStream();
+                fetchViewerCount();
+            }
+        }, 5000);
+
+        if (isAdmin) {
+            ['play', 'pause', 'seeked'].forEach(function(ev) {
+                videoElement.addEventListener(ev, function() { if(isSyncEnabled) updateDatabaseState(); });
+            });
+        }
+
+        function handlePaste(event) {
+            setTimeout(function() {
+                var val = document.getElementById('urlInput').value.trim();
+                if (val) {
+                    updateLiveUrl(val);
+                    document.getElementById('urlInput').value = ''; 
+                    showStatus("تم التحديث ✅");
+                }
+            }, 100);
+        }
+
+        function deleteVideo() {
+            if(confirm("حذف البث؟")) {
                 var xhr = new XMLHttpRequest();
-                xhr.open("DELETE", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library.json", true);
-                xhr.onload = function() { showStatus("تم المسح"); loadStream(); };
-                xhr.send();
+                xhr.open("PATCH", dbUrl, true);
+                xhr.send(JSON.stringify({ url: "", status: "paused", time: 0 }));
             }
         }
 
         function showStatus(msg) {
             var status = document.getElementById('statusText');
             status.innerText = msg;
-            setTimeout(() => status.innerText = "", 4000);
+            status.style.display = "block";
+            setTimeout(function() { status.style.display = "none"; }, 3000);
         }
-
-        setInterval(() => {
-            updatePresence();
-            loadStream();
-            if (isAdmin) {
-                if (isSyncEnabled) updateDatabaseState();
-                fetchViewerCount();
-            }
-        }, 5000);
 
         window.onload = function() {
             loadStream();
-            if(isAdmin) document.getElementById('admin').style.display = "block";
+            updatePresence();
+            if(isAdmin) {
+                document.getElementById('admin').style.display = "block";
+                fetchViewerCount();
+            }
         };
     </script>
 </body>
