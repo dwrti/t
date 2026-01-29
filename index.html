@@ -93,33 +93,33 @@
         
         .ep-item { 
             display: flex; align-items: center; 
-            background: rgba(255,255,255,0.03); margin-bottom: 4px; 
-            width: 100%; border: none; border-radius: 5px;
+            background: #0a0a0a; margin-bottom: 8px; 
+            width: 100%; border: 1px solid #1a1a1a; border-radius: 8px;
         }
         
         .ep-name-clickable {
-            flex-grow: 1; padding: 12px;
+            flex-grow: 1; padding: 15px;
             cursor: pointer; -webkit-tap-highlight-color: transparent;
             text-align: right;
         }
 
         .ep-name-text { color: #bbbbbb !important; font-size: 15px; display: block !important; }
 
-        .lib-control-btn { background: transparent; border: none; height: 40px; font-size: 14px; cursor: pointer; padding: 0 10px; }
+        .lib-control-btn { background: transparent; border: none; height: 40px; font-size: 16px; cursor: pointer; padding: 0 10px; }
         .single-delete-btn { color: #883333; }
         .single-edit-btn { color: #338833; }
 
         /* ستايل المجلدات الجديد */
-        .folder-container { width: 100%; margin-bottom: 10px; border: 1px solid #222; border-radius: 8px; overflow: hidden; }
-        .folder-header { 
-            background: #111; padding: 15px; cursor: pointer; 
-            display: flex; justify-content: space-between; align-items: center;
-            border-bottom: 1px solid #222; font-weight: bold; color: #4caf50;
+        .folder-item {
+            width: 100%; background: #111; margin-bottom: 10px; border-radius: 10px; overflow: hidden; border: 1px solid #222;
         }
-        .folder-content { display: none; padding: 5px; background: #050505; }
-        .folder-header::after { content: '📁'; margin-right: 10px; }
-        .folder-container.active .folder-content { display: block; }
-        .folder-container.active .folder-header { background: #1a1a1a; }
+        .folder-header {
+            padding: 15px; background: #1a1a1a; cursor: pointer; font-weight: bold; color: #4caf50;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .folder-content { display: none; padding: 10px; background: #050505; }
+        .folder-content.open { display: block; }
+        .folder-icon { font-size: 18px; }
 
         .m3u-section {
             background: #080808; border: 1px dashed #333;
@@ -149,7 +149,7 @@
                 <div style="font-size: 12px; color: #888; margin-bottom: 5px;">استيراد قائمة قنوات (M3U):</div>
                 <input type="file" id="m3uFile" accept=".m3u,.m3u8" style="font-size: 12px; padding: 5px;">
                 <input type="text" id="m3uUrlInput" placeholder="أو ضع رابط ملف M3U هنا...">
-                <button style="background: #444; color: #fff; width: 100%;" onclick="importM3U()">استيراد القائمة مرتبة 📥</button>
+                <button style="background: #444; color: #fff; width: 100%;" onclick="importM3U()">استيراد القائمة 📥</button>
             </div>
 
             <div class="btn-group" style="margin-top: 15px; border-top: 1px solid #111; padding-top: 10px;">
@@ -175,7 +175,7 @@
         var isSyncEnabled = true;
         var myUserId = Math.random().toString(36).substring(7);
 
-        // --- دوال M3U المتطورة ---
+        // --- دوال M3U المحسنة مع دعم المجلدات ---
         function importM3U() {
             const fileInput = document.getElementById('m3uFile');
             const urlInput = document.getElementById('m3uUrlInput');
@@ -198,38 +198,38 @@
         function parseM3UContent(content) {
             const lines = content.split('\n');
             let channelsAdded = 0;
-            showStatus("جاري ترتيب القنوات...");
+            showStatus("جاري المعالجة وترتيب المجلدات...");
 
             for (let i = 0; i < lines.length; i++) {
                 if (lines[i].startsWith('#EXTINF:')) {
                     const info = lines[i];
-                    // البحث عن تصنيف القناة group-title
-                    let category = "قنوات عامة";
+                    // استخراج المجموعة (المجلد)
+                    let group = "قنوات عامة";
                     const groupMatch = info.match(/group-title="([^"]+)"/);
-                    if (groupMatch) category = groupMatch[1];
+                    if (groupMatch) group = groupMatch[1];
 
                     const name = info.substring(info.lastIndexOf(',') + 1).trim() || "قناة غير معروفة";
                     const url = lines[i + 1] ? lines[i + 1].trim() : "";
 
                     if (url && url.startsWith('http')) {
-                        // حفظ القناة مع تصنيفها
-                        saveToLibrary(name, url, category);
+                        saveToLibrary(name, url, group);
                         channelsAdded++;
                     }
                 }
             }
-            showStatus("تم إضافة " + channelsAdded + " قناة بنجاح ✅");
+            showStatus("تم إضافة " + channelsAdded + " قناة مرتبة ✅");
             document.getElementById('m3uFile').value = "";
             document.getElementById('m3uUrlInput').value = "";
             setTimeout(loadStream, 1500);
         }
 
-        function saveToLibrary(name, url, category = "عام") {
+        function saveToLibrary(name, url, group = "عام") {
             var xhr = new XMLHttpRequest();
             xhr.open("POST", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library.json", true);
-            xhr.send(JSON.stringify({ name: name, url: url, category: category }));
+            xhr.send(JSON.stringify({ name: name, url: url, group: group }));
         }
 
+        // --- تعديل وظيفة العرض لدعم المجلدات ---
         function renderLibrary(libData) {
             var container = document.getElementById('episodesContainer');
             container.innerHTML = "";
@@ -238,29 +238,33 @@
                 return; 
             }
             
-            // تجميع القنوات حسب المجلدات (Categories)
-            const folders = {};
+            // تنظيم البيانات في مجموعات
+            const groups = {};
             Object.keys(libData).forEach(key => {
                 const ep = libData[key];
-                const cat = ep.category || "قنوات أخرى";
-                if (!folders[cat]) folders[cat] = [];
-                folders[cat].push({ key, ...ep });
+                const groupName = ep.group || "قنوات متنوعة";
+                if (!groups[groupName]) groups[groupName] = [];
+                groups[groupName].push({ id: key, ...ep });
             });
 
-            // عرض المجلدات
-            Object.keys(folders).forEach(catName => {
-                const folderDiv = document.createElement('div');
-                folderDiv.className = "folder-container";
+            // إنشاء واجهة المجلدات
+            Object.keys(groups).forEach(groupName => {
+                const folder = document.createElement('div');
+                folder.className = "folder-item";
                 
                 const header = document.createElement('div');
                 header.className = "folder-header";
-                header.innerHTML = `<span>${catName} (${folders[catName].length})</span>`;
-                header.onclick = function() { folderDiv.classList.toggle('active'); };
+                header.innerHTML = `<span>📂 ${groupName}</span> <span class="folder-icon">▾</span>`;
                 
                 const content = document.createElement('div');
                 content.className = "folder-content";
+                
+                header.onclick = function() {
+                    content.classList.toggle('open');
+                    header.querySelector('.folder-icon').innerText = content.classList.contains('open') ? '▴' : '▾';
+                };
 
-                folders[catName].forEach(ep => {
+                groups[groupName].forEach(ep => {
                     var item = document.createElement('div');
                     item.className = "ep-item";
                     
@@ -272,7 +276,6 @@
                             var xhr = new XMLHttpRequest();
                             xhr.open("PATCH", dbUrl, true);
                             xhr.send(JSON.stringify({ url: ep.url, status: "playing", time: 0 }));
-                            showStatus("جاري تشغيل: " + ep.name);
                         }
                         playMedia(ep.url); 
                         window.scrollTo({top: 0, behavior: 'smooth'}); 
@@ -282,7 +285,7 @@
                         var delBtn = document.createElement('button');
                         delBtn.className = "lib-control-btn single-delete-btn";
                         delBtn.innerHTML = "✕";
-                        delBtn.onclick = function(e) { e.stopPropagation(); deleteSingleEpisode(ep.key); };
+                        delBtn.onclick = function(e) { e.stopPropagation(); deleteSingleEpisode(ep.id); };
                         item.appendChild(nameBox);
                         item.appendChild(delBtn);
                     } else {
@@ -291,12 +294,11 @@
                     content.appendChild(item);
                 });
 
-                folderDiv.appendChild(header);
-                folderDiv.appendChild(content);
-                container.appendChild(folderDiv);
+                folder.appendChild(header);
+                folder.appendChild(content);
+                container.appendChild(folder);
             });
         }
-        // --- نهاية دوال M3U ---
 
         function updatePresence() {
             var xhr = new XMLHttpRequest();
@@ -352,7 +354,7 @@
         }
 
         function deleteSingleEpisode(key) {
-            if(confirm("حذف هذه القناة؟")) {
+            if(confirm("حذف هذه الحلقة؟")) {
                 var xhr = new XMLHttpRequest();
                 xhr.open("DELETE", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library/" + key + ".json", true);
                 xhr.onload = function() { showStatus("تم الحذف"); loadStream(); };
@@ -425,7 +427,7 @@
                 showStatus("تمت إضافة: " + name);
                 loadStream();
             };
-            xhr.send(JSON.stringify({ name: name, url: url, category: "مضافة يدوياً" }));
+            xhr.send(JSON.stringify({ name: name, url: url, group: "مضافة يدوياً" }));
         }
 
         function updateDatabaseState() {
