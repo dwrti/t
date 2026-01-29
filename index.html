@@ -8,22 +8,27 @@
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     
     <style>
+        /* إعدادات الصفحة الأساسية */
         html, body { 
             margin: 0; padding: 0; width: 100%; height: 100%; 
-            background-color: #000; color: #eee;
+            background-color: #000000; color: #eee;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             overflow-x: hidden;
+            -webkit-overflow-scrolling: touch; 
         }
 
         body { display: flex; flex-direction: column; align-items: center; }
 
         .card { 
-            position: sticky; top: 0; z-index: 1000; 
-            background: #000; width: 100%; max-width: 800px; 
+            position: -webkit-sticky; position: sticky; 
+            top: 0; z-index: 1000; background: #000; 
+            width: 100%; max-width: 800px; 
             box-shadow: 0 4px 15px rgba(0,0,0,0.8);
         }
         
-        video { width: 100%; aspect-ratio: 16/9; background: #000; display: block; }
+        video { width: 100%; display: block; aspect-ratio: 16/9; background: #000; outline: none; }
+
+        #contentWrapper { width: 100%; display: flex; flex-direction: column; align-items: center; }
 
         #admin { display: none; width: 95%; max-width: 650px; margin-top: 15px; }
         
@@ -36,38 +41,48 @@
         input { 
             width: 100%; padding: 12px; margin: 6px 0; 
             border: 1px solid #222; border-radius: 8px; 
-            background: #0a0a0a; color: #fff; box-sizing: border-box;
+            font-size: 14px; background: #0a0a0a; color: #fff;
+            box-sizing: border-box; outline: none;
         }
 
         .btn-group { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+
         button { 
             flex: 1; min-width: 100px; padding: 12px; background-color: #111; 
             color: #fff; border: 1px solid #222; border-radius: 8px; 
             cursor: pointer; font-size: 14px; font-weight: bold;
         }
 
-        .btn-sync.active { background-color: #1b5e20; }
-        .btn-sync.inactive { background-color: #b71c1c; }
+        .btn-sync.active { background-color: #1b5e20; border-color: #2e7d32; }
+        .btn-sync.inactive { background-color: #b71c1c; border-color: #c62828; }
+        .btn-delete { color: #ff5252; border-color: #5d1b1b; }
 
-        /* تنسيق المجموعات والقنوات */
-        #librarySection { width: 95%; max-width: 700px; margin: 20px auto 100px auto; }
+        #statusText { text-align: center; font-size: 13px; color: #4caf50; margin: 10px 0; font-weight: bold; }
         
-        .group-container { margin-bottom: 10px; border: 1px solid #222; border-radius: 8px; overflow: hidden; }
+        h2, p, span:not(.ep-name-text), h3 { display: none !important; }
+
+        /* قسم المكتبة والمجموعات */
+        #librarySection { width: 95%; max-width: 700px; margin: 20px auto 120px auto; }
+        
+        .group-container { margin-bottom: 15px; background: #0a0a0a; border-radius: 8px; overflow: hidden; border: 1px solid #1a1a1a; }
         .group-header { 
-            background: #111; padding: 15px; cursor: pointer; 
-            font-weight: bold; display: flex; justify-content: space-between;
+            background: #151515; padding: 12px; cursor: pointer; 
+            font-weight: bold; color: #4caf50; display: flex; justify-content: space-between;
         }
-        .group-content { display: none; background: #050505; }
-        .group-content.show { display: block; }
+        .group-content { display: none; padding: 5px; }
+        .group-content.active { display: block; }
 
-        .channel-item { 
-            padding: 12px 20px; border-bottom: 1px solid #111; 
-            cursor: pointer; font-size: 14px; color: #ccc;
+        .ep-item { 
+            display: flex; align-items: center; 
+            background: #111; margin-bottom: 4px; 
+            width: 100%; border-radius: 4px; border-bottom: 1px solid #1a1a1a;
         }
-        .channel-item:hover { background: #1a1a1a; color: #fff; }
+        
+        .ep-name-clickable { flex-grow: 1; padding: 12px; cursor: pointer; text-align: right; }
+        .ep-name-text { color: #ccc !important; font-size: 14px; display: block !important; }
 
-        #searchBox { margin-bottom: 15px; border-color: #333; }
-        #statusText { text-align: center; font-size: 13px; color: #4caf50; margin: 10px 0; display: none; }
+        /* إخفاء العناصر غير الضرورية */
+        #epNameInput, #epUrlInput { display: none; }
     </style>
 </head>
 <body>
@@ -76,28 +91,31 @@
         <video id="myPlayer" controls autoplay playsinline></video>
     </div>
 
-    <div id="admin">
-        <div id="viewerCount">عدد المتصلين: --</div>
-        
-        <div style="background: #0a0a0a; padding: 10px; border-radius: 8px; border: 1px solid #1a1a1a;">
-            <input type="text" id="m3uUrlInput" placeholder="ضع رابط ملف M3U المباشر هنا...">
-            <div style="display: flex; gap: 5px;">
-                <button onclick="loadM3UFromUrl()" style="background: #1a3a8a;">تحميل من الرابط</button>
-                <button onclick="document.getElementById('fileInput').click()" style="background: #333;">رفع ملف من الهاتف</button>
+    <div id="contentWrapper">
+        <div id="admin">
+            <div id="viewerCount">عدد المتصلين الآن: جاري التحميل...</div>
+            
+            <div style="border: 1px dashed #333; padding: 10px; border-radius: 8px;">
+                <label style="font-size: 12px; color: #888;">رفع ملف M3U من الهاتف:</label>
+                <input type="file" id="m3uFile" accept=".m3u,.m3u8" style="background: transparent;">
+                
+                <label style="font-size: 12px; color: #888;">أو رابط ملف M3U مباشر:</label>
+                <input type="text" id="m3uUrlInput" placeholder="ضع رابط M3U هنا واضغط Enter" onkeypress="if(event.key==='Enter') loadM3UFromUrl(this.value)">
             </div>
-            <input type="file" id="fileInput" style="display:none" accept=".m3u,.m3u8" onchange="loadM3UFromFile(event)">
+
+            <input type="text" id="urlInput" placeholder="رابط بث مباشر سريع (يدوي)..." onpaste="handlePaste(event)">
+
+            <div class="btn-group">
+                <button id="syncToggleBtn" class="btn-sync" onclick="toggleSync()">جاري التحميل...</button>
+                <button class="btn-delete" onclick="deleteVideo()">حذف فيديو البث 🗑️</button>
+                <button onclick="clearLibrary()" style="color:#ffb74d">مسح المكتبة 🧹</button>
+            </div>
+            <div id="statusText">تم التحديث بنجاح ✅</div>
         </div>
 
-        <div class="btn-group">
-            <button id="syncToggleBtn" class="btn-sync" onclick="toggleSync()">جاري التحميل...</button>
-            <button class="btn-delete" onclick="clearLibrary()" style="color: #ff5252;">مسح كل القنوات 🗑️</button>
+        <div id="librarySection">
+            <div id="episodesContainer"></div>
         </div>
-        <div id="statusText">تم التحديث ✅</div>
-    </div>
-
-    <div id="librarySection">
-        <input type="text" id="searchBox" placeholder="🔍 ابحث عن قناة..." oninput="filterChannels()">
-        <div id="channelsContainer"></div>
     </div>
 
     <script>
@@ -109,148 +127,125 @@
         var isAdmin = window.location.hash === "#ana";
         var isSyncEnabled = true;
         var myUserId = Math.random().toString(36).substring(7);
-        var allChannels = []; // لتخزين القنوات محلياً للبحث
 
-        // --- وظائف IPTV ---
+        // --- نظام معالجة ملفات M3U ---
+        
+        if (isAdmin) {
+            document.getElementById('m3uFile').addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = function(e) { parseM3U(e.target.result); };
+                reader.readAsText(file);
+            });
+        }
 
-        function parseM3U(data) {
-            const lines = data.split('\n');
-            const channels = [];
-            let currentGroup = "غير مصنف";
+        function loadM3UFromUrl(url) {
+            if(!url) return;
+            showStatus("جاري جلب الملف...");
+            fetch(url).then(r => r.text()).then(data => parseM3U(data)).catch(e => alert("خطأ في جلب الرابط"));
+        }
+
+        function parseM3U(content) {
+            const lines = content.split('\n');
+            let channels = [];
+            let currentGroup = "عام";
 
             for (let i = 0; i < lines.length; i++) {
                 let line = lines[i].trim();
-                if (line.startsWith('#EXTINF')) {
+                if (line.startsWith('#EXTINF:')) {
                     const groupMatch = line.match(/group-title="([^"]+)"/);
                     if (groupMatch) currentGroup = groupMatch[1];
                     
                     const name = line.split(',').pop();
-                    const url = lines[i + 1] ? lines[i + 1].trim() : "";
+                    const url = lines[i+1] ? lines[i+1].trim() : "";
                     
                     if (url && !url.startsWith('#')) {
                         channels.push({ name, url, group: currentGroup });
                     }
                 }
             }
-            return channels;
+            saveChannelsToFirebase(channels);
         }
 
-        function loadM3UFromUrl() {
-            const url = document.getElementById('m3uUrlInput').value;
-            if (!url) return;
-            showStatus("جاري التحميل...");
-            fetch(url).then(r => r.text()).then(data => {
-                const channels = parseM3U(data);
-                uploadChannelsToFirebase(channels);
-            }).catch(() => alert("فشل تحميل الرابط، تأكد من الروابط التي تدعم CORS"));
-        }
-
-        function loadM3UFromFile(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const channels = parseM3U(e.target.result);
-                uploadChannelsToFirebase(channels);
-            };
-            reader.readAsText(file);
-        }
-
-        function uploadChannelsToFirebase(channels) {
-            if (channels.length === 0) return;
-            showStatus("جاري الحفظ في القاعدة...");
-            // نحدث المكتبة بالكامل
+        function saveChannelsToFirebase(channels) {
+            showStatus("جاري رفع " + channels.length + " قناة...");
+            // نرفعها للمكتبة مباشرة
             var xhr = new XMLHttpRequest();
-            xhr.open("PATCH", dbUrl, true);
-            xhr.onload = function() { showStatus("تمت إضافة " + channels.length + " قناة ✅"); loadStream(); };
-            xhr.send(JSON.stringify({ library: channels }));
-        }
-
-        function renderLibrary(channels) {
-            const container = document.getElementById('channelsContainer');
-            container.innerHTML = "";
-            if (!channels || channels.length === 0) {
-                container.innerHTML = "<p style='text-align:center; color:#555;'>لا توجد قنوات، ارفع ملف M3U</p>";
-                return;
-            }
-
-            allChannels = channels;
-            const groups = {};
-            
-            // تجميع القنوات
-            channels.forEach(ch => {
-                if (!groups[ch.group]) groups[ch.group] = [];
-                groups[ch.group].push(ch);
-            });
-
-            Object.keys(groups).forEach(groupName => {
-                const groupDiv = document.createElement('div');
-                groupDiv.className = "group-container";
-                
-                const header = document.createElement('div');
-                header.className = "group-header";
-                header.innerHTML = `<span>${groupName}</span> <span>${groups[groupName].length} 📺</span>`;
-                header.onclick = () => {
-                    const content = groupDiv.querySelector('.group-content');
-                    content.classList.toggle('show');
-                };
-
-                const content = document.createElement('div');
-                content.className = "group-content";
-
-                groups[groupName].forEach(ch => {
-                    const item = document.createElement('div');
-                    item.className = "channel-item";
-                    item.innerText = ch.name;
-                    item.onclick = (e) => {
-                        e.stopPropagation();
-                        selectChannel(ch);
-                    };
-                    content.appendChild(item);
-                });
-
-                groupDiv.appendChild(header);
-                groupDiv.appendChild(content);
-                container.appendChild(groupDiv);
-            });
-        }
-
-        function selectChannel(ch) {
-            if (isAdmin) {
-                var xhr = new XMLHttpRequest();
-                xhr.open("PATCH", dbUrl, true);
-                xhr.send(JSON.stringify({ url: ch.url, status: "playing", time: 0 }));
-            }
-            playMedia(ch.url);
-            window.scrollTo({top: 0, behavior: 'smooth'});
-        }
-
-        function filterChannels() {
-            const term = document.getElementById('searchBox').value.toLowerCase();
-            const items = document.querySelectorAll('.channel-item');
-            const groups = document.querySelectorAll('.group-container');
-
-            items.forEach(item => {
-                const isVisible = item.innerText.toLowerCase().includes(term);
-                item.style.display = isVisible ? "block" : "none";
-            });
-
-            groups.forEach(group => {
-                const hasVisible = group.querySelectorAll('.channel-item[style="display: block;"]').length > 0;
-                group.style.display = hasVisible || term === "" ? "block" : "none";
-                if (term !== "" && hasVisible) group.querySelector('.group-content').classList.add('show');
-            });
+            xhr.open("PUT", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library.json", true);
+            xhr.onload = function() { showStatus("تم رفع القنوات بنجاح ✅"); loadStream(); };
+            xhr.send(JSON.stringify(channels));
         }
 
         function clearLibrary() {
             if(confirm("هل تريد مسح جميع القنوات؟")) {
                 var xhr = new XMLHttpRequest();
-                xhr.open("PATCH", dbUrl, true);
-                xhr.send(JSON.stringify({ library: [] }));
+                xhr.open("DELETE", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library.json", true);
+                xhr.onload = function() { loadStream(); };
+                xhr.send();
             }
         }
 
-        // --- الأكواد الأساسية (المزامنة) ---
+        function renderLibrary(libData) {
+            var container = document.getElementById('episodesContainer');
+            container.innerHTML = "";
+            if (!libData) { 
+                container.innerHTML = "<div style='text-align:center; padding:30px; color:#444;'>لا توجد قنوات مضافة</div>"; 
+                return; 
+            }
+
+            // تجميع القنوات حسب المجموعة
+            let groups = {};
+            Object.keys(libData).forEach(key => {
+                let item = libData[key];
+                let groupName = item.group || "أخرى";
+                if (!groups[groupName]) groups[groupName] = [];
+                groups[groupName].push({ ...item, key });
+            });
+
+            // بناء واجهة المجموعات
+            Object.keys(groups).forEach(groupName => {
+                let groupDiv = document.createElement('div');
+                groupDiv.className = "group-container";
+                
+                let header = document.createElement('div');
+                header.className = "group-header";
+                header.innerHTML = `<span>📂 ${groupName}</span> <span>${groups[groupName].length} قناة</span>`;
+                header.onclick = function() {
+                    let content = this.nextElementSibling;
+                    content.classList.toggle('active');
+                };
+
+                let contentDiv = document.createElement('div');
+                contentDiv.className = "group-content";
+
+                groups[groupName].forEach(ch => {
+                    let item = document.createElement('div');
+                    item.className = "ep-item";
+                    item.innerHTML = `
+                        <div class="ep-name-clickable">
+                            <span class="ep-name-text">📺 ${ch.name}</span>
+                        </div>
+                    `;
+                    item.onclick = function() {
+                        if (isAdmin) {
+                            var xhr = new XMLHttpRequest();
+                            xhr.open("PATCH", dbUrl, true);
+                            xhr.send(JSON.stringify({ url: ch.url, status: "playing", time: 0 }));
+                        }
+                        playMedia(ch.url);
+                        window.scrollTo({top: 0, behavior: 'smooth'});
+                    };
+                    contentDiv.appendChild(item);
+                });
+
+                groupDiv.appendChild(header);
+                groupDiv.appendChild(contentDiv);
+                container.appendChild(groupDiv);
+            });
+        }
+
+        // --- بقية الأكواد الأصلية (لا تغيير) ---
 
         function updatePresence() {
             var xhr = new XMLHttpRequest();
@@ -265,10 +260,11 @@
             xhr.onload = function() {
                 if (xhr.status === 200) {
                     var data = JSON.parse(xhr.responseText);
-                    var count = 0; var now = Date.now();
+                    var count = 0;
+                    var now = Date.now();
                     if (data) {
-                        Object.keys(data).forEach(function(k) {
-                            if (now - data[k] < 10000) count++;
+                        Object.keys(data).forEach(function(key) {
+                            if (now - data[key] < 10000) count++;
                         });
                     }
                     document.getElementById('viewerCount').innerText = "عدد المتصلين الآن: " + count;
@@ -288,21 +284,29 @@
             videoElement.play().catch(function(e){});
         }
 
+        function syncPlayer(data) {
+            if (!data) return;
+            isSyncEnabled = data.syncEnabled !== false; 
+            updateSyncButtonUI();
+            
+            // المزامنة تعمل للجميع في عرض المكتبة
+            renderLibrary(data.library);
+
+            if (isSyncEnabled && !isAdmin) {
+                if (data.url !== lastUrl) playMedia(data.url);
+                if (Math.abs(videoElement.currentTime - data.time) > 5) videoElement.currentTime = data.time;
+                if (data.status === "playing" && videoElement.paused) videoElement.play().catch(e=>{});
+                else if (data.status === "paused" && !videoElement.paused) videoElement.pause();
+            }
+        }
+
         function loadStream() {
             var xhr = new XMLHttpRequest();
             xhr.open("GET", dbUrl, true);
             xhr.onload = function () {
                 if (xhr.status === 200) {
                     var data = JSON.parse(xhr.responseText);
-                    isSyncEnabled = data.syncEnabled !== false;
-                    updateSyncButtonUI();
-                    renderLibrary(data.library);
-                    if (isSyncEnabled && !isAdmin) {
-                        if (data.url !== lastUrl) playMedia(data.url);
-                        if (Math.abs(videoElement.currentTime - data.time) > 3) videoElement.currentTime = data.time;
-                        if (data.status === "playing" && videoElement.paused) videoElement.play().catch(e=>{});
-                        else if (data.status === "paused" && !videoElement.paused) videoElement.pause();
-                    }
+                    syncPlayer(data);
                 }
             };
             xhr.send();
@@ -325,28 +329,65 @@
             }
         }
 
-        function showStatus(msg) {
-            var status = document.getElementById('statusText');
-            status.innerText = msg; status.style.display = "block";
-            setTimeout(() => status.style.display = "none", 3000);
+        function updateDatabaseState() {
+            if (!isAdmin || !isSyncEnabled) return;
+            var xhr = new XMLHttpRequest();
+            xhr.open("PATCH", dbUrl, true);
+            var state = { status: videoElement.paused ? "paused" : "playing", time: videoElement.currentTime };
+            xhr.send(JSON.stringify(state));
         }
 
-        setInterval(() => {
+        setInterval(function() {
             updatePresence();
-            loadStream();
-            if (isAdmin) {
+            if (!isAdmin) loadStream();
+            else { 
+                if (isSyncEnabled) updateDatabaseState(); 
+                loadStream();
                 fetchViewerCount();
-                if (isSyncEnabled) {
-                    var xhr = new XMLHttpRequest();
-                    xhr.open("PATCH", dbUrl, true);
-                    xhr.send(JSON.stringify({ status: videoElement.paused ? "paused" : "playing", time: videoElement.currentTime }));
-                }
             }
         }, 5000);
 
+        if (isAdmin) {
+            ['play', 'pause', 'seeked'].forEach(function(ev) {
+                videoElement.addEventListener(ev, function() { if(isSyncEnabled) updateDatabaseState(); });
+            });
+        }
+
+        function handlePaste(event) {
+            setTimeout(function() {
+                var val = document.getElementById('urlInput').value.trim();
+                if (val) {
+                    var xhr = new XMLHttpRequest();
+                    xhr.open("PATCH", dbUrl, true);
+                    xhr.send(JSON.stringify({ url: val, status: "playing", time: 0 }));
+                    document.getElementById('urlInput').value = ''; 
+                    showStatus("تم التحديث ✅");
+                }
+            }, 100);
+        }
+
+        function deleteVideo() {
+            if(confirm("حذف البث؟")) {
+                var xhr = new XMLHttpRequest();
+                xhr.open("PATCH", dbUrl, true);
+                xhr.send(JSON.stringify({ url: "", status: "paused", time: 0 }));
+            }
+        }
+
+        function showStatus(msg) {
+            var status = document.getElementById('statusText');
+            status.innerText = msg;
+            status.style.display = "block";
+            setTimeout(function() { status.style.display = "none"; }, 3000);
+        }
+
         window.onload = function() {
             loadStream();
-            if(isAdmin) document.getElementById('admin').style.display = "block";
+            updatePresence();
+            if(isAdmin) {
+                document.getElementById('admin').style.display = "block";
+                fetchViewerCount();
+            }
         };
     </script>
 </body>
