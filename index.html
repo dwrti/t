@@ -3,150 +3,156 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>بوابة العالم الرقمي | Digimon Tamers 📺</title>
+    <title>عالم الكرتون 📺</title>
     
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     
     <style>
-        /* ثيم أبطال الديجيتال 3 - Digimon Tamers */
+        /* تنسيقات عالم الكرتون */
         :root {
-            --tamers-red: #d32f2f;
-            --tamers-gold: #ffc107;
-            --tamers-dark: #121212;
-            --tamers-blue: #00bcd4;
+            --primary-color: #4facfe;
+            --secondary-color: #00f2fe;
+            --accent-color: #ffce00;
+            --bg-color: #e0f7fa;
         }
 
         html, body { 
             margin: 0; padding: 0; width: 100%; height: 100%; 
-            background-color: var(--tamers-dark); color: #eee;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-color) url('https://www.transparenttextures.com/patterns/clouds.png');
+            color: #333;
+            font-family: 'Segoe UI', 'Arial', sans-serif;
             overflow-x: hidden;
-            overflow-y: scroll; 
             -webkit-overflow-scrolling: touch; 
-            scroll-behavior: smooth;
-            background-image: radial-gradient(circle, #1a1a1a 10%, #000 90%);
         }
 
         body { display: flex; flex-direction: column; align-items: center; }
 
-        /* إطار المشغل - ديجيفايس ستايل */
+        /* إطار المشغل الكرتوني */
         .card { 
-            background: #000; 
-            padding: 5px; 
-            border-radius: 0 0 20px 20px; 
-            width: 100%; max-width: 650px; box-sizing: border-box;
-            border: 3px solid var(--tamers-red);
-            border-top: none;
-            box-shadow: 0 4px 15px rgba(211, 47, 47, 0.4);
-            z-index: 10;
-            position: sticky; top: 0; 
+            background: #fff; 
+            padding: 10px; 
+            border-radius: 25px; 
+            width: 92%; 
+            max-width: 650px; 
+            box-sizing: border-box;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border: 6px solid var(--primary-color);
+            margin: 20px 0;
+            position: sticky; top: 10px; 
+            z-index: 100;
         }
         
         video { 
-            width: 100%; display: block; aspect-ratio: 16/9; 
-            background: #000; border-radius: 0 0 15px 15px;
+            width: 100%; 
+            display: block; 
+            aspect-ratio: 16/9; 
+            background: #000; 
+            border-radius: 15px;
         }
 
+        /* لوحة التحكم (للمدمن) */
         #admin { 
-            display: none; width: 95%; max-width: 650px; 
-            margin-top: 20px; background: rgba(30, 30, 30, 0.9);
-            padding: 15px; border-radius: 15px; border: 1px solid var(--tamers-gold);
+            display: none; 
+            width: 90%; max-width: 600px; 
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 20px;
+            border: 3px dashed var(--primary-color);
+            margin-bottom: 20px;
         }
         
         #viewerCount {
-            background: #000;
-            color: var(--tamers-gold);
-            padding: 8px;
-            border-radius: 5px;
+            background: var(--accent-color);
+            color: #444;
+            padding: 10px;
+            border-radius: 50px;
             text-align: center;
             font-size: 14px;
-            margin-bottom: 10px;
-            border: 1px solid var(--tamers-gold);
-            font-family: 'Courier New', monospace;
+            margin-bottom: 15px;
+            font-weight: bold;
+            border: 2px solid #fff;
         }
 
         input { 
-            width: 100%; padding: 12px; margin: 6px 0; 
-            border: 1px solid #444; border-radius: 8px; 
-            font-size: 14px; background: #000; color: #fff;
+            width: 100%; padding: 12px; margin: 8px 0; 
+            border: 2px solid #b3e5fc; border-radius: 12px; 
+            font-size: 14px; background: #fff; color: #333;
             box-sizing: border-box; outline: none;
         }
-        
-        input:focus { border-color: var(--tamers-red); }
 
-        .btn-group { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+        .btn-group { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
 
         button { 
-            flex: 1; min-width: 100px; padding: 12px; background-color: #333; 
-            color: #fff; border: 1px solid #555; border-radius: 8px; 
+            flex: 1; min-width: 100px; padding: 12px; 
+            background: var(--primary-color);
+            color: #fff; border: none; border-radius: 12px; 
             cursor: pointer; font-size: 14px; font-weight: bold;
-            transition: all 0.3s;
-        }
-
-        button:hover { border-color: var(--tamers-gold); }
-
-        .btn-sync.active { background-color: #1b5e20; border-color: #4caf50; }
-        .btn-sync.inactive { background-color: #b71c1c; border-color: #f44336; }
-        .btn-delete { color: #ff5252; border-color: #5d1b1b; }
-
-        #statusText { 
-            text-align: center; font-size: 13px; color: var(--tamers-blue); 
-            margin: 10px 0; font-weight: bold; text-shadow: 0 0 5px #000;
+            box-shadow: 0 4px 0 #3a8dcf;
+            transition: all 0.2s;
         }
         
+        button:active { transform: translateY(3px); box-shadow: none; }
+
+        .btn-sync.active { background-color: #4caf50; box-shadow: 0 4px 0 #388e3c; }
+        .btn-sync.inactive { background-color: #f44336; box-shadow: 0 4px 0 #d32f2f; }
+        .btn-delete { background-color: #78909c; box-shadow: 0 4px 0 #546e7a; }
+
+        #statusText { text-align: center; color: #2e7d32; font-weight: bold; padding: 10px; }
+        
+        /* إخفاء العناصر غير المطلوبة */
         h2, p, span:not(.ep-name-text), h3 { display: none !important; }
 
-        /* قسم المكتبة - ستايل بطاقات ديجيمون */
+        /* المكتبة */
         #librarySection {
             width: 95%; max-width: 650px; 
             margin: 20px auto 100px auto; 
-            background: rgba(20, 20, 20, 0.8); border-radius: 12px; 
-            border: 2px solid var(--tamers-red);
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border-radius: 25px; 
+            border: 4px solid #fff;
             padding: 15px; box-sizing: border-box; display: none;
         }
         
         .lib-title { 
-            font-size: 18px; margin-bottom: 15px; color: var(--tamers-gold); 
-            font-weight: bold; text-align: center; border-bottom: 1px solid #333;
-            padding-bottom: 10px;
+            font-size: 18px; color: #0277bd; font-weight: bold; text-align: center; margin-bottom: 15px;
         }
 
-        .ep-list { max-height: none; overflow: visible; }
-        
         .ep-item { 
             display: flex; align-items: center; 
-            background: #1a1a1a; margin-bottom: 10px; border-radius: 8px;
-            border: 1px solid #333; overflow: hidden;
+            background: #fff; margin-bottom: 12px; border-radius: 15px;
+            border: 2px solid #e1f5fe;
             flex-direction: row-reverse;
-            transition: all 0.2s ease;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         }
         
-        .ep-item:hover { border-color: var(--tamers-red); background: #222; }
-        .ep-item:active { transform: scale(0.98); } 
+        .ep-item:hover { transform: scale(1.02); border-color: var(--primary-color); }
 
         .ep-name-clickable {
             flex-grow: 1; padding: 15px;
-            cursor: pointer; -webkit-tap-highlight-color: transparent;
-            text-align: right;
+            cursor: pointer; text-align: right;
         }
 
         .ep-name-text { 
-            color: #fff !important; 
-            font-size: 15px; 
+            color: #333 !important; font-size: 16px; font-weight: 600;
             display: block !important;
-            pointer-events: none;
         }
 
         .lib-control-btn {
-            background: transparent; border: none; 
-            height: 50px; font-size: 18px; 
-            cursor: pointer; display: none; 
-            flex-shrink: 0; outline: none; padding: 0 12px;
+            background: #f1f1f1; border: none; border-radius: 10px;
+            height: 40px; width: 40px; font-size: 16px; 
+            margin: 5px; cursor: pointer; display: none; 
+            flex-shrink: 0; outline: none;
         }
         
-        .single-delete-btn { color: #ff4444; }
-        .single-edit-btn { color: var(--tamers-blue); }
-        
+        .single-delete-btn { color: #f44336; }
+        .single-edit-btn { color: #4caf50; }
+
+        /* لمسات لمتصفح Puffin والهواتف الضعيفة */
+        @media screen and (max-width: 480px) {
+            .card { width: 98%; border-width: 4px; border-radius: 15px; }
+            .ep-name-text { font-size: 14px; }
+        }
     </style>
 </head>
 <body>
@@ -156,30 +162,30 @@
     </div>
 
     <div id="admin">
-        <div id="viewerCount">حالة الاتصال: جاري المسح...</div>
+        <div id="viewerCount">عدد الأصدقاء الآن: جاري التحميل...</div>
 
-        <input type="text" id="urlInput" placeholder="أدخل رابط التحويل الرقمي (M3U8/MP4)" onpaste="handlePaste(event)">
+        <input type="text" id="urlInput" placeholder="ضع رابط البث هنا..." onpaste="handlePaste(event)">
         
-        <div style="border-top: 1px solid #444; margin-top: 15px; padding-top: 10px;">
-            <input type="text" id="epNameInput" placeholder="اسم الملف">
-            <input type="text" id="epUrlInput" placeholder="رابط الفيديو...">
-            <button style="background: var(--tamers-red); color: white; width: 100%; border: none; margin-top: 5px;" onclick="addEpisode()">إضافة إلى الأرشيف الرقمي +</button>
+        <div style="border-top: 2px solid #e1f5fe; margin-top: 15px; padding-top: 10px;">
+            <input type="text" id="epNameInput" placeholder="اسم الكرتون / الحلقة">
+            <input type="text" id="epUrlInput" placeholder="رابط الفيديو المباشر...">
+            <button style="background: #ff9800; box-shadow: 0 4px 0 #e68a00;" onclick="addEpisode()">إضافة للمكتبة ➕</button>
         </div>
 
-        <div class="btn-group" style="margin-top: 15px; border-top: 1px solid #444; padding-top: 10px;">
-            <button id="syncToggleBtn" class="btn-sync" onclick="toggleSync()">انتظار البيانات...</button>
-            <button class="btn-delete" onclick="deleteVideo()">إلغاء الاتصال 🗑️</button>
+        <div class="btn-group" style="margin-top: 15px;">
+            <button id="syncToggleBtn" class="btn-sync" onclick="toggleSync()">جاري التحميل...</button>
+            <button class="btn-delete" onclick="deleteVideo()">حذف البث 🗑️</button>
         </div>
-        <div id="statusText">تم تحديث البيانات الرقمية ✅</div>
+        <div id="statusText" style="display:none;">تم التحديث بنجاح ✅</div>
     </div>
 
     <div id="librarySection">
-        <div class="lib-title">🗂️ الأرشيف الرقمي (المروضون)</div> 
+        <div class="lib-title">📺 قائمة العروض الممتعة</div> 
         <div id="episodesContainer" class="ep-list"></div>
     </div>
 
     <script>
-        // الأكواد البرمجية كما هي لضمان عمل الصفحة 100%
+        // الكود البرمجي لم يتغير لضمان عمل قاعدة البيانات
         var videoElement = document.getElementById('myPlayer');
         var hls = new Hls();
         var dbUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream.json";
@@ -214,7 +220,7 @@
                             }
                         });
                     }
-                    document.getElementById('viewerCount').innerText = "المروضون المتصلون الآن: " + count;
+                    document.getElementById('viewerCount').innerText = "عدد المتصلين الآن: " + count;
                 }
             };
             xhr.send();
@@ -235,7 +241,7 @@
             var container = document.getElementById('episodesContainer');
             container.innerHTML = "";
             if (!libData) { 
-                container.innerHTML = "<div style='text-align:center; padding:30px; color:#666; display:block !important;'>الأرشيف فارغ حالياً</div>"; 
+                container.innerHTML = "<div style='text-align:center; padding:30px; color:#666; display:block !important;'>المكتبة فارغة حالياً</div>"; 
                 return; 
             }
             
@@ -252,7 +258,7 @@
                         var xhr = new XMLHttpRequest();
                         xhr.open("PATCH", dbUrl, true);
                         xhr.send(JSON.stringify({ url: ep.url, status: "playing", time: 0 }));
-                        showStatus("بث الملف: " + ep.name);
+                        showStatus("جاري تشغيل: " + ep.name);
                     }
                     playMedia(ep.url); 
                     window.scrollTo({top: 0, behavior: 'smooth'}); 
@@ -281,22 +287,22 @@
         }
 
         function editSingleEpisode(key, oldName, oldUrl) {
-            var newName = prompt("تعديل الاسم:", oldName);
+            var newName = prompt("تعديل اسم المقطع:", oldName);
             if (newName === null) return;
-            var newUrl = prompt("تعديل الرابط:", oldUrl);
+            var newUrl = prompt("تعديل رابط المقطع:", oldUrl);
             if (newUrl === null) return;
-            if (newName.trim() === "" || newUrl.trim() === "") { alert("بيانات ناقصة"); return; }
+            if (newName.trim() === "" || newUrl.trim() === "") { alert("لا يمكن ترك الحقول فارغة"); return; }
             var xhr = new XMLHttpRequest();
             xhr.open("PATCH", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library/" + key + ".json", true);
-            xhr.onload = function() { showStatus("تم التعديل ✅"); loadStream(); };
+            xhr.onload = function() { showStatus("تم التعديل بنجاح ✅"); loadStream(); };
             xhr.send(JSON.stringify({ name: newName, url: newUrl }));
         }
 
         function deleteSingleEpisode(key) {
-            if(confirm("حذف من الأرشيف؟")) {
+            if(confirm("حذف هذه الحلقة؟")) {
                 var xhr = new XMLHttpRequest();
                 xhr.open("DELETE", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library/" + key + ".json", true);
-                xhr.onload = function() { showStatus("تم الحذف"); loadStream(); };
+                xhr.onload = function() { showStatus("تم حذف الحلقة بنجاح"); loadStream(); };
                 xhr.send();
             }
         }
@@ -345,10 +351,10 @@
             var btn = document.getElementById('syncToggleBtn');
             if (btn) {
                 if (isSyncEnabled) {
-                    btn.innerText = "المزامنة الرقمية: متصلة";
+                    btn.innerText = "المزامنة: مفعلة ✅";
                     btn.className = "btn-sync active";
                 } else {
-                    btn.innerText = "المزامنة الرقمية: منقطعة";
+                    btn.innerText = "المزامنة: معطلة ❌";
                     btn.className = "btn-sync inactive";
                 }
             }
@@ -357,13 +363,13 @@
         function addEpisode() {
             var name = document.getElementById('epNameInput').value.trim();
             var url = document.getElementById('epUrlInput').value.trim();
-            if (!name || !url) { alert("أدخل البيانات"); return; }
+            if (!name || !url) { alert("أدخل الاسم والرابط"); return; }
             var xhr = new XMLHttpRequest();
             xhr.open("POST", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library.json", true);
             xhr.onload = function() {
                 document.getElementById('epNameInput').value = "";
                 document.getElementById('epUrlInput').value = "";
-                showStatus("تمت الإضافة للأرشيف");
+                showStatus("تمت إضافة: " + name);
                 loadStream();
             };
             xhr.send(JSON.stringify({ name: name, url: url }));
@@ -401,13 +407,13 @@
                     xhr.open("PATCH", dbUrl, true);
                     xhr.send(JSON.stringify({ url: val, status: "playing", time: 0 }));
                     document.getElementById('urlInput').value = ''; 
-                    showStatus("تم الإرسال ✅");
+                    showStatus("تم التحديث ✅");
                 }
             }, 100);
         }
 
         function deleteVideo() {
-            if(confirm("قطع البث؟")) {
+            if(confirm("حذف البث؟")) {
                 var xhr = new XMLHttpRequest();
                 xhr.open("PATCH", dbUrl, true);
                 xhr.send(JSON.stringify({ url: "", status: "paused", time: 0 }));
