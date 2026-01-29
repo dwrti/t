@@ -3,149 +3,172 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>سبيستون - قناة شباب المستقبل 📺</title>
+    <title>دورتي الكرتونية 📺</title>
     
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     
     <style>
-        /* ستايل سبيستون - كوكب الإثارة والغموض */
+        /* ستايل عالم الكرتون */
         :root {
-            --spacetoon-blue: #0051a8;
-            --spacetoon-yellow: #ffcc00;
-            --spacetoon-purple: #6a0dad;
-            --spacetoon-bg: #0b0221;
+            --primary-color: #FFD700; /* أصفر كرتوني */
+            --secondary-color: #FF5722; /* برتقالي حيوي */
+            --bg-color: #4CC9F0; /* أزرق سماوي */
+            --card-bg: #FFFFFF;
+            --text-color: #2B2D42;
+            --border-width: 4px;
         }
 
         html, body { 
             margin: 0; padding: 0; width: 100%; height: 100%; 
-            background: var(--spacetoon-bg);
-            /* إضافة نجوم للخلفية */
-            background-image: radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 40px),
-                              radial-gradient(white, rgba(255,255,255,.15) 1px, transparent 30px);
-            background-size: 550px 550px, 350px 350px;
-            color: #fff;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(#ffffff 10%, transparent 10%);
+            background-size: 30px 30px; /* خلفية منقطة كرتونية */
+            color: var(--text-color);
+            font-family: 'Segoe UI', 'Comic Sans MS', cursive, sans-serif;
             overflow-x: hidden;
             overflow-y: scroll; 
             -webkit-overflow-scrolling: touch; 
             scroll-behavior: smooth;
         }
 
-        body {
-            display: flex; flex-direction: column;
-            align-items: center;
-        }
+        body { display: flex; flex-direction: column; align-items: center; }
 
-        /* حاوية الفيديو مع إطار ذهبي سبيستوني */
+        /* إطار المشغل الكرتوني */
         .card { 
-            background: #000; padding: 0; border-radius: 0; 
+            background: #000; 
+            padding: 10px; 
+            border-radius: 0 0 30px 30px; 
             width: 100%; max-width: 650px; box-sizing: border-box;
-            border-bottom: 5px solid var(--spacetoon-yellow); z-index: 10;
+            border: var(--border-width) solid #000;
+            border-top: none;
+            box-shadow: 0 10px 0 rgba(0,0,0,0.2);
+            z-index: 100;
             position: sticky; top: 0; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            background-color: var(--primary-color);
         }
         
-        video { width: 100%; display: block; aspect-ratio: 16/9; background: #000; }
+        video { 
+            width: 100%; display: block; 
+            aspect-ratio: 16/9; 
+            background: #000; 
+            border-radius: 15px;
+            border: 3px solid #000;
+        }
 
-        /* منطقة التحكم */
-        #admin { display: none; width: 95%; max-width: 650px; margin-top: 20px; }
+        #admin { 
+            display: none; width: 92%; max-width: 650px; 
+            margin-top: 25px; background: #fff; 
+            padding: 20px; border-radius: 20px;
+            border: var(--border-width) solid #000;
+            box-shadow: 8px 8px 0 #000;
+        }
         
         #viewerCount {
-            background: rgba(106, 13, 173, 0.6);
-            color: var(--spacetoon-yellow);
+            background: #FFEB3B;
+            color: #000;
             padding: 10px;
-            border-radius: 15px;
+            border-radius: 50px;
             text-align: center;
-            font-size: 14px;
-            margin-bottom: 10px;
-            border: 2px solid var(--spacetoon-yellow);
+            font-size: 16px;
+            margin-bottom: 15px;
+            border: 3px solid #000;
             font-weight: bold;
         }
 
         input { 
-            width: 100%; padding: 12px; margin: 6px 0; 
-            border: 2px solid var(--spacetoon-blue); border-radius: 12px; 
-            font-size: 14px; background: #fff; color: #333;
+            width: 100%; padding: 12px; margin: 8px 0; 
+            border: 3px solid #000; border-radius: 12px; 
+            font-size: 14px; background: #fff; color: #000;
             box-sizing: border-box; outline: none;
+            font-weight: bold;
         }
 
-        .btn-group { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+        .btn-group { display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap; }
 
         button { 
             flex: 1; min-width: 100px; padding: 12px; 
-            background: var(--spacetoon-blue); 
-            color: #fff; border: none; border-radius: 12px; 
-            cursor: pointer; font-size: 14px; font-weight: bold;
-            transition: all 0.3s;
-            box-shadow: 0 4px 0 #003366;
+            background-color: var(--secondary-color); 
+            color: #fff; border: 3px solid #000; border-radius: 12px; 
+            cursor: pointer; font-size: 14px; font-weight: 900;
+            transition: transform 0.1s, box-shadow 0.1s;
+            box-shadow: 4px 4px 0 #000;
+            text-transform: uppercase;
         }
 
-        button:active { transform: translateY(3px); box-shadow: none; }
+        button:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #000; }
 
-        .btn-sync.active { background-color: #28a745; }
-        .btn-sync.inactive { background-color: #dc3545; }
-        .btn-delete { background-color: #ff4757; }
+        .btn-sync.active { background-color: #4CAF50; }
+        .btn-sync.inactive { background-color: #F44336; }
+        .btn-delete { background-color: #FFC107; color: #000; }
 
-        #statusText { text-align: center; font-size: 14px; color: var(--spacetoon-yellow); margin: 10px 0; font-weight: bold; text-shadow: 1px 1px 2px #000; }
+        #statusText { 
+            text-align: center; font-size: 14px; color: #D81B60; 
+            margin: 10px 0; font-weight: bold; 
+        }
         
-        /* إخفاء العناصر غير المرغوبة مع لمسة جمالية */
+        /* إخفاء العناصر غير المرغوبة */
         h2, p, span:not(.ep-name-text), h3 { display: none !important; }
 
-        /* تصميم المكتبة (كواكب سبيستون) */
         #librarySection {
-            width: 95%; max-width: 650px; 
-            margin: 150px auto 100px auto; 
-            background: rgba(0, 81, 168, 0.2); 
-            backdrop-filter: blur(10px);
-            border-radius: 20px; border: 2px solid var(--spacetoon-blue);
-            padding: 20px; box-sizing: border-box; display: none;
+            width: 92%; max-width: 650px; 
+            margin: 40px auto 100px auto; 
+            background: #fff; border-radius: 25px; 
+            border: var(--border-width) solid #000;
+            padding: 20px; box-sizing: border-box; 
+            display: none;
+            box-shadow: 10px 10px 0 rgba(0,0,0,0.1);
         }
         
         .lib-title { 
-            font-size: 20px; margin-bottom: 15px; text-align: center;
-            color: var(--spacetoon-yellow); font-weight: bold; 
-            text-shadow: 1px 1px 5px #000;
-            min-height: 1.2em; 
+            font-size: 22px; margin-bottom: 20px; 
+            color: #000; font-weight: 900; 
+            text-align: center;
+            border-bottom: 4px dashed var(--primary-color);
+            padding-bottom: 10px;
         }
 
-        .lib-title::after { content: "قائمة الكواكب 🌌"; }
-
-        .ep-list { max-height: none; overflow: visible; }
+        .ep-list { overflow: visible; }
         
         .ep-item { 
             display: flex; align-items: center; 
-            background: rgba(255, 255, 255, 0.1); margin-bottom: 10px; border-radius: 15px;
-            border: 1px solid var(--spacetoon-blue); overflow: hidden;
+            background: #F8F9FA; margin-bottom: 12px; border-radius: 15px;
+            border: 3px solid #000; overflow: hidden;
             flex-direction: row-reverse;
-            transition: all 0.2s;
+            transition: transform 0.2s;
+            box-shadow: 4px 4px 0 #eee;
         }
         
-        .ep-item:hover { background: rgba(255, 255, 255, 0.2); border-color: var(--spacetoon-yellow); }
-        .ep-item:active { transform: scale(0.96); } 
+        .ep-item:hover { transform: scale(1.02); background: #fff; }
 
         .ep-name-clickable {
-            flex-grow: 1; padding: 15px;
+            flex-grow: 1; padding: 18px;
             cursor: pointer; -webkit-tap-highlight-color: transparent;
             text-align: right;
         }
 
         .ep-name-text { 
-            color: #fff !important; 
-            font-size: 16px; font-weight: 500;
+            color: #2B2D42 !important; 
+            font-size: 17px; 
             display: block !important;
-            pointer-events: none;
+            font-weight: bold;
         }
 
         .lib-control-btn {
-            background: rgba(255,255,255,0.1); border: none; 
-            height: 50px; font-size: 18px; 
+            background: #fff; border: none; 
+            border-left: 3px solid #000;
+            height: 55px; font-size: 20px; 
             cursor: pointer; display: none; 
             flex-shrink: 0; outline: none; padding: 0 15px;
         }
         
-        .single-delete-btn { color: #ff6b6b; }
-        .single-edit-btn { color: #1dd1a1; }
-        
+        .single-delete-btn { color: #f44336; }
+        .single-edit-btn { color: #4caf50; }
+
+        /* تحسينات الموبايل */
+        @media (max-width: 480px) {
+            .card { border-radius: 0; border-left: none; border-right: none; }
+            #librarySection { width: 95%; margin-top: 20px; }
+        }
     </style>
 </head>
 <body>
@@ -155,30 +178,30 @@
     </div>
 
     <div id="admin">
-        <div id="viewerCount">جاري رصد المتصلين من الفضاء...</div>
+        <div id="viewerCount">عدد المتصلين الآن: 0</div>
 
-        <input type="text" id="urlInput" placeholder="رابط البث الجديد..." onpaste="handlePaste(event)">
+        <input type="text" id="urlInput" placeholder="ضع رابط البث المباشر هنا..." onpaste="handlePaste(event)">
         
-        <div style="border-top: 2px solid var(--spacetoon-blue); margin-top: 15px; padding-top: 10px;">
-            <input type="text" id="epNameInput" placeholder="اسم المسلسل أو الحلقة">
-            <input type="text" id="epUrlInput" placeholder="رابط الفيديو المباشر...">
-            <button style="background: var(--spacetoon-purple); color: white; width: 100%; border: none; margin-top: 5px;" onclick="addEpisode()">إضافة للمجرة +</button>
+        <div style="border-top: 3px dashed #eee; margin-top: 15px; padding-top: 15px;">
+            <input type="text" id="epNameInput" placeholder="اسم الحلقة (مثال: مغامرات عدنان)">
+            <input type="text" id="epUrlInput" placeholder="رابط الحلقة المباشر...">
+            <button style="background: #4CC9F0; color: white; width: 100%;" onclick="addEpisode()">إضافة للمكتبة +</button>
         </div>
 
-        <div class="btn-group" style="margin-top: 15px; border-top: 2px solid var(--spacetoon-blue); padding-top: 10px;">
-            <button id="syncToggleBtn" class="btn-sync" onclick="toggleSync()">انتظر الرد...</button>
-            <button class="btn-delete" onclick="deleteVideo()">إيقاف الإرسال ☄️</button>
+        <div class="btn-group">
+            <button id="syncToggleBtn" class="btn-sync" onclick="toggleSync()">جاري التحميل...</button>
+            <button class="btn-delete" onclick="deleteVideo()">حذف البث 🗑️</button>
         </div>
         <div id="statusText">تم التحديث بنجاح ✅</div>
     </div>
 
     <div id="librarySection">
-        <div class="lib-title"></div> 
+        <div class="lib-title">📺 مكتبة الكرتون</div> 
         <div id="episodesContainer" class="ep-list"></div>
     </div>
 
     <script>
-        // الكود البرمجي الأصلي كما هو دون أي تغيير في المنطق
+        // الكود البرمجي (Javascript) يبقى كما هو لضمان عمل الواجهة مع Firebase
         var videoElement = document.getElementById('myPlayer');
         var hls = new Hls();
         var dbUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream.json";
@@ -213,7 +236,7 @@
                             }
                         });
                     }
-                    document.getElementById('viewerCount').innerText = "المشاهدون من شباب المستقبل: " + count;
+                    document.getElementById('viewerCount').innerText = "المشاهدون الآن: " + count + " 👀";
                 }
             };
             xhr.send();
@@ -234,7 +257,7 @@
             var container = document.getElementById('episodesContainer');
             container.innerHTML = "";
             if (!libData) { 
-                container.innerHTML = "<div style='text-align:center; padding:30px; color:#aaa; display:block !important;'>الفضاء فارغ حالياً.. أضف بعض المسلسلات!</div>"; 
+                container.innerHTML = "<div style='text-align:center; padding:30px; color:#999;'>المكتبة فارغة حالياً.. أضف بعض المرح!</div>"; 
                 return; 
             }
             
@@ -245,7 +268,7 @@
                 
                 var nameBox = document.createElement('div');
                 nameBox.className = "ep-name-clickable";
-                nameBox.innerHTML = '<span class="ep-name-text">✨ ' + ep.name + '</span>';
+                nameBox.innerHTML = '<span class="ep-name-text">' + ep.name + '</span>';
                 nameBox.onclick = function() { 
                     if (isAdmin) {
                         var xhr = new XMLHttpRequest();
@@ -280,22 +303,21 @@
         }
 
         function editSingleEpisode(key, oldName, oldUrl) {
-            var newName = prompt("تعديل اسم المقطع:", oldName);
-            if (newName === null) return;
-            var newUrl = prompt("تعديل رابط المقطع:", oldUrl);
-            if (newUrl === null) return;
-            if (newName.trim() === "" || newUrl.trim() === "") { alert("لا يمكن ترك الحقول فارغة"); return; }
+            var newName = prompt("تعديل الاسم:", oldName);
+            if (!newName) return;
+            var newUrl = prompt("تعديل الرابط:", oldUrl);
+            if (!newUrl) return;
             var xhr = new XMLHttpRequest();
             xhr.open("PATCH", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library/" + key + ".json", true);
-            xhr.onload = function() { showStatus("تم التعديل ✅"); loadStream(); };
+            xhr.onload = function() { showStatus("تم التحديث! ✨"); loadStream(); };
             xhr.send(JSON.stringify({ name: newName, url: newUrl }));
         }
 
         function deleteSingleEpisode(key) {
-            if(confirm("حذف هذه الحلقة نهائياً؟")) {
+            if(confirm("حذف هذه الحلقة؟")) {
                 var xhr = new XMLHttpRequest();
                 xhr.open("DELETE", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library/" + key + ".json", true);
-                xhr.onload = function() { showStatus("تم المسح"); loadStream(); };
+                xhr.onload = function() { showStatus("تم الحذف"); loadStream(); };
                 xhr.send();
             }
         }
@@ -356,13 +378,13 @@
         function addEpisode() {
             var name = document.getElementById('epNameInput').value.trim();
             var url = document.getElementById('epUrlInput').value.trim();
-            if (!name || !url) { alert("أدخل البيانات كاملة"); return; }
+            if (!name || !url) { alert("أدخل البيانات يا بطل!"); return; }
             var xhr = new XMLHttpRequest();
             xhr.open("POST", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library.json", true);
             xhr.onload = function() {
                 document.getElementById('epNameInput').value = "";
                 document.getElementById('epUrlInput').value = "";
-                showStatus("أُضيف إلى الكواكب: " + name);
+                showStatus("تمت الإضافة بنجاح! 🎉");
                 loadStream();
             };
             xhr.send(JSON.stringify({ name: name, url: url }));
@@ -400,13 +422,13 @@
                     xhr.open("PATCH", dbUrl, true);
                     xhr.send(JSON.stringify({ url: val, status: "playing", time: 0 }));
                     document.getElementById('urlInput').value = ''; 
-                    showStatus("تم التغيير ✅");
+                    showStatus("تم تحديث البث! 📺");
                 }
             }, 100);
         }
 
         function deleteVideo() {
-            if(confirm("إيقاف البث فوراً؟")) {
+            if(confirm("هل تريد إيقاف البث؟")) {
                 var xhr = new XMLHttpRequest();
                 xhr.open("PATCH", dbUrl, true);
                 xhr.send(JSON.stringify({ url: "", status: "paused", time: 0 }));
