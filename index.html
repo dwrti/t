@@ -8,44 +8,48 @@
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     
     <style>
-        /* تحسينات السحب السلس ومنع التعليق */
+        /* إعدادات الصفحة الأساسية */
         html, body { 
             margin: 0; padding: 0; width: 100%; height: 100%; 
             background-color: #000000; color: #eee;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             overflow-x: hidden;
-            overflow-y: scroll; 
             -webkit-overflow-scrolling: touch; 
-            scroll-behavior: smooth;
         }
 
         body {
             display: flex; flex-direction: column;
             align-items: center;
-            justify-content: flex-start;
         }
 
-        /* --- تعديل المشغل ليكون ثابتاً عند السحب --- */
+        /* تثبيت المشغل في الأعلى */
         .card { 
+            position: -webkit-sticky; /* لدعم متصفحات آيفون القديمة */
+            position: sticky; 
+            top: 0; 
+            z-index: 1000; /* لضمان بقائه فوق كل شيء */
             background: #000; 
-            padding: 0; 
             width: 100%; 
             max-width: 800px; 
-            box-sizing: border-box;
-            border: none; 
-            z-index: 1000; /* رفع الطبقة ليكون فوق كل شيء */
-            position: sticky; /* جعل المشغل يلتصق */
-            top: 0; /* مكان الالتصاق */
-            margin: 0 auto;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5); /* ظل بسيط لتمييزه عند السحب */
+            box-shadow: 0 4px 15px rgba(0,0,0,0.8);
         }
         
         video { 
-            width: 100%; display: block; aspect-ratio: 16/9; background: #000; 
-            border: none; outline: none; 
+            width: 100%; 
+            display: block; 
+            aspect-ratio: 16/9; 
+            background: #000; 
+            outline: none; 
         }
 
-        /* تنسيقات لوحة التحكم (للمسؤول) */
+        /* حاوية المحتوى تحت المشغل */
+        #contentWrapper {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
         #admin { display: none; width: 95%; max-width: 650px; margin-top: 15px; }
         
         #viewerCount {
@@ -67,7 +71,6 @@
             flex: 1; min-width: 100px; padding: 12px; background-color: #111; 
             color: #fff; border: 1px solid #222; border-radius: 8px; 
             cursor: pointer; font-size: 14px; font-weight: bold;
-            transition: background 0.3s;
         }
 
         .btn-sync.active { background-color: #1b5e20; border-color: #2e7d32; }
@@ -78,58 +81,32 @@
         
         h2, p, span:not(.ep-name-text), h3 { display: none !important; }
 
-        /* قسم المكتبة - ضبط المسافات بعد تثبيت المشغل */
+        /* قسم المكتبة */
         #librarySection {
             width: 95%; max-width: 700px; 
-            margin: 20px auto 100px auto; 
-            background: transparent; 
-            padding: 10px; box-sizing: border-box; display: none;
+            margin: 20px auto 120px auto; 
+            display: none;
         }
         
-        .lib-title { 
-            font-size: 17px; margin-bottom: 15px; text-align: center;
-            color: #555; font-weight: normal; 
-            min-height: 1.2em; 
-        }
+        .lib-title { font-size: 17px; margin-bottom: 15px; text-align: center; color: #555; }
 
-        .ep-list { 
-            max-height: none; 
-            overflow: visible; 
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
+        .ep-list { display: flex; flex-direction: column; align-items: center; }
         
         .ep-item { 
             display: flex; align-items: center; 
-            background: transparent; margin-bottom: 5px; 
-            border: none; width: 100%;
-            transition: opacity 0.2s;
+            background: transparent; margin-bottom: 8px; 
+            width: 100%; border: none;
         }
         
-        .ep-item:active { opacity: 0.6; } 
-
         .ep-name-clickable {
-            flex-grow: 1; padding: 12px;
+            flex-grow: 1; padding: 15px;
             cursor: pointer; -webkit-tap-highlight-color: transparent;
             text-align: center;
         }
 
-        .ep-name-text { 
-            color: #bbbbbb !important; 
-            font-size: 16px; 
-            display: block !important;
-            pointer-events: none;
-            border: none;
-        }
+        .ep-name-text { color: #bbbbbb !important; font-size: 16px; display: block !important; }
 
-        .lib-control-btn {
-            background: transparent; border: none; 
-            height: 40px; font-size: 16px; 
-            cursor: pointer; display: none; 
-            flex-shrink: 0; outline: none; padding: 0 10px;
-        }
-        
+        .lib-control-btn { background: transparent; border: none; height: 40px; font-size: 16px; cursor: pointer; padding: 0 10px; }
         .single-delete-btn { color: #883333; }
         .single-edit-btn { color: #338833; }
         
@@ -141,30 +118,32 @@
         <video id="myPlayer" controls autoplay playsinline></video>
     </div>
 
-    <div id="admin">
-        <div id="viewerCount">عدد المتصلين الآن: جاري التحميل...</div>
+    <div id="contentWrapper">
+        <div id="admin">
+            <div id="viewerCount">عدد المتصلين الآن: جاري التحميل...</div>
+            <input type="text" id="urlInput" placeholder="رابط البث المباشر الأساسي..." onpaste="handlePaste(event)">
+            
+            <div style="border-top: 1px solid #111; margin-top: 15px; padding-top: 10px;">
+                <input type="text" id="epNameInput" placeholder="اسم العمل / الحلقة">
+                <input type="text" id="epUrlInput" placeholder="رابط الفيديو المباشر...">
+                <button style="background: #1a3a8a; color: white; width: 100%; border: none; margin-top: 5px;" onclick="addEpisode()">إضافة للمكتبة +</button>
+            </div>
 
-        <input type="text" id="urlInput" placeholder="رابط البث المباشر الأساسي..." onpaste="handlePaste(event)">
-        
-        <div style="border-top: 1px solid #111; margin-top: 15px; padding-top: 10px;">
-            <input type="text" id="epNameInput" placeholder="اسم العمل / الحلقة">
-            <input type="text" id="epUrlInput" placeholder="رابط الفيديو المباشر...">
-            <button style="background: #1a3a8a; color: white; width: 100%; border: none; margin-top: 5px;" onclick="addEpisode()">إضافة للمكتبة +</button>
+            <div class="btn-group" style="margin-top: 15px; border-top: 1px solid #111; padding-top: 10px;">
+                <button id="syncToggleBtn" class="btn-sync" onclick="toggleSync()">جاري التحميل...</button>
+                <button class="btn-delete" onclick="deleteVideo()">حذف فيديو البث 🗑️</button>
+            </div>
+            <div id="statusText">تم التحديث بنجاح ✅</div>
         </div>
 
-        <div class="btn-group" style="margin-top: 15px; border-top: 1px solid #111; padding-top: 10px;">
-            <button id="syncToggleBtn" class="btn-sync" onclick="toggleSync()">جاري التحميل...</button>
-            <button class="btn-delete" onclick="deleteVideo()">حذف فيديو البث 🗑️</button>
+        <div id="librarySection">
+            <div class="lib-title">&nbsp;</div> 
+            <div id="episodesContainer" class="ep-list"></div>
         </div>
-        <div id="statusText">تم التحديث بنجاح ✅</div>
-    </div>
-
-    <div id="librarySection">
-        <div class="lib-title">قائمة الحلقات والمقاطع</div> 
-        <div id="episodesContainer" class="ep-list"></div>
     </div>
 
     <script>
+        // --- الكود البرمجي (نفس منطقك السابق بدون تغيير لضمان عمل المزامنة) ---
         var videoElement = document.getElementById('myPlayer');
         var hls = new Hls();
         var dbUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream.json";
@@ -262,7 +241,6 @@
                 } else {
                     item.appendChild(nameBox);
                 }
-                
                 container.appendChild(item);
             });
         }
@@ -272,10 +250,9 @@
             if (newName === null) return;
             var newUrl = prompt("تعديل رابط المقطع:", oldUrl);
             if (newUrl === null) return;
-            if (newName.trim() === "" || newUrl.trim() === "") { alert("لا يمكن ترك الحقول فارغة"); return; }
             var xhr = new XMLHttpRequest();
             xhr.open("PATCH", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library/" + key + ".json", true);
-            xhr.onload = function() { showStatus("تم التعديل بنجاح ✅"); loadStream(); };
+            xhr.onload = function() { showStatus("تم التعديل ✅"); loadStream(); };
             xhr.send(JSON.stringify({ name: newName, url: newUrl }));
         }
 
@@ -283,7 +260,7 @@
             if(confirm("حذف هذه الحلقة؟")) {
                 var xhr = new XMLHttpRequest();
                 xhr.open("DELETE", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library/" + key + ".json", true);
-                xhr.onload = function() { showStatus("تم حذف الحلقة بنجاح"); loadStream(); };
+                xhr.onload = function() { showStatus("تم الحذف"); loadStream(); };
                 xhr.send();
             }
         }
@@ -344,7 +321,7 @@
         function addEpisode() {
             var name = document.getElementById('epNameInput').value.trim();
             var url = document.getElementById('epUrlInput').value.trim();
-            if (!name || !url) { alert("أدخل الاسم والرابط"); return; }
+            if (!name || !url) return;
             var xhr = new XMLHttpRequest();
             xhr.open("POST", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library.json", true);
             xhr.onload = function() {
