@@ -14,15 +14,16 @@
             display: flex; flex-direction: column;
             align-items: center;    
             overflow-x: hidden; overflow-y: auto; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            /* إضافة خاصية السحب السلس */
             scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
         }
 
-        /* تعديل لجعل الفيديو ثابت في الأعلى */
         .card { 
             background: #000; padding: 0; border-radius: 0; 
             width: 100%; max-width: 650px; box-sizing: border-box;
-            border-bottom: 2px solid #222; 
-            z-index: 1000;
+            border-bottom: 2px solid #222; z-index: 100;
+            /* تثبيت المشغل في الأعلى */
             position: sticky;
             top: 0;
         }
@@ -66,7 +67,7 @@
             color: #fff; font-weight: bold; border-right: 4px solid #4caf50;
         }
 
-        /* تعديل القائمة لتكون سلسة وتتحرك مع الصفحة */
+        /* تعديل القائمة لتكون جزء من سحب الصفحة الكلي وليس سكرول داخلي */
         .ep-list { height: auto; overflow: visible; }
         
         .ep-item { 
@@ -89,6 +90,7 @@
             pointer-events: none;
         }
 
+        /* أزرار التحكم في المكتبة */
         .lib-control-btn {
             background: transparent; 
             border: none; 
@@ -104,10 +106,8 @@
         .single-delete-btn { color: #ff4444; }
         .single-edit-btn { color: #4caf50; }
         
-        /* تحسين السحب السلس */
-        body {
-            -webkit-overflow-scrolling: touch;
-        }
+        /* إخفاء السكرول بار للحفاظ على المظهر السلس */
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
     </style>
 </head>
 <body>
@@ -282,6 +282,7 @@
 
         function updateSyncButtonUI() {
             var btn = document.getElementById('syncToggleBtn');
+            if (!btn) return;
             if (isSyncEnabled) {
                 btn.innerText = "المزامنة: مفعلة ✅";
                 btn.className = "btn-sync active";
