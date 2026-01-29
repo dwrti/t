@@ -14,17 +14,29 @@
             display: flex; flex-direction: column;
             align-items: center;    
             overflow-x: hidden; overflow-y: auto; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            /* تحسين سلاسة السحب */
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
         }
 
+        /* تثبيت مشغل الفيديو في الأعلى */
         .card { 
             background: #000; padding: 0; border-radius: 0; 
             width: 100%; max-width: 650px; box-sizing: border-box;
-            border-bottom: 2px solid #222; z-index: 10;
+            border-bottom: 2px solid #222; 
+            z-index: 1000;
+            position: sticky;
+            top: 0;
         }
         
         video { width: 100%; display: block; aspect-ratio: 16/9; background: #000; }
 
-        #admin { display: none; width: 95%; max-width: 650px; margin-top: 15px; }
+        /* تعديل الهوامش للمحتوى المتحرك لضمان السلاسة */
+        #admin { 
+            display: none; width: 95%; max-width: 650px; 
+            margin-top: 20px; 
+            flex-shrink: 0;
+        }
         
         input { 
             width: 100%; padding: 12px; margin: 6px 0; 
@@ -51,7 +63,7 @@
 
         #librarySection {
             width: 95%; max-width: 650px; 
-            margin: 40px 0 50px 0; 
+            margin: 20px 0 50px 0; 
             background: #111; border-radius: 12px; border: 1px solid #222;
             padding: 15px; box-sizing: border-box; display: none;
         }
@@ -61,7 +73,10 @@
             color: #fff; font-weight: bold; border-right: 4px solid #4caf50;
         }
 
-        .ep-list { max-height: 500px; overflow-y: auto; }
+        /* جعل قائمة الحلقات تتحرك بانسيابية */
+        .ep-list { 
+            max-height: none; /* ألغينا التحديد لكي تنسحب الصفحة كاملة */
+        }
         
         .ep-item { 
             display: flex; align-items: center; 
@@ -83,7 +98,6 @@
             pointer-events: none;
         }
 
-        /* أزرار التحكم في المكتبة */
         .lib-control-btn {
             background: transparent; 
             border: none; 
@@ -98,9 +112,6 @@
         
         .single-delete-btn { color: #ff4444; }
         .single-edit-btn { color: #4caf50; }
-        
-        .ep-list::-webkit-scrollbar { width: 5px; }
-        .ep-list::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
     </style>
 </head>
 <body>
@@ -176,14 +187,12 @@
                 };
 
                 if (isAdmin) {
-                    // زر الحذف
                     var delBtn = document.createElement('button');
                     delBtn.className = "lib-control-btn single-delete-btn";
                     delBtn.style.display = "block";
                     delBtn.innerHTML = "✕";
                     delBtn.onclick = function(e) { e.stopPropagation(); deleteSingleEpisode(key); };
                     
-                    // زر التعديل
                     var editBtn = document.createElement('button');
                     editBtn.className = "lib-control-btn single-edit-btn";
                     editBtn.style.display = "block";
@@ -201,10 +210,9 @@
 
         function editSingleEpisode(key, oldName, oldUrl) {
             var newName = prompt("تعديل اسم المقطع:", oldName);
-            if (newName === null) return; // إلغاء
-            
+            if (newName === null) return; 
             var newUrl = prompt("تعديل رابط المقطع:", oldUrl);
-            if (newUrl === null) return; // إلغاء
+            if (newUrl === null) return; 
 
             if (newName.trim() === "" || newUrl.trim() === "") {
                 alert("لا يمكن ترك الحقول فارغة");
