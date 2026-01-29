@@ -3,17 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>دورتي TV 📺</title>
+    <title>دورتي 📺 - IPTV</title>
     
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     
     <style>
         html, body { 
             margin: 0; padding: 0; width: 100%; height: 100%; 
-            background-color: #000000; color: #eee;
+            background-color: #000; color: #eee;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             overflow-x: hidden;
-            -webkit-overflow-scrolling: touch; 
         }
 
         body { display: flex; flex-direction: column; align-items: center; }
@@ -24,54 +23,51 @@
             box-shadow: 0 4px 15px rgba(0,0,0,0.8);
         }
         
-        video { width: 100%; display: block; aspect-ratio: 16/9; background: #000; outline: none; }
+        video { width: 100%; aspect-ratio: 16/9; background: #000; display: block; }
 
-        #admin { display: none; width: 95%; max-width: 650px; margin-top: 15px; background: #0a0a0a; padding: 15px; border-radius: 12px; }
+        #admin { display: none; width: 95%; max-width: 650px; margin-top: 15px; }
         
-        #viewerCount { color: #4caf50; padding: 8px; text-align: center; font-size: 14px; margin-bottom: 10px; }
+        #viewerCount {
+            background: #0a0a0a; color: #4caf50; padding: 8px;
+            border-radius: 8px; text-align: center; font-size: 14px;
+            margin-bottom: 10px; border: 1px solid #1a1a1a;
+        }
 
         input { 
             width: 100%; padding: 12px; margin: 6px 0; 
             border: 1px solid #222; border-radius: 8px; 
-            font-size: 14px; background: #111; color: #fff;
-            box-sizing: border-box; outline: none;
+            background: #0a0a0a; color: #fff; box-sizing: border-box;
         }
 
         .btn-group { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
-
         button { 
-            flex: 1; min-width: 100px; padding: 12px; background-color: #1a1a1a; 
-            color: #fff; border: 1px solid #333; border-radius: 8px; 
-            cursor: pointer; font-size: 14px;
+            flex: 1; min-width: 100px; padding: 12px; background-color: #111; 
+            color: #fff; border: 1px solid #222; border-radius: 8px; 
+            cursor: pointer; font-size: 14px; font-weight: bold;
         }
 
         .btn-sync.active { background-color: #1b5e20; }
         .btn-sync.inactive { background-color: #b71c1c; }
 
-        /* تنسيق قائمة القنوات والمجموعات */
+        /* تنسيق المجموعات والقنوات */
         #librarySection { width: 95%; max-width: 700px; margin: 20px auto 100px auto; }
         
-        .group-header {
-            background: #1a1a1a; padding: 12px; margin-top: 10px;
-            border-radius: 8px; cursor: pointer; border-right: 4px solid #1a3a8a;
-            display: flex; justify-content: space-between; align-items: center;
+        .group-container { margin-bottom: 10px; border: 1px solid #222; border-radius: 8px; overflow: hidden; }
+        .group-header { 
+            background: #111; padding: 15px; cursor: pointer; 
+            font-weight: bold; display: flex; justify-content: space-between;
         }
+        .group-content { display: none; background: #050505; }
+        .group-content.show { display: block; }
 
-        .channels-container { display: none; padding: 5px; background: #050505; }
-
-        .ep-item { 
-            display: flex; align-items: center; padding: 12px;
-            border-bottom: 1px solid #111; cursor: pointer;
+        .channel-item { 
+            padding: 12px 20px; border-bottom: 1px solid #111; 
+            cursor: pointer; font-size: 14px; color: #ccc;
         }
-        .ep-item:hover { background: #111; }
-        .ep-name-text { font-size: 15px; color: #ccc; }
+        .channel-item:hover { background: #1a1a1a; color: #fff; }
 
+        #searchBox { margin-bottom: 15px; border-color: #333; }
         #statusText { text-align: center; font-size: 13px; color: #4caf50; margin: 10px 0; display: none; }
-        
-        .file-upload-label {
-            display: block; background: #222; padding: 10px; text-align: center;
-            border-radius: 8px; border: 1px dashed #444; margin: 10px 0; cursor: pointer;
-        }
     </style>
 </head>
 <body>
@@ -81,26 +77,27 @@
     </div>
 
     <div id="admin">
-        <div id="viewerCount">عدد المتصلين الآن: --</div>
+        <div id="viewerCount">عدد المتصلين: --</div>
         
-        <div style="border-bottom: 1px solid #222; padding-bottom: 10px;">
-            <label class="file-upload-label">
-                رفع ملف M3U من الهاتف 📂
-                <input type="file" id="m3uFile" accept=".m3u,.m3u8" style="display:none" onchange="handleFileUpload(event)">
-            </label>
-            <input type="text" id="m3uUrlInput" placeholder="أو ضع رابط M3U مباشر هنا...">
-            <button style="background: #1a3a8a; color: white; width: 100%; border: none;" onclick="loadM3uFromUrl()">تحميل الرابط 🔗</button>
+        <div style="background: #0a0a0a; padding: 10px; border-radius: 8px; border: 1px solid #1a1a1a;">
+            <input type="text" id="m3uUrlInput" placeholder="ضع رابط ملف M3U المباشر هنا...">
+            <div style="display: flex; gap: 5px;">
+                <button onclick="loadM3UFromUrl()" style="background: #1a3a8a;">تحميل من الرابط</button>
+                <button onclick="document.getElementById('fileInput').click()" style="background: #333;">رفع ملف من الهاتف</button>
+            </div>
+            <input type="file" id="fileInput" style="display:none" accept=".m3u,.m3u8" onchange="loadM3UFromFile(event)">
         </div>
 
         <div class="btn-group">
             <button id="syncToggleBtn" class="btn-sync" onclick="toggleSync()">جاري التحميل...</button>
-            <button style="color: #ff5252;" onclick="deleteLibrary()">مسح القائمة 🗑️</button>
+            <button class="btn-delete" onclick="clearLibrary()" style="color: #ff5252;">مسح كل القنوات 🗑️</button>
         </div>
         <div id="statusText">تم التحديث ✅</div>
     </div>
 
     <div id="librarySection">
-        <div id="episodesContainer"></div>
+        <input type="text" id="searchBox" placeholder="🔍 ابحث عن قناة..." oninput="filterChannels()">
+        <div id="channelsContainer"></div>
     </div>
 
     <script>
@@ -112,31 +109,43 @@
         var isAdmin = window.location.hash === "#ana";
         var isSyncEnabled = true;
         var myUserId = Math.random().toString(36).substring(7);
+        var allChannels = []; // لتخزين القنوات محلياً للبحث
 
-        // --- وظائف M3U ---
+        // --- وظائف IPTV ---
 
         function parseM3U(data) {
             const lines = data.split('\n');
             const channels = [];
-            let currentChannel = {};
+            let currentGroup = "غير مصنف";
 
             for (let i = 0; i < lines.length; i++) {
-                const line = lines[i].trim();
-                if (line.startsWith('#EXTINF:')) {
+                let line = lines[i].trim();
+                if (line.startsWith('#EXTINF')) {
                     const groupMatch = line.match(/group-title="([^"]+)"/);
-                    const nameMatch = line.split(',')[1];
-                    currentChannel.group = groupMatch ? groupMatch[1] : "قنوات متنوعة";
-                    currentChannel.name = nameMatch ? nameMatch.trim() : "قناة غير معروفة";
-                } else if (line.startsWith('http')) {
-                    currentChannel.url = line;
-                    channels.push({ ...currentChannel });
-                    currentChannel = {};
+                    if (groupMatch) currentGroup = groupMatch[1];
+                    
+                    const name = line.split(',').pop();
+                    const url = lines[i + 1] ? lines[i + 1].trim() : "";
+                    
+                    if (url && !url.startsWith('#')) {
+                        channels.push({ name, url, group: currentGroup });
+                    }
                 }
             }
             return channels;
         }
 
-        function handleFileUpload(event) {
+        function loadM3UFromUrl() {
+            const url = document.getElementById('m3uUrlInput').value;
+            if (!url) return;
+            showStatus("جاري التحميل...");
+            fetch(url).then(r => r.text()).then(data => {
+                const channels = parseM3U(data);
+                uploadChannelsToFirebase(channels);
+            }).catch(() => alert("فشل تحميل الرابط، تأكد من الروابط التي تدعم CORS"));
+        }
+
+        function loadM3UFromFile(event) {
             const file = event.target.files[0];
             if (!file) return;
             const reader = new FileReader();
@@ -147,32 +156,28 @@
             reader.readAsText(file);
         }
 
-        function loadM3uFromUrl() {
-            const url = document.getElementById('m3uUrlInput').value.trim();
-            if (!url) return;
-            showStatus("جاري جلب الملف...");
-            fetch(url).then(r => r.text()).then(data => {
-                const channels = parseM3U(data);
-                uploadChannelsToFirebase(channels);
-            }).catch(() => alert("فشل تحميل الرابط، تأكد من أن الرابط مباشر ويدعم CORS"));
-        }
-
         function uploadChannelsToFirebase(channels) {
-            if (!channels.length) return;
-            showStatus("جاري الرفع...");
+            if (channels.length === 0) return;
+            showStatus("جاري الحفظ في القاعدة...");
+            // نحدث المكتبة بالكامل
             var xhr = new XMLHttpRequest();
             xhr.open("PATCH", dbUrl, true);
-            xhr.onload = function() { showStatus("تم رفع " + channels.length + " قناة ✅"); loadStream(); };
+            xhr.onload = function() { showStatus("تمت إضافة " + channels.length + " قناة ✅"); loadStream(); };
             xhr.send(JSON.stringify({ library: channels }));
         }
 
         function renderLibrary(channels) {
-            var container = document.getElementById('episodesContainer');
+            const container = document.getElementById('channelsContainer');
             container.innerHTML = "";
-            if (!channels) { container.innerHTML = "<div style='text-align:center; padding:50px; color:#555;'>لا توجد قنوات، ارفع ملف M3U</div>"; return; }
+            if (!channels || channels.length === 0) {
+                container.innerHTML = "<p style='text-align:center; color:#555;'>لا توجد قنوات، ارفع ملف M3U</p>";
+                return;
+            }
 
-            // تجميع القنوات حسب المجموعات
+            allChannels = channels;
             const groups = {};
+            
+            // تجميع القنوات
             channels.forEach(ch => {
                 if (!groups[ch.group]) groups[ch.group] = [];
                 groups[ch.group].push(ch);
@@ -180,54 +185,96 @@
 
             Object.keys(groups).forEach(groupName => {
                 const groupDiv = document.createElement('div');
-                groupDiv.innerHTML = `<div class="group-header" onclick="toggleGroup(this)">
-                    <span>${groupName}</span>
-                    <small>${groups[groupName].length} قناة</small>
-                </div>`;
+                groupDiv.className = "group-container";
                 
-                const channelList = document.createElement('div');
-                channelList.className = "channels-container";
+                const header = document.createElement('div');
+                header.className = "group-header";
+                header.innerHTML = `<span>${groupName}</span> <span>${groups[groupName].length} 📺</span>`;
+                header.onclick = () => {
+                    const content = groupDiv.querySelector('.group-content');
+                    content.classList.toggle('show');
+                };
+
+                const content = document.createElement('div');
+                content.className = "group-content";
 
                 groups[groupName].forEach(ch => {
                     const item = document.createElement('div');
-                    item.className = "ep-item";
-                    item.innerHTML = `<span class="ep-name-text">${ch.name}</span>`;
-                    item.onclick = function() {
-                        if (isAdmin) {
-                            var xhr = new XMLHttpRequest();
-                            xhr.open("PATCH", dbUrl, true);
-                            xhr.send(JSON.stringify({ url: ch.url, status: "playing", time: 0 }));
-                        }
-                        playMedia(ch.url);
-                        window.scrollTo({top: 0, behavior: 'smooth'});
+                    item.className = "channel-item";
+                    item.innerText = ch.name;
+                    item.onclick = (e) => {
+                        e.stopPropagation();
+                        selectChannel(ch);
                     };
-                    channelList.appendChild(item);
+                    content.appendChild(item);
                 });
 
-                groupDiv.appendChild(channelList);
+                groupDiv.appendChild(header);
+                groupDiv.appendChild(content);
                 container.appendChild(groupDiv);
             });
         }
 
-        function toggleGroup(el) {
-            const container = el.nextElementSibling;
-            container.style.display = container.style.display === "block" ? "none" : "block";
+        function selectChannel(ch) {
+            if (isAdmin) {
+                var xhr = new XMLHttpRequest();
+                xhr.open("PATCH", dbUrl, true);
+                xhr.send(JSON.stringify({ url: ch.url, status: "playing", time: 0 }));
+            }
+            playMedia(ch.url);
+            window.scrollTo({top: 0, behavior: 'smooth'});
         }
 
-        function deleteLibrary() {
+        function filterChannels() {
+            const term = document.getElementById('searchBox').value.toLowerCase();
+            const items = document.querySelectorAll('.channel-item');
+            const groups = document.querySelectorAll('.group-container');
+
+            items.forEach(item => {
+                const isVisible = item.innerText.toLowerCase().includes(term);
+                item.style.display = isVisible ? "block" : "none";
+            });
+
+            groups.forEach(group => {
+                const hasVisible = group.querySelectorAll('.channel-item[style="display: block;"]').length > 0;
+                group.style.display = hasVisible || term === "" ? "block" : "none";
+                if (term !== "" && hasVisible) group.querySelector('.group-content').classList.add('show');
+            });
+        }
+
+        function clearLibrary() {
             if(confirm("هل تريد مسح جميع القنوات؟")) {
                 var xhr = new XMLHttpRequest();
                 xhr.open("PATCH", dbUrl, true);
-                xhr.send(JSON.stringify({ library: null }));
+                xhr.send(JSON.stringify({ library: [] }));
             }
         }
 
-        // --- الأكواد الأساسية (بدون تغيير) ---
+        // --- الأكواد الأساسية (المزامنة) ---
 
         function updatePresence() {
             var xhr = new XMLHttpRequest();
             xhr.open("PUT", presenceUrl + "/" + myUserId + ".json", true);
             xhr.send(JSON.stringify(Date.now()));
+        }
+
+        function fetchViewerCount() {
+            if (!isAdmin) return;
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", presenceUrl + ".json", true);
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    var data = JSON.parse(xhr.responseText);
+                    var count = 0; var now = Date.now();
+                    if (data) {
+                        Object.keys(data).forEach(function(k) {
+                            if (now - data[k] < 10000) count++;
+                        });
+                    }
+                    document.getElementById('viewerCount').innerText = "عدد المتصلين الآن: " + count;
+                }
+            };
+            xhr.send();
         }
 
         function playMedia(url) {
@@ -247,14 +294,12 @@
             xhr.onload = function () {
                 if (xhr.status === 200) {
                     var data = JSON.parse(xhr.responseText);
-                    if (!data) return;
                     isSyncEnabled = data.syncEnabled !== false;
                     updateSyncButtonUI();
                     renderLibrary(data.library);
-                    
                     if (isSyncEnabled && !isAdmin) {
                         if (data.url !== lastUrl) playMedia(data.url);
-                        if (Math.abs(videoElement.currentTime - data.time) > 4) videoElement.currentTime = data.time;
+                        if (Math.abs(videoElement.currentTime - data.time) > 3) videoElement.currentTime = data.time;
                         if (data.status === "playing" && videoElement.paused) videoElement.play().catch(e=>{});
                         else if (data.status === "paused" && !videoElement.paused) videoElement.pause();
                     }
@@ -286,14 +331,22 @@
             setTimeout(() => status.style.display = "none", 3000);
         }
 
-        setInterval(function() {
+        setInterval(() => {
             updatePresence();
             loadStream();
+            if (isAdmin) {
+                fetchViewerCount();
+                if (isSyncEnabled) {
+                    var xhr = new XMLHttpRequest();
+                    xhr.open("PATCH", dbUrl, true);
+                    xhr.send(JSON.stringify({ status: videoElement.paused ? "paused" : "playing", time: videoElement.currentTime }));
+                }
+            }
         }, 5000);
 
         window.onload = function() {
-            if(isAdmin) document.getElementById('admin').style.display = "block";
             loadStream();
+            if(isAdmin) document.getElementById('admin').style.display = "block";
         };
     </script>
 </body>
