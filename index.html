@@ -76,19 +76,34 @@
             padding: 10px; box-sizing: border-box; display: none;
         }
         
-        /* تنسيق المجلدات */
-        .folder-title { 
-            font-size: 14px; padding: 10px; background: #111; 
-            color: #888; border-radius: 5px; margin: 20px 0 10px 0;
-            border-right: 4px solid #4caf50;
+        /* تنسيق المجلدات القابلة للطي */
+        .folder-toggle { 
+            font-size: 15px; padding: 12px; background: #111; 
+            color: #fff; border-radius: 8px; margin: 15px 0 5px 0;
+            border-right: 4px solid #4caf50; cursor: pointer;
+            display: flex; justify-content: space-between; align-items: center;
+            user-select: none; transition: background 0.2s;
         }
+        .folder-toggle:active { background: #1a1a1a; }
+        .folder-toggle::after { content: '▼'; font-size: 10px; color: #666; }
+        .folder-toggle.active::after { content: '▲'; }
 
-        .ep-list { display: flex; flex-direction: column; align-items: center; }
+        /* حاوية العناصر المخفية */
+        .ep-list { 
+            display: none; 
+            flex-direction: column; 
+            align-items: center; 
+            overflow: hidden;
+            border: 1px solid #111;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            background: rgba(255,255,255,0.01);
+        }
         
         .ep-item { 
             display: flex; align-items: center; 
-            background: rgba(255,255,255,0.03); margin-bottom: 5px; 
-            border-radius: 5px; width: 100%;
+            background: rgba(255,255,255,0.03); margin-bottom: 2px; 
+            width: 100%;
             transition: opacity 0.2s;
         }
         
@@ -156,14 +171,26 @@
     </div>
 
     <div id="librarySection">
-        <div class="folder-title">📺 قنوات البث المباشر (M3U)</div>
+        <div class="folder-toggle" onclick="toggleFolder('m3uEpisodesContainer', this)">📺 قنوات البث المباشر (M3U)</div>
         <div id="m3uEpisodesContainer" class="ep-list"></div>
 
-        <div class="folder-title">🎬 مقاطع الفيديو والحلقات</div>
+        <div class="folder-toggle" onclick="toggleFolder('episodesContainer', this)">🎬 مقاطع الفيديو والحلقات</div>
         <div id="episodesContainer" class="ep-list"></div>
     </div>
 
     <script>
+        // دالة إخفاء وإظهار المجلد
+        function toggleFolder(containerId, btn) {
+            var container = document.getElementById(containerId);
+            if (container.style.display === "flex") {
+                container.style.display = "none";
+                btn.classList.remove('active');
+            } else {
+                container.style.display = "flex";
+                btn.classList.add('active');
+            }
+        }
+
         var videoElement = document.getElementById('myPlayer');
         var hls = new Hls();
         var dbUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream.json";
@@ -196,7 +223,6 @@
             let count = 0;
             channels.forEach(ch => {
                 var xhr = new XMLHttpRequest();
-                // هنا نرفع للمجلد الجديد m3u_library
                 xhr.open("POST", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/m3u_library.json", true);
                 xhr.onload = function() {
                     count++;
@@ -273,7 +299,6 @@
             videoElement.play().catch(function(e){});
         }
 
-        // دالة موحدة لعرض العناصر في الحاويات
         function createItemUI(key, ep, folderName) {
             var item = document.createElement('div');
             item.className = "ep-item";
@@ -321,7 +346,6 @@
             m3uContainer.innerHTML = "";
             normalContainer.innerHTML = "";
 
-            // عرض M3U
             if (data.m3u_library) {
                 Object.keys(data.m3u_library).forEach(function(key) {
                     m3uContainer.appendChild(createItemUI(key, data.m3u_library[key], "m3u_library"));
@@ -330,7 +354,6 @@
                 m3uContainer.innerHTML = "<div style='color:#444; padding:10px; font-size:12px;'>لا توجد قنوات</div>";
             }
 
-            // عرض الفيديوهات العادية
             if (data.library) {
                 Object.keys(data.library).forEach(function(key) {
                     normalContainer.appendChild(createItemUI(key, data.library[key], "library"));
