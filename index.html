@@ -3,159 +3,154 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>دورتي الكرتونية 📺✨</title>
+    <title>دورتي الكرتونية 🎨📺</title>
     
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     
     <style>
-        /* إعدادات الخلفية والخطوط الكرتونية */
+        /* إعدادات الخلفية الكرتونية */
         html, body { 
             margin: 0; padding: 0; width: 100%; height: 100%; 
-            background-color: #FFDE59; /* أصفر كرتوني مبهج */
-            background-image: radial-gradient(#ffbd59 2px, transparent 2px);
-            background-size: 30px 30px; /* تنقيط خفيف للخلفية */
+            background-color: #FFDE59; /* لون أصفر مبهج */
+            background-image: radial-gradient(#FFBD59 2px, transparent 2px);
+            background-size: 30px 30px; /* تنقيط كرتوني خفيف */
             color: #333;
-            font-family: 'Segoe UI', 'Comic Sans MS', cursive, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             overflow-x: hidden;
             overflow-y: scroll; 
             -webkit-overflow-scrolling: touch; 
             scroll-behavior: smooth;
         }
 
-        body { display: flex; flex-direction: column; align-items: center; }
+        body {
+            display: flex; flex-direction: column;
+            align-items: center;
+            padding-bottom: 50px;
+        }
 
         /* إطار المشغل الكرتوني */
         .card { 
-            background: #fff; 
+            background: #FF5757; /* إطار أحمر كرتوني */
             padding: 15px; 
-            border-radius: 0 0 40px 40px; 
-            width: 100%; max-width: 650px; box-sizing: border-box;
-            border: 6px solid #333;
-            border-top: none;
-            box-shadow: 0 10px 0 #333;
+            border-radius: 25px; 
+            width: 90%; max-width: 650px; box-sizing: border-box;
+            border: 5px solid #000;
+            box-shadow: 10px 10px 0px #000;
             z-index: 10;
-            position: sticky; top: 0; 
+            position: sticky; top: 10px;
+            margin-top: 20px;
         }
         
         video { 
-            width: 100%; 
-            display: block; 
-            aspect-ratio: 16/9; 
+            width: 100%; display: block; aspect-ratio: 16/9; 
             background: #000; 
-            border-radius: 25px;
-            border: 4px solid #333;
+            border-radius: 15px;
+            border: 4px solid #000;
         }
 
-        /* لوحة التحكم (الأدمن) */
+        /* لوحة التحكم للأدمن */
         #admin { 
-            display: none; 
-            width: 95%; max-width: 650px; 
-            margin-top: 25px; 
-            background: #fff;
-            padding: 20px;
-            border-radius: 30px;
-            border: 4px solid #333;
-            box-shadow: 6px 6px 0 #333;
+            display: none; width: 90%; max-width: 650px; margin-top: 30px; 
+            background: #fff; padding: 20px; border-radius: 20px;
+            border: 4px solid #000; box-shadow: 8px 8px 0px #5CE1E6;
         }
         
         #viewerCount {
-            background: #FF5757;
-            color: #fff;
+            background: #5CE1E6;
+            color: #000;
             padding: 10px;
             border-radius: 50px;
             text-align: center;
             font-size: 16px;
             margin-bottom: 15px;
-            border: 3px solid #333;
+            border: 3px solid #000;
             font-weight: bold;
         }
 
         input { 
             width: 100%; padding: 12px; margin: 8px 0; 
-            border: 3px solid #333; border-radius: 15px; 
-            font-size: 14px; background: #f9f9f9; color: #333;
+            border: 3px solid #000; border-radius: 12px; 
+            font-size: 14px; background: #fff; color: #000;
             box-sizing: border-box; outline: none;
-            font-weight: bold;
+            transition: transform 0.2s;
         }
+        input:focus { transform: scale(1.02); }
 
         .btn-group { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
 
         button { 
             flex: 1; min-width: 100px; padding: 12px; 
-            background-color: #5CE1E6; /* أزرق سماوي */
-            color: #333; border: 3px solid #333; border-radius: 15px; 
+            background-color: #7ED957; /* أخضر كرتوني */
+            color: #000; border: 3px solid #000; border-radius: 15px; 
             cursor: pointer; font-size: 14px; font-weight: 900;
-            box-shadow: 4px 4px 0 #333;
-            transition: all 0.1s;
+            box-shadow: 4px 4px 0px #000;
+            transition: all 0.2s;
         }
-
-        button:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #333; }
+        button:active { transform: translate(2px, 2px); box-shadow: 0px 0px 0px #000; }
 
         .btn-sync.active { background-color: #7ED957; }
         .btn-sync.inactive { background-color: #FF5757; color: white; }
-        .btn-delete { background-color: #666; color: #fff; }
+        .btn-delete { background-color: #FF3131; color: #fff; }
 
         #statusText { 
-            text-align: center; font-size: 14px; color: #333; 
-            margin: 15px 0; font-weight: bold; 
-            background: #fff; padding: 5px; border-radius: 10px; border: 2px dashed #333;
+            text-align: center; font-size: 14px; color: #000; 
+            margin: 10px 0; font-weight: bold; 
+            background: #FFFF00; padding: 5px; border-radius: 10px; border: 2px solid #000;
         }
         
+        /* إخفاء العناصر غير المرغوبة كما في الكود الأصلي */
         h2, p, span:not(.ep-name-text), h3 { display: none !important; }
 
-        /* قسم المكتبة الكرتوني */
+        /* تصميم المكتبة الكرتوني */
         #librarySection {
-            width: 95%; max-width: 650px; 
-            margin: 100px auto 100px auto; 
-            background: #8C52FF; /* بنفسجي كرتوني */
-            border-radius: 35px; border: 4px solid #333;
+            width: 90%; max-width: 650px; 
+            margin: 40px auto; 
+            background: #CB6CE6; /* لون بنفسجي جذاب */
+            border-radius: 25px; border: 4px solid #000;
             padding: 20px; box-sizing: border-box; display: none;
-            box-shadow: 8px 8px 0 #333;
+            box-shadow: 10px 10px 0px #000;
         }
         
         .lib-title { 
             font-size: 20px; margin-bottom: 20px; text-align: center;
-            color: #fff; font-weight: 900; text-shadow: 2px 2px 0 #333;
-            min-height: 1.2em; 
+            color: #fff; font-weight: 900; text-shadow: 2px 2px 0px #000;
         }
-        .lib-title::after { content: "📺 قائمة الحلقات 📺"; }
 
         .ep-list { max-height: none; overflow: visible; }
         
         .ep-item { 
             display: flex; align-items: center; 
-            background: #fff; margin-bottom: 12px; border-radius: 20px;
-            border: 3px solid #333; overflow: hidden;
+            background: #fff; margin-bottom: 12px; border-radius: 15px;
+            border: 3px solid #000; overflow: hidden;
             flex-direction: row-reverse;
-            box-shadow: 4px 4px 0 rgba(0,0,0,0.2);
             transition: transform 0.2s;
+            box-shadow: 4px 4px 0px #000;
         }
         
-        .ep-item:hover { transform: scale(1.02); }
-        .ep-item:active { transform: scale(0.98); } 
+        .ep-item:hover { transform: translateY(-3px); }
 
         .ep-name-clickable {
-            flex-grow: 1; padding: 18px;
+            flex-grow: 1; padding: 15px;
             cursor: pointer; -webkit-tap-highlight-color: transparent;
             text-align: right;
         }
 
         .ep-name-text { 
-            color: #333 !important; 
+            color: #000 !important; 
             font-size: 16px; font-weight: bold;
             display: block !important;
             pointer-events: none;
         }
 
         .lib-control-btn {
-            background: #eee; border: none; border-left: 3px solid #333;
-            height: 55px; font-size: 20px; 
+            background: #eee; border: none; border-left: 3px solid #000;
+            height: 50px; font-size: 18px; 
             cursor: pointer; display: none; 
             flex-shrink: 0; outline: none; padding: 0 15px;
         }
         
-        .single-delete-btn { color: #ff4444; }
-        .single-edit-btn { color: #2e7d32; border-left: 3px solid #333; }
+        .single-delete-btn { background: #FF5757; color: white; }
+        .single-edit-btn { background: #5CE1E6; }
         
     </style>
 </head>
@@ -166,30 +161,30 @@
     </div>
 
     <div id="admin">
-        <div id="viewerCount">عدد المتصلين الآن: جاري التحميل...</div>
+        <div id="viewerCount">عدد المتفرجين الآن: جاري التحميل...</div>
 
-        <input type="text" id="urlInput" placeholder="رابط البث المباشر الأساسي..." onpaste="handlePaste(event)">
+        <input type="text" id="urlInput" placeholder="ضع رابط البث هنا يا بطل..." onpaste="handlePaste(event)">
         
-        <div style="border-top: 3px dashed #ccc; margin-top: 15px; padding-top: 10px;">
-            <input type="text" id="epNameInput" placeholder="اسم العمل / الحلقة">
-            <input type="text" id="epUrlInput" placeholder="رابط الفيديو المباشر...">
-            <button style="background: #FFBD59; color: #333; width: 100%; margin-top: 5px;" onclick="addEpisode()">إضافة للمكتبة +</button>
+        <div style="border-top: 3px dashed #000; margin-top: 15px; padding-top: 15px;">
+            <input type="text" id="epNameInput" placeholder="اسم الحلقة (مثلاً: سبونج بوب 1)">
+            <input type="text" id="epUrlInput" placeholder="رابط المقطع المباشر...">
+            <button style="background: #5271FF; color: white; width: 100%; margin-top: 5px;" onclick="addEpisode()">إضافة للمكتبة السحرية +</button>
         </div>
 
-        <div class="btn-group" style="margin-top: 15px; border-top: 3px dashed #ccc; padding-top: 10px;">
+        <div class="btn-group" style="margin-top: 15px; border-top: 3px dashed #000; padding-top: 15px;">
             <button id="syncToggleBtn" class="btn-sync" onclick="toggleSync()">جاري التحميل...</button>
-            <button class="btn-delete" onclick="deleteVideo()">حذف الفيديو 🗑️</button>
+            <button class="btn-delete" onclick="deleteVideo()">حذف فيديو البث 🗑️</button>
         </div>
-        <div id="statusText" style="display:none;">تم التحديث بنجاح ✅</div>
+        <div id="statusText">تم التحديث بنجاح ✅</div>
     </div>
 
     <div id="librarySection">
-        <div class="lib-title"></div> 
+        <div class="lib-title">🎬 قائمة الحلقات الكرتونية 🎬</div> 
         <div id="episodesContainer" class="ep-list"></div>
     </div>
 
     <script>
-        // الكود البرمجي (JavaScript) ظل كما هو لضمان عمل الصفحة بنفس الكفاءة
+        // الكود البرمجي لم يتغير لضمان عمل الصفحة بنفس الكفاءة السابقة
         var videoElement = document.getElementById('myPlayer');
         var hls = new Hls();
         var dbUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream.json";
@@ -224,7 +219,7 @@
                             }
                         });
                     }
-                    document.getElementById('viewerCount').innerText = "المشاهدون الآن: " + count + " ⚡";
+                    document.getElementById('viewerCount').innerText = "عدد المتصلين الآن: " + count;
                 }
             };
             xhr.send();
@@ -245,7 +240,7 @@
             var container = document.getElementById('episodesContainer');
             container.innerHTML = "";
             if (!libData) { 
-                container.innerHTML = "<div style='text-align:center; padding:30px; color:#fff; font-weight:bold;'>المكتبة فارغة.. أضف شيئاً ممتعاً! ✨</div>"; 
+                container.innerHTML = "<div style='text-align:center; padding:30px; color:#fff; font-weight:bold; display:block !important;'>المكتبة فارغة حالياً.. أضف شيئاً ممتعاً!</div>"; 
                 return; 
             }
             
@@ -256,7 +251,7 @@
                 
                 var nameBox = document.createElement('div');
                 nameBox.className = "ep-name-clickable";
-                nameBox.innerHTML = '<span class="ep-name-text">🎬 ' + ep.name + '</span>';
+                nameBox.innerHTML = '<span class="ep-name-text">' + ep.name + '</span>';
                 nameBox.onclick = function() { 
                     if (isAdmin) {
                         var xhr = new XMLHttpRequest();
@@ -272,7 +267,7 @@
                     var delBtn = document.createElement('button');
                     delBtn.className = "lib-control-btn single-delete-btn";
                     delBtn.style.display = "block";
-                    delBtn.innerHTML = "🗑️";
+                    delBtn.innerHTML = "✕";
                     delBtn.onclick = function(e) { e.stopPropagation(); deleteSingleEpisode(key); };
                     
                     var editBtn = document.createElement('button');
