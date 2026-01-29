@@ -107,9 +107,8 @@
 
         .lib-control-btn { background: transparent; border: none; height: 40px; font-size: 14px; cursor: pointer; padding: 0 10px; }
         .single-delete-btn { color: #883333; }
-        .single-edit-btn { color: #338833; }
 
-        /* ستايل المجلدات الجديد */
+        /* ستايل المجلدات */
         .folder-container { width: 100%; margin-bottom: 10px; border: 1px solid #222; border-radius: 8px; overflow: hidden; }
         .folder-header { 
             background: #111; padding: 15px; cursor: pointer; 
@@ -174,8 +173,9 @@
         var isAdmin = window.location.hash === "#ana";
         var isSyncEnabled = true;
         var myUserId = Math.random().toString(36).substring(7);
+        // متغير لحفظ المجلدات المفتوحة حالياً
+        var openFolders = new Set();
 
-        // --- دوال M3U المتطورة ---
         function importM3U() {
             const fileInput = document.getElementById('m3uFile');
             const urlInput = document.getElementById('m3uUrlInput');
@@ -203,7 +203,6 @@
             for (let i = 0; i < lines.length; i++) {
                 if (lines[i].startsWith('#EXTINF:')) {
                     const info = lines[i];
-                    // البحث عن تصنيف القناة group-title
                     let category = "قنوات عامة";
                     const groupMatch = info.match(/group-title="([^"]+)"/);
                     if (groupMatch) category = groupMatch[1];
@@ -212,7 +211,6 @@
                     const url = lines[i + 1] ? lines[i + 1].trim() : "";
 
                     if (url && url.startsWith('http')) {
-                        // حفظ القناة مع تصنيفها
                         saveToLibrary(name, url, category);
                         channelsAdded++;
                     }
@@ -232,13 +230,13 @@
 
         function renderLibrary(libData) {
             var container = document.getElementById('episodesContainer');
-            container.innerHTML = "";
+            
             if (!libData) { 
                 container.innerHTML = "<div style='text-align:center; padding:30px; color:#444; display:block !important;'>المكتبة فارغة</div>"; 
                 return; 
             }
-            
-            // تجميع القنوات حسب المجلدات (Categories)
+
+            // تجميع القنوات حسب المجلدات
             const folders = {};
             Object.keys(libData).forEach(key => {
                 const ep = libData[key];
@@ -247,15 +245,28 @@
                 folders[cat].push({ key, ...ep });
             });
 
-            // عرض المجلدات
+            // مسح الحاوية مع الحفاظ على القائمة الجديدة
+            container.innerHTML = "";
+
             Object.keys(folders).forEach(catName => {
                 const folderDiv = document.createElement('div');
                 folderDiv.className = "folder-container";
+                // إعادة حالة الفتح إذا كان المجلد مفتوحاً قبل التحديث
+                if (openFolders.has(catName)) {
+                    folderDiv.classList.add('active');
+                }
                 
                 const header = document.createElement('div');
                 header.className = "folder-header";
                 header.innerHTML = `<span>${catName} (${folders[catName].length})</span>`;
-                header.onclick = function() { folderDiv.classList.toggle('active'); };
+                header.onclick = function() { 
+                    folderDiv.classList.toggle('active'); 
+                    if (folderDiv.classList.contains('active')) {
+                        openFolders.add(catName);
+                    } else {
+                        openFolders.delete(catName);
+                    }
+                };
                 
                 const content = document.createElement('div');
                 content.className = "folder-content";
@@ -296,7 +307,6 @@
                 container.appendChild(folderDiv);
             });
         }
-        // --- نهاية دوال M3U ---
 
         function updatePresence() {
             var xhr = new XMLHttpRequest();
@@ -340,17 +350,6 @@
             videoElement.play().catch(function(e){});
         }
 
-        function editSingleEpisode(key, oldName, oldUrl) {
-            var newName = prompt("تعديل اسم المقطع:", oldName);
-            if (newName === null) return;
-            var newUrl = prompt("تعديل رابط المقطع:", oldUrl);
-            if (newUrl === null) return;
-            var xhr = new XMLHttpRequest();
-            xhr.open("PATCH", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library/" + key + ".json", true);
-            xhr.onload = function() { showStatus("تم التعديل ✅"); loadStream(); };
-            xhr.send(JSON.stringify({ name: newName, url: newUrl }));
-        }
-
         function deleteSingleEpisode(key) {
             if(confirm("حذف هذه القناة؟")) {
                 var xhr = new XMLHttpRequest();
@@ -365,12 +364,14 @@
             isSyncEnabled = data.syncEnabled !== false; 
             updateSyncButtonUI();
             var lib = document.getElementById('librarySection');
+            
             if (isAdmin || !isSyncEnabled) {
                 lib.style.display = "block";
                 renderLibrary(data.library);
             } else {
                 lib.style.display = "none";
             }
+            
             if (isSyncEnabled && !isAdmin) {
                 if (data.url !== lastUrl) playMedia(data.url);
                 if (Math.abs(videoElement.currentTime - data.time) > 3) videoElement.currentTime = data.time;
