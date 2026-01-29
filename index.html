@@ -25,17 +25,28 @@
             justify-content: flex-start;
         }
 
-        /* المشغل بدون إطار وفي المنتصف */
+        /* تعديل المشغل ليكون ثابت في الأعلى */
         .card { 
             background: #000; padding: 0; border-radius: 0; 
             width: 100%; max-width: 800px; box-sizing: border-box;
-            border: none; z-index: 10;
-            position: relative; margin: 0 auto;
+            border: none; 
+            z-index: 1000; /* رفع الطبقة لضمان بقائه فوق كل شيء */
+            position: fixed; /* جعل المشغل ثابت */
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%); /* لضمان التوسط */
         }
         
         video { 
             width: 100%; display: block; aspect-ratio: 16/9; background: #000; 
             border: none; outline: none; 
+        }
+
+        /* إضافة حاوية للتعويض عن مساحة المشغل الثابت */
+        .spacer {
+            height: 56.25vw; /* نفس نسبة ارتفاع الفيديو 16:9 */
+            max-height: 450px; /* ليتناسب مع الحد الأقصى للمشغل 800px */
+            width: 100%;
         }
 
         #admin { display: none; width: 95%; max-width: 650px; margin-top: 15px; }
@@ -76,10 +87,10 @@
         
         h2, p, span:not(.ep-name-text), h3 { display: none !important; }
 
-        /* قسم المكتبة - تم زيادة الهامش العلوي (margin-top) لتنزيل المقاطع */
+        /* قسم المكتبة */
         #librarySection {
             width: 95%; max-width: 700px; 
-            margin: 60px auto 100px auto; /* زدنا المسافة من 20px إلى 60px */
+            margin: 20px auto 100px auto; 
             background: transparent; 
             padding: 10px; box-sizing: border-box; display: none;
         }
@@ -98,7 +109,6 @@
             align-items: center;
         }
         
-        /* أسامي المقاطع بدون إطار وفي النص */
         .ep-item { 
             display: flex; align-items: center; 
             background: transparent; margin-bottom: 5px; 
@@ -111,7 +121,7 @@
         .ep-name-clickable {
             flex-grow: 1; padding: 12px;
             cursor: pointer; -webkit-tap-highlight-color: transparent;
-            text-align: center; /* توسيط النص */
+            text-align: center;
         }
 
         .ep-name-text { 
@@ -140,6 +150,8 @@
         <video id="myPlayer" controls autoplay playsinline></video>
     </div>
 
+    <div class="spacer"></div>
+
     <div id="admin">
         <div id="viewerCount">عدد المتصلين الآن: جاري التحميل...</div>
 
@@ -164,6 +176,7 @@
     </div>
 
     <script>
+        // ... (بقية الكود الخاص بالـ JavaScript كما هو بدون أي تغيير) ...
         var videoElement = document.getElementById('myPlayer');
         var hls = new Hls();
         var dbUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream.json";
