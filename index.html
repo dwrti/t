@@ -17,37 +17,17 @@
             -webkit-overflow-scrolling: touch; 
         }
 
-        body {
-            display: flex; flex-direction: column;
-            align-items: center;
-        }
+        body { display: flex; flex-direction: column; align-items: center; }
 
-        /* تثبيت المشغل في الأعلى */
         .card { 
-            position: -webkit-sticky; 
-            position: sticky; 
-            top: 0; 
-            z-index: 1000; 
-            background: #000; 
-            width: 100%; 
-            max-width: 800px; 
+            position: -webkit-sticky; position: sticky; top: 0; z-index: 1000; 
+            background: #000; width: 100%; max-width: 800px; 
             box-shadow: 0 4px 15px rgba(0,0,0,0.8);
         }
         
-        video { 
-            width: 100%; 
-            display: block; 
-            aspect-ratio: 16/9; 
-            background: #000; 
-            outline: none; 
-        }
+        video { width: 100%; display: block; aspect-ratio: 16/9; background: #000; outline: none; }
 
-        #contentWrapper {
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
+        #contentWrapper { width: 100%; display: flex; flex-direction: column; align-items: center; }
 
         #admin { display: none; width: 95%; max-width: 650px; margin-top: 15px; }
         
@@ -80,64 +60,30 @@
         
         h2, p, span:not(.ep-name-text), h3 { display: none !important; }
 
-        /* قسم المكتبة الجديد بنظام المجموعات */
-        #librarySection {
-            width: 95%; max-width: 700px; 
-            margin: 20px auto 120px auto; 
-            display: none;
-        }
+        /* قسم المكتبة والمجلدات */
+        #librarySection { width: 95%; max-width: 700px; margin: 20px auto 120px auto; display: none; }
+        .ep-list { display: flex; flex-direction: column; align-items: center; }
         
-        .group-container {
-            margin-bottom: 10px;
-            border: 1px solid #222;
-            border-radius: 10px;
-            overflow: hidden;
-            background: #0a0a0a;
-        }
-
-        .group-header {
-            padding: 15px;
-            background: #111;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-weight: bold;
-            color: #4caf50;
-        }
-
-        .group-content {
-            display: none; /* مخفي افتراضياً */
-            padding: 5px;
-            background: #050505;
-        }
-
-        .group-content.open {
-            display: block;
-        }
+        .folder-container { width: 100%; margin-bottom: 10px; border: 1px solid #222; border-radius: 10px; overflow: hidden; background: #050505; }
+        .folder-header { padding: 15px; background: #111; cursor: pointer; display: flex; justify-content: space-between; font-weight: bold; color: #4a90e2; }
+        .folder-content { display: none; padding: 5px; background: #000; }
+        .folder-content.active { display: block; }
 
         .ep-item { 
             display: flex; align-items: center; 
-            background: rgba(30,30,30,0.3); margin-bottom: 4px; 
-            width: 100%; border-radius: 6px; border: 1px solid #1a1a1a;
+            background: rgba(20,20,20,0.5); margin-bottom: 5px; 
+            width: 100%; border-radius: 8px; border: 1px solid #111;
         }
         
-        .ep-name-clickable {
-            flex-grow: 1; padding: 12px;
-            cursor: pointer; -webkit-tap-highlight-color: transparent;
-            text-align: right;
-        }
-
+        .ep-name-clickable { flex-grow: 1; padding: 12px; cursor: pointer; -webkit-tap-highlight-color: transparent; text-align: right; }
         .ep-name-text { color: #bbbbbb !important; font-size: 14px; display: block !important; }
 
         .lib-control-btn { background: transparent; border: none; height: 35px; font-size: 14px; cursor: pointer; padding: 0 10px; }
         .single-delete-btn { color: #883333; }
+        .single-edit-btn { color: #338833; }
 
-        .m3u-box {
-            margin-top: 15px; padding: 15px; border: 1px dashed #333; border-radius: 10px; background: #050505;
-        }
+        .m3u-box { margin-top: 15px; padding: 15px; border: 1px dashed #333; border-radius: 10px; background: #050505; }
         .m3u-box label { display: block; margin-bottom: 8px; font-size: 13px; color: #888; }
-        
     </style>
 </head>
 <body>
@@ -152,14 +98,13 @@
             <input type="text" id="urlInput" placeholder="رابط البث المباشر الأساسي..." onpaste="handlePaste(event)">
             
             <div style="border-top: 1px solid #111; margin-top: 15px; padding-top: 10px;">
-                <input type="text" id="epNameInput" placeholder="اسم القناة">
-                <input type="text" id="epGroupInput" placeholder="اسم المجموعة (اختياري)">
+                <input type="text" id="epNameInput" placeholder="اسم العمل / الحلقة">
                 <input type="text" id="epUrlInput" placeholder="رابط الفيديو المباشر...">
                 <button style="background: #1a3a8a; color: white; width: 100%; border: none; margin-top: 5px;" onclick="addEpisode()">إضافة للمكتبة +</button>
             </div>
 
             <div class="m3u-box">
-                <label>رفع ملف M3U (سيرتبها تلقائياً بمجلدات):</label>
+                <label>رفع ملف M3U (سيتم تجميعها في مجلد القنوات):</label>
                 <input type="file" id="m3uFile" accept=".m3u,.m3u8" style="padding: 5px; font-size: 12px;">
                 <button style="background: #4a1a8a; color: white; width: 100%; border: none; margin-top: 5px;" onclick="uploadM3U()">رفع ومعالجة الملف 📁</button>
             </div>
@@ -172,7 +117,7 @@
         </div>
 
         <div id="librarySection">
-            <div id="episodesContainer"></div>
+            <div id="episodesContainer" class="ep-list"></div>
         </div>
     </div>
 
@@ -185,32 +130,34 @@
         var isAdmin = window.location.hash === "#ana";
         var isSyncEnabled = true;
         var myUserId = Math.random().toString(36).substring(7);
-        // متغير لحفظ المجلدات المفتوحة حتى لا تغلق عند التحديث
-        var openedGroups = new Set();
+        var currentLibraryHash = ""; // لمنع إعادة بناء القائمة إذا لم يتغير شيء
 
         function uploadM3U() {
             const fileInput = document.getElementById('m3uFile');
             const file = fileInput.files[0];
             if (!file) { alert("الرجاء اختيار ملف أولاً"); return; }
 
-            showStatus("جاري قراءة الملف... ⏳");
+            showStatus("جاري تحليل القنوات... ⏳");
             const reader = new FileReader();
             reader.onload = function(e) {
                 const lines = e.target.result.split('\n');
                 let channels = [];
                 for (let i = 0; i < lines.length; i++) {
                     if (lines[i].startsWith('#EXTINF:')) {
-                        let groupMatch = lines[i].match(/group-title="([^"]+)"/);
-                        let group = groupMatch ? groupMatch[1] : "عام";
+                        let group = lines[i].match(/group-title="([^"]+)"/);
                         let name = lines[i].split(',').pop().trim();
                         let url = lines[i + 1] ? lines[i + 1].trim() : "";
-                        if (url && url.startsWith('http')) {
-                            channels.push({ name: name, url: url, group: group });
+                        if (url.startsWith('http')) {
+                            channels.push({ 
+                                name: name, 
+                                url: url, 
+                                group: group ? group[1] : "غير مصنف" 
+                            });
                         }
                     }
                 }
-                if (channels.length > 0 && confirm("تم العثور على " + channels.length + " قناة. هل تريد الإضافة؟")) {
-                    pushChannelsSequentially(channels);
+                if (channels.length > 0) {
+                    if(confirm("وجدنا " + channels.length + " قناة. هل نبدأ الرفع؟")) pushChannelsSequentially(channels);
                 }
             };
             reader.readAsText(file);
@@ -218,141 +165,100 @@
 
         async function pushChannelsSequentially(channels) {
             for (let i = 0; i < channels.length; i++) {
-                await new Promise(res => {
+                await new Promise(resolve => {
                     var xhr = new XMLHttpRequest();
                     xhr.open("POST", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library.json", true);
-                    xhr.onload = res;
+                    xhr.onload = () => resolve();
                     xhr.send(JSON.stringify(channels[i]));
                 });
-                if (i % 10 === 0) showStatus("تم رفع " + i + " قناة...");
+                if (i % 10 === 0) showStatus("تم رفع " + (i+1) + " قناة...");
             }
-            showStatus("اكتمل الرفع ✅");
+            showStatus("تم اكتمال الرفع بنجاح ✅");
             loadStream();
         }
 
         function renderLibrary(libData) {
+            // كود ذكي لمقارنة البيانات الحالية بالسابقة لمنع الوميض أو الإغلاق التلقائي
+            let newHash = JSON.stringify(libData);
+            if (newHash === currentLibraryHash) return; 
+            currentLibraryHash = newHash;
+
             var container = document.getElementById('episodesContainer');
             container.innerHTML = "";
-            if (!libData) { container.innerHTML = "<div style='text-align:center;color:#444;'>المكتبة فارغة</div>"; return; }
-            
-            // تجميع القنوات حسب المجلد
-            let groups = {};
+            if (!libData) { container.innerHTML = "<div style='color:#444; padding:20px;'>المكتبة فارغة</div>"; return; }
+
+            let normalItems = [];
+            let m3uGroups = {};
+
             Object.keys(libData).forEach(key => {
                 let item = libData[key];
-                item.dbKey = key;
-                let gName = item.group || "عام";
-                if (!groups[gName]) groups[gName] = [];
-                groups[gName].push(item);
-            });
-
-            Object.keys(groups).forEach(groupName => {
-                let groupDiv = document.createElement('div');
-                groupDiv.className = "group-container";
-                
-                let header = document.createElement('div');
-                header.className = "group-header";
-                header.innerHTML = `<span>📁 ${groupName}</span> <span>${groups[groupName].length} قناة</span>`;
-                
-                let content = document.createElement('div');
-                content.className = "group-content" + (openedGroups.has(groupName) ? " open" : "");
-                
-                header.onclick = () => {
-                    content.classList.toggle('open');
-                    content.classList.contains('open') ? openedGroups.add(groupName) : openedGroups.delete(groupName);
-                };
-
-                groups[groupName].forEach(ep => {
-                    let epItem = document.createElement('div');
-                    epItem.className = "ep-item";
-                    epItem.innerHTML = `<div class="ep-name-clickable"><span class="ep-name-text">${ep.name}</span></div>`;
-                    
-                    if(isAdmin){
-                        let del = document.createElement('button');
-                        del.className = "lib-control-btn single-delete-btn";
-                        del.innerHTML = "✕";
-                        del.onclick = (e) => { e.stopPropagation(); deleteSingleEpisode(ep.dbKey); };
-                        epItem.appendChild(del);
-                    }
-
-                    epItem.querySelector('.ep-name-clickable').onclick = () => {
-                        if (isAdmin) {
-                            var xhr = new XMLHttpRequest();
-                            xhr.open("PATCH", dbUrl, true);
-                            xhr.send(JSON.stringify({ url: ep.url, status: "playing", time: 0 }));
-                        }
-                        playMedia(ep.url);
-                        window.scrollTo({top: 0, behavior: 'smooth'});
-                    };
-                    content.appendChild(epItem);
-                });
-
-                groupDiv.appendChild(header);
-                groupDiv.appendChild(content);
-                container.appendChild(groupDiv);
-            });
-        }
-
-        function playMedia(url) {
-            if (!url) { videoElement.src = ""; if (hls) hls.destroy(); lastUrl = ""; return; }
-            if (url === lastUrl) return;
-            lastUrl = url;
-            if (Hls.isSupported() && (url.includes('m3u8') || url.includes('.ts'))) {
-                hls.destroy(); hls = new Hls();
-                hls.loadSource(url); hls.attachMedia(videoElement);
-            } else { videoElement.src = url; }
-            videoElement.play().catch(e => {});
-        }
-
-        function loadStream() {
-            var xhr = new XMLHttpRequest();
-            xhr.open("GET", dbUrl, true);
-            xhr.onload = function () {
-                if (xhr.status === 200) {
-                    var data = JSON.parse(xhr.responseText);
-                    isSyncEnabled = data.syncEnabled !== false;
-                    updateSyncButtonUI();
-                    if (isAdmin || !isSyncEnabled) {
-                        document.getElementById('librarySection').style.display = "block";
-                        renderLibrary(data.library);
-                    } else {
-                        document.getElementById('librarySection').style.display = "none";
-                    }
-                    if (isSyncEnabled && !isAdmin) {
-                        if (data.url !== lastUrl) playMedia(data.url);
-                        if (Math.abs(videoElement.currentTime - data.time) > 3) videoElement.currentTime = data.time;
-                        data.status === "playing" ? videoElement.play().catch(e=>{}) : videoElement.pause();
-                    }
+                item.fbKey = key;
+                if (item.group) {
+                    if (!m3uGroups[item.group]) m3uGroups[item.group] = [];
+                    m3uGroups[item.group].push(item);
+                } else {
+                    normalItems.push(item);
                 }
-            };
-            xhr.send();
-        }
+            });
 
-        function addEpisode() {
-            var name = document.getElementById('epNameInput').value.trim();
-            var group = document.getElementById('epGroupInput').value.trim() || "عام";
-            var url = document.getElementById('epUrlInput').value.trim();
-            if (!name || !url) return;
-            var xhr = new XMLHttpRequest();
-            xhr.open("POST", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library.json", true);
-            xhr.onload = () => {
-                document.getElementById('epNameInput').value = "";
-                document.getElementById('epUrlInput').value = "";
-                showStatus("تمت الإضافة ✅");
-                loadStream();
-            };
-            xhr.send(JSON.stringify({ name: name, url: url, group: group }));
-        }
+            // 1. عرض الملفات العادية
+            normalItems.forEach(item => container.appendChild(createEpElement(item)));
 
-        function deleteSingleEpisode(key) {
-            if(confirm("حذف القناة؟")) {
-                var xhr = new XMLHttpRequest();
-                xhr.open("DELETE", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library/" + key + ".json", true);
-                xhr.onload = () => loadStream();
-                xhr.send();
+            // 2. عرض مجلد M3U الرئيسي
+            if (Object.keys(m3uGroups).length > 0) {
+                let mainFolder = document.createElement('div');
+                mainFolder.className = "folder-container";
+                mainFolder.innerHTML = `<div class="folder-header" onclick="toggleFolder(this)">📂 [ M3U Playlists ] <span>▼</span></div>`;
+                let mainContent = document.createElement('div');
+                mainContent.className = "folder-content";
+
+                for (let groupName in m3uGroups) {
+                    let subFolder = document.createElement('div');
+                    subFolder.className = "folder-container";
+                    subFolder.style.margin = "5px";
+                    subFolder.innerHTML = `<div class="folder-header" style="background:#1a1a1a; font-size:13px;" onclick="toggleFolder(this)">📁 ${groupName} <span>▼</span></div>`;
+                    let subContent = document.createElement('div');
+                    subContent.className = "folder-content";
+                    
+                    m3uGroups[groupName].forEach(ch => subContent.appendChild(createEpElement(ch)));
+                    subFolder.appendChild(subContent);
+                    mainContent.appendChild(subFolder);
+                }
+                mainFolder.appendChild(mainContent);
+                container.appendChild(mainFolder);
             }
         }
 
-        // --- الدوال المساعدة والأساسية ---
+        function createEpElement(ep) {
+            var item = document.createElement('div');
+            item.className = "ep-item";
+            item.innerHTML = `
+                ${isAdmin ? `<button class="lib-control-btn single-edit-btn" onclick="editSingleEpisode('${ep.fbKey}','${ep.name}','${ep.url}')">✏️</button>` : ''}
+                <div class="ep-name-clickable" onclick="playSelected('${ep.url}', '${ep.name}')">
+                    <span class="ep-name-text">${ep.name}</span>
+                </div>
+                ${isAdmin ? `<button class="lib-control-btn single-delete-btn" onclick="deleteSingleEpisode('${ep.fbKey}')">✕</button>` : ''}
+            `;
+            return item;
+        }
+
+        function toggleFolder(el) {
+            let content = el.nextElementSibling;
+            content.classList.toggle('active');
+            el.querySelector('span').innerText = content.classList.contains('active') ? "▲" : "▼";
+        }
+
+        function playSelected(url, name) {
+            if (isAdmin) {
+                var xhr = new XMLHttpRequest();
+                xhr.open("PATCH", dbUrl, true);
+                xhr.send(JSON.stringify({ url: url, status: "playing", time: 0 }));
+            }
+            playMedia(url);
+            window.scrollTo({top: 0, behavior: 'smooth'});
+        }
+
+        // --- الدوال الأساسية المستقرة ---
         function updatePresence() {
             var xhr = new XMLHttpRequest();
             xhr.open("PUT", presenceUrl + "/" + myUserId + ".json", true);
@@ -368,16 +274,58 @@
                     var data = JSON.parse(xhr.responseText);
                     var count = 0; var now = Date.now();
                     if (data) {
-                        Object.keys(data).forEach(k => {
-                            if (now - data[k] < 10000) count++;
-                            else if (now - data[k] > 60000) {
-                                var del = new XMLHttpRequest();
-                                del.open("DELETE", presenceUrl + "/" + k + ".json", true);
-                                del.send();
+                        Object.keys(data).forEach(function(key) {
+                            if (now - data[key] < 10000) count++;
+                            else if (now - data[key] > 60000) {
+                                var delXhr = new XMLHttpRequest();
+                                delXhr.open("DELETE", presenceUrl + "/" + key + ".json", true);
+                                delXhr.send();
                             }
                         });
                     }
                     document.getElementById('viewerCount').innerText = "عدد المتصلين الآن: " + count;
+                }
+            };
+            xhr.send();
+        }
+
+        function playMedia(url) {
+            if (!url) { videoElement.src = ""; if (hls) hls.destroy(); lastUrl = ""; return; }
+            if (url === lastUrl) return;
+            lastUrl = url;
+            if (Hls.isSupported() && (url.includes('m3u8') || url.includes('.ts'))) {
+                hls.destroy(); hls = new Hls();
+                hls.loadSource(url); hls.attachMedia(videoElement);
+            } else { videoElement.src = url; }
+            videoElement.play().catch(function(e){});
+        }
+
+        function syncPlayer(data) {
+            if (!data) return;
+            isSyncEnabled = data.syncEnabled !== false; 
+            updateSyncButtonUI();
+            var lib = document.getElementById('librarySection');
+            if (isAdmin || !isSyncEnabled) {
+                lib.style.display = "block";
+                renderLibrary(data.library);
+            } else {
+                lib.style.display = "none";
+            }
+            if (isSyncEnabled && !isAdmin) {
+                if (data.url !== lastUrl) playMedia(data.url);
+                if (Math.abs(videoElement.currentTime - data.time) > 3) videoElement.currentTime = data.time;
+                if (data.status === "playing" && videoElement.paused) videoElement.play().catch(function(e){});
+                else if (data.status === "paused" && !videoElement.paused) videoElement.pause();
+            }
+        }
+
+        function loadStream() {
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", dbUrl, true);
+            xhr.onload = function () {
+                if (xhr.status === 200) {
+                    var data = JSON.parse(xhr.responseText);
+                    syncPlayer(data);
                 }
             };
             xhr.send();
@@ -394,25 +342,85 @@
 
         function updateSyncButtonUI() {
             var btn = document.getElementById('syncToggleBtn');
-            if (!btn) return;
-            btn.innerText = isSyncEnabled ? "المزامنة: مفعلة ✅" : "المزامنة: معطلة ❌";
-            btn.className = "btn-sync " + (isSyncEnabled ? "active" : "inactive");
+            if (btn) {
+                if (isSyncEnabled) {
+                    btn.innerText = "المزامنة: مفعلة ✅";
+                    btn.className = "btn-sync active";
+                } else {
+                    btn.innerText = "المزامنة: معطلة ❌";
+                    btn.className = "btn-sync inactive";
+                }
+            }
         }
 
-        function showStatus(msg) {
-            var status = document.getElementById('statusText');
-            status.innerText = msg; status.style.display = "block";
-            setTimeout(() => { status.style.display = "none"; }, 4000);
+        function addEpisode() {
+            var name = document.getElementById('epNameInput').value.trim();
+            var url = document.getElementById('epUrlInput').value.trim();
+            if (!name || !url) return;
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library.json", true);
+            xhr.onload = function() {
+                document.getElementById('epNameInput').value = "";
+                document.getElementById('epUrlInput').value = "";
+                showStatus("تمت إضافة: " + name);
+                loadStream();
+            };
+            xhr.send(JSON.stringify({ name: name, url: url }));
+        }
+
+        function deleteSingleEpisode(key) {
+            if(confirm("حذف هذا العنصر؟")) {
+                var xhr = new XMLHttpRequest();
+                xhr.open("DELETE", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library/" + key + ".json", true);
+                xhr.onload = function() { showStatus("تم الحذف"); loadStream(); };
+                xhr.send();
+            }
+        }
+
+        function editSingleEpisode(key, oldName, oldUrl) {
+            var newName = prompt("تعديل الاسم:", oldName);
+            if (newName === null) return;
+            var newUrl = prompt("تعديل الرابط:", oldUrl);
+            if (newUrl === null) return;
+            var xhr = new XMLHttpRequest();
+            xhr.open("PATCH", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library/" + key + ".json", true);
+            xhr.onload = function() { showStatus("تم التعديل ✅"); loadStream(); };
+            xhr.send(JSON.stringify({ name: newName, url: newUrl }));
+        }
+
+        function updateDatabaseState() {
+            if (!isAdmin || !isSyncEnabled) return;
+            var xhr = new XMLHttpRequest();
+            xhr.open("PATCH", dbUrl, true);
+            var state = { status: videoElement.paused ? "paused" : "playing", time: videoElement.currentTime };
+            xhr.send(JSON.stringify(state));
+        }
+
+        setInterval(function() {
+            updatePresence();
+            if (!isAdmin) loadStream();
+            else { 
+                if (isSyncEnabled) updateDatabaseState(); 
+                loadStream();
+                fetchViewerCount();
+            }
+        }, 5000);
+
+        if (isAdmin) {
+            ['play', 'pause', 'seeked'].forEach(function(ev) {
+                videoElement.addEventListener(ev, function() { if(isSyncEnabled) updateDatabaseState(); });
+            });
         }
 
         function handlePaste(event) {
-            setTimeout(() => {
+            setTimeout(function() {
                 var val = document.getElementById('urlInput').value.trim();
                 if (val) {
                     var xhr = new XMLHttpRequest();
                     xhr.open("PATCH", dbUrl, true);
                     xhr.send(JSON.stringify({ url: val, status: "playing", time: 0 }));
-                    document.getElementById('urlInput').value = '';
+                    document.getElementById('urlInput').value = ''; 
+                    showStatus("تم تحديث البث ✅");
                 }
             }, 100);
         }
@@ -425,15 +433,20 @@
             }
         }
 
-        setInterval(() => {
-            updatePresence();
-            loadStream();
-            if (isAdmin) fetchViewerCount();
-        }, 5000);
+        function showStatus(msg) {
+            var status = document.getElementById('statusText');
+            status.innerText = msg;
+            status.style.display = "block";
+            setTimeout(function() { status.style.display = "none"; }, 4000);
+        }
 
-        window.onload = () => {
-            loadStream(); updatePresence();
-            if(isAdmin) document.getElementById('admin').style.display = "block";
+        window.onload = function() {
+            loadStream();
+            updatePresence();
+            if(isAdmin) {
+                document.getElementById('admin').style.display = "block";
+                fetchViewerCount();
+            }
         };
     </script>
 </body>
