@@ -14,12 +14,10 @@
             display: flex; flex-direction: column;
             align-items: center;    
             overflow-x: hidden; overflow-y: auto; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            /* تحسين سلاسة السحب */
             scroll-behavior: smooth;
-            -webkit-overflow-scrolling: touch;
         }
 
-        /* تثبيت مشغل الفيديو في الأعلى */
+        /* تعديل لجعل الفيديو ثابت في الأعلى */
         .card { 
             background: #000; padding: 0; border-radius: 0; 
             width: 100%; max-width: 650px; box-sizing: border-box;
@@ -31,12 +29,7 @@
         
         video { width: 100%; display: block; aspect-ratio: 16/9; background: #000; }
 
-        /* تعديل الهوامش للمحتوى المتحرك لضمان السلاسة */
-        #admin { 
-            display: none; width: 95%; max-width: 650px; 
-            margin-top: 20px; 
-            flex-shrink: 0;
-        }
+        #admin { display: none; width: 95%; max-width: 650px; margin-top: 15px; }
         
         input { 
             width: 100%; padding: 12px; margin: 6px 0; 
@@ -73,10 +66,8 @@
             color: #fff; font-weight: bold; border-right: 4px solid #4caf50;
         }
 
-        /* جعل قائمة الحلقات تتحرك بانسيابية */
-        .ep-list { 
-            max-height: none; /* ألغينا التحديد لكي تنسحب الصفحة كاملة */
-        }
+        /* تعديل القائمة لتكون سلسة وتتحرك مع الصفحة */
+        .ep-list { height: auto; overflow: visible; }
         
         .ep-item { 
             display: flex; align-items: center; 
@@ -112,6 +103,11 @@
         
         .single-delete-btn { color: #ff4444; }
         .single-edit-btn { color: #4caf50; }
+        
+        /* تحسين السحب السلس */
+        body {
+            -webkit-overflow-scrolling: touch;
+        }
     </style>
 </head>
 <body>
@@ -211,6 +207,7 @@
         function editSingleEpisode(key, oldName, oldUrl) {
             var newName = prompt("تعديل اسم المقطع:", oldName);
             if (newName === null) return; 
+            
             var newUrl = prompt("تعديل رابط المقطع:", oldUrl);
             if (newUrl === null) return; 
 
