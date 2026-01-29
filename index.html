@@ -64,6 +64,7 @@
 
         .btn-sync.active { background-color: #1b5e20; border-color: #2e7d32; }
         .btn-sync.inactive { background-color: #b71c1c; border-color: #c62828; }
+        .btn-sync.active:hover { background-color: #2e7d32; }
         .btn-delete { color: #ff5252; border-color: #5d1b1b; }
 
         #statusText { text-align: center; font-size: 13px; color: #4caf50; margin: 10px 0; font-weight: bold; }
@@ -72,7 +73,6 @@
 
         #librarySection {
             width: 95%; max-width: 650px; 
-            /* تم زيادة الـ margin العلوي هنا لإنزال القائمة أكثر */
             margin: 150px auto 100px auto; 
             background: #111; border-radius: 12px; border: 1px solid #222;
             padding: 15px; box-sizing: border-box; display: none;
@@ -80,8 +80,9 @@
         
         .lib-title { 
             font-size: 17px; margin-bottom: 15px; padding-right: 12px; 
-            color: #fff; font-weight: bold; border-right: 4px solid #4caf50;
-            min-height: 1.2em; /* يحافظ على نفس المسافة */
+            color: #fff; font-weight: bold; 
+            /* تم حذف الخط الأخضر هنا */
+            min-height: 1.2em; 
         }
 
         .ep-list { 
