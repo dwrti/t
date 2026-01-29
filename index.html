@@ -28,14 +28,25 @@
             background: #000; padding: 0; border-radius: 0; 
             width: 100%; max-width: 650px; box-sizing: border-box;
             border-bottom: 2px solid #222; z-index: 10;
-            position: sticky; top: 0; 
-            margin-bottom: 15px; /* تم إضافة هذه المسافة لتبعد المشغل عما تحته */
+            position: sticky; top: 0; /* يبقى الفيديو ثابت أثناء السحب إذا أردت */
         }
         
         video { width: 100%; display: block; aspect-ratio: 16/9; background: #000; }
 
-        #admin { display: none; width: 95%; max-width: 650px; margin-top: 5px; }
+        #admin { display: none; width: 95%; max-width: 650px; margin-top: 15px; }
         
+        /* إضافة ستايل لعداد المتصلين */
+        #viewerCount {
+            background: #1a1a1a;
+            color: #4caf50;
+            padding: 8px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 14px;
+            margin-bottom: 10px;
+            border: 1px solid #333;
+        }
+
         input { 
             width: 100%; padding: 12px; margin: 6px 0; 
             border: 1px solid #333; border-radius: 8px; 
@@ -62,7 +73,7 @@
 
         #librarySection {
             width: 95%; max-width: 650px; 
-            margin: 10px 0 50px 0; 
+            margin: 20px 0 50px 0; 
             background: #111; border-radius: 12px; border: 1px solid #222;
             padding: 15px; box-sizing: border-box; display: none;
         }
@@ -72,8 +83,9 @@
             color: #fff; font-weight: bold; border-right: 4px solid #4caf50;
         }
 
+        /* تحسين قائمة الحلقات لمنع تعليق المتصفح */
         .ep-list { 
-            max-height: none; 
+            max-height: none; /* جعل القائمة تفتح بالكامل مع الصفحة لسحب أسهل */
             overflow: visible; 
         }
         
@@ -85,7 +97,7 @@
             transition: transform 0.1s;
         }
         
-        .ep-item:active { transform: scale(0.98); }
+        .ep-item:active { transform: scale(0.98); } /* تأثير بسيط عند الضغط */
 
         .ep-name-clickable {
             flex-grow: 1; padding: 15px;
@@ -119,6 +131,8 @@
     </div>
 
     <div id="admin">
+        <div id="viewerCount">عدد المتصلين الآن: جاري التحميل...</div>
+
         <input type="text" id="urlInput" placeholder="رابط البث المباشر الأساسي..." onpaste="handlePaste(event)">
         
         <div style="border-top: 1px solid #222; margin-top: 15px; padding-top: 10px;">
@@ -143,9 +157,46 @@
         var videoElement = document.getElementById('myPlayer');
         var hls = new Hls();
         var dbUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream.json";
+        var presenceUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/presence";
         var lastUrl = ""; 
         var isAdmin = window.location.hash === "#ana";
         var isSyncEnabled = true;
+        var myUserId = Math.random().toString(36).substring(7);
+
+        // وظيفة تسجيل حضور المستخدم
+        function updatePresence() {
+            var xhr = new XMLHttpRequest();
+            xhr.open("PUT", presenceUrl + "/" + myUserId + ".json", true);
+            xhr.send(JSON.stringify(Date.now()));
+        }
+
+        // وظيفة جلب عدد المتصلين (للأدمن فقط)
+        function fetchViewerCount() {
+            if (!isAdmin) return;
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", presenceUrl + ".json", true);
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    var data = JSON.parse(xhr.responseText);
+                    var count = 0;
+                    var now = Date.now();
+                    if (data) {
+                        Object.keys(data).forEach(function(key) {
+                            // إذا كان المستخدم حدث حالته خلال آخر 10 ثواني نعتبره متصل
+                            if (now - data[key] < 10000) count++;
+                            // تنظيف المستخدمين غير النشطين (اختياري للأدمن)
+                            else if (now - data[key] > 60000) {
+                                var delXhr = new XMLHttpRequest();
+                                delXhr.open("DELETE", presenceUrl + "/" + key + ".json", true);
+                                delXhr.send();
+                            }
+                        });
+                    }
+                    document.getElementById('viewerCount').innerText = "عدد المتصلين الآن: " + count;
+                }
+            };
+            xhr.send();
+        }
 
         function playMedia(url) {
             if (!url) { videoElement.src = ""; if (hls) hls.destroy(); lastUrl = ""; return; }
@@ -270,12 +321,14 @@
 
         function updateSyncButtonUI() {
             var btn = document.getElementById('syncToggleBtn');
-            if (isSyncEnabled) {
-                btn.innerText = "المزامنة: مفعلة ✅";
-                btn.className = "btn-sync active";
-            } else {
-                btn.innerText = "المزامنة: معطلة ❌";
-                btn.className = "btn-sync inactive";
+            if (btn) {
+                if (isSyncEnabled) {
+                    btn.innerText = "المزامنة: مفعلة ✅";
+                    btn.className = "btn-sync active";
+                } else {
+                    btn.innerText = "المزامنة: معطلة ❌";
+                    btn.className = "btn-sync inactive";
+                }
             }
         }
 
@@ -302,10 +355,16 @@
             xhr.send(JSON.stringify(state));
         }
 
+        // التحديثات الدورية
         setInterval(function() {
+            updatePresence(); // تحديث وجود المستخدم الحالي كل 5 ثواني
             if (!isAdmin) loadStream();
-            else { if (isSyncEnabled) updateDatabaseState(); loadStream(); }
-        }, 2000);
+            else { 
+                if (isSyncEnabled) updateDatabaseState(); 
+                loadStream();
+                fetchViewerCount(); // جلب العدد للأدمن فقط
+            }
+        }, 5000); // جعلناه كل 5 ثواني لتقليل الضغط على قاعدة البيانات
 
         if (isAdmin) {
             ['play', 'pause', 'seeked'].forEach(function(ev) {
@@ -343,7 +402,11 @@
 
         window.onload = function() {
             loadStream();
-            if(isAdmin) document.getElementById('admin').style.display = "block";
+            updatePresence();
+            if(isAdmin) {
+                document.getElementById('admin').style.display = "block";
+                fetchViewerCount();
+            }
         };
     </script>
 </body>
