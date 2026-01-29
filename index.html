@@ -109,12 +109,11 @@
         .single-delete-btn { color: #883333; }
         .single-edit-btn { color: #338833; }
 
-        /* ستايل قسم M3U الجديد */
-        .m3u-box {
-            background: #0a0a0a; border: 1px dashed #333;
-            padding: 10px; border-radius: 8px; margin-top: 15px;
+        /* ستايل إضافة M3U الجديد */
+        .m3u-section {
+            background: #080808; border: 1px dashed #333;
+            padding: 10px; border-radius: 10px; margin-top: 15px;
         }
-        .m3u-box h4 { margin: 0 0 10px 0; font-size: 14px; color: #888; text-align: center; display: block !important; }
         
     </style>
 </head>
@@ -135,14 +134,11 @@
                 <button style="background: #1a3a8a; color: white; width: 100%; border: none; margin-top: 5px;" onclick="addEpisode()">إضافة للمكتبة +</button>
             </div>
 
-            <div class="m3u-box">
-                <h4>استيراد قائمة قنوات M3U</h4>
-                <input type="file" id="m3uFile" accept=".m3u,.m3u8" style="display:none" onchange="importM3UFile(this)">
-                <button onclick="document.getElementById('m3uFile').click()" style="background:#222; width:100%; margin-bottom:5px;">📁 اختيار ملف من الهاتف</button>
-                <div style="display:flex; gap:5px;">
-                    <input type="text" id="m3uUrlInput" placeholder="أو ضع رابط M3U هنا..." style="margin:0; flex:3;">
-                    <button onclick="importM3UUrl()" style="background:#333; flex:1; min-width:60px;">جلب</button>
-                </div>
+            <div class="m3u-section">
+                <div style="font-size: 12px; color: #888; margin-bottom: 5px;">استيراد قائمة قنوات (M3U):</div>
+                <input type="file" id="m3uFile" accept=".m3u,.m3u8" style="font-size: 12px; padding: 5px;">
+                <input type="text" id="m3uUrlInput" placeholder="أو ضع رابط ملف M3U هنا...">
+                <button style="background: #444; color: #fff; width: 100%;" onclick="importM3U()">استيراد القائمة 📥</button>
             </div>
 
             <div class="btn-group" style="margin-top: 15px; border-top: 1px solid #111; padding-top: 10px;">
@@ -169,55 +165,55 @@
         var myUserId = Math.random().toString(36).substring(7);
 
         // --- دوال M3U الجديدة ---
+        function importM3U() {
+            const fileInput = document.getElementById('m3uFile');
+            const urlInput = document.getElementById('m3uUrlInput');
 
-        function parseAndUploadM3U(content) {
-            showStatus("جاري معالجة القائمة...");
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                const reader = new FileReader();
+                reader.onload = function(e) { parseM3UContent(e.target.result); };
+                reader.readAsText(file);
+            } else if (urlInput.value.trim() !== "") {
+                fetch(urlInput.value.trim())
+                    .then(res => res.text())
+                    .then(text => parseM3UContent(text))
+                    .catch(err => alert("تعذر جلب الرابط، تأكد من سياسة CORS أو صحة الرابط"));
+            } else {
+                alert("يرجى اختيار ملف أو وضع رابط");
+            }
+        }
+
+        function parseM3UContent(content) {
             const lines = content.split('\n');
-            let addedCount = 0;
+            let channelsAdded = 0;
+            showStatus("جاري المعالجة...");
 
             for (let i = 0; i < lines.length; i++) {
                 if (lines[i].startsWith('#EXTINF:')) {
-                    // محاولة استخراج الاسم
-                    let name = lines[i].split(',')[1] || "قناة غير معروفة";
-                    let url = lines[i + 1] ? lines[i + 1].trim() : null;
+                    // استخراج الاسم: يبحث عن النص بعد آخر فاصلة في سطر EXTINF
+                    const info = lines[i];
+                    const name = info.substring(info.lastIndexOf(',') + 1).trim() || "قناة غير معروفة";
+                    const url = lines[i + 1] ? lines[i + 1].trim() : "";
 
-                    if (url && (url.startsWith('http'))) {
-                        // إرسال للقاعدة
-                        var xhr = new XMLHttpRequest();
-                        xhr.open("POST", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library.json", false); // مزامنة بسيطة للسرعة
-                        xhr.send(JSON.stringify({ name: name.trim(), url: url }));
-                        addedCount++;
+                    if (url && url.startsWith('http')) {
+                        saveToLibrary(name, url);
+                        channelsAdded++;
                     }
                 }
             }
-            showStatus("تمت إضافة " + addedCount + " قناة ✅");
-            loadStream();
+            showStatus("تم إضافة " + channelsAdded + " قناة ✅");
+            document.getElementById('m3uFile').value = "";
+            document.getElementById('m3uUrlInput').value = "";
+            setTimeout(loadStream, 1500);
         }
 
-        function importM3UFile(input) {
-            const file = input.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                parseAndUploadM3U(e.target.result);
-            };
-            reader.readAsText(file);
+        function saveToLibrary(name, url) {
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library.json", true);
+            xhr.send(JSON.stringify({ name: name, url: url }));
         }
-
-        function importM3UUrl() {
-            const url = document.getElementById('m3uUrlInput').value.trim();
-            if (!url) return;
-            showStatus("جاري جلب القائمة...");
-            fetch(url).then(r => r.text()).then(text => {
-                parseAndUploadM3U(text);
-                document.getElementById('m3uUrlInput').value = "";
-            }).catch(err => {
-                alert("تعذر جلب الرابط. تأكد من أن السيرفر يسمح بالوصول (CORS) أو استخدم الملف.");
-                showStatus("فشل الجلب ❌");
-            });
-        }
-
-        // --- باقي الكود الأصلي (بدون أي تغيير) ---
+        // --- نهاية دوال M3U ---
 
         function updatePresence() {
             var xhr = new XMLHttpRequest();
