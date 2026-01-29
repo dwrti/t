@@ -8,23 +8,27 @@
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     
     <style>
-        body, html { 
+        /* تحسينات السحب السلس ومنع التعليق */
+        html, body { 
             margin: 0; padding: 0; width: 100%; height: 100%; 
             background-color: #0a0a0a; color: #eee;
-            display: flex; flex-direction: column;
-            align-items: center;    
-            /* تحسين السحب ليكون سلس */
-            overflow-x: hidden; overflow-y: auto; 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            -webkit-overflow-scrolling: touch; /* دعم السحب السلس في iOS */
-            overscroll-behavior-y: contain; /* منع اهتزاز الصفحة عند الوصول للنهاية */
+            overflow-x: hidden;
+            overflow-y: scroll; /* إجبار التمرير العمودي */
+            -webkit-overflow-scrolling: touch; /* سحب سلس جداً على آيفون وأندرويد */
+            scroll-behavior: smooth;
+        }
+
+        body {
+            display: flex; flex-direction: column;
+            align-items: center;
         }
 
         .card { 
             background: #000; padding: 0; border-radius: 0; 
             width: 100%; max-width: 650px; box-sizing: border-box;
             border-bottom: 2px solid #222; z-index: 10;
-            position: sticky; top: 0; /* تثبيت الفيديو لتسهيل التصفح تحته */
+            position: sticky; top: 0; /* يبقى الفيديو ثابت أثناء السحب إذا أردت */
         }
         
         video { width: 100%; display: block; aspect-ratio: 16/9; background: #000; }
@@ -44,7 +48,7 @@
             flex: 1; min-width: 100px; padding: 12px; background-color: #222; 
             color: #fff; border: 1px solid #333; border-radius: 8px; 
             cursor: pointer; font-size: 14px; font-weight: bold;
-            touch-action: manipulation; /* تسريع استجابة اللمس */
+            transition: background 0.3s;
         }
 
         .btn-sync.active { background-color: #1b5e20; border-color: #2e7d32; }
@@ -67,10 +71,10 @@
             color: #fff; font-weight: bold; border-right: 4px solid #4caf50;
         }
 
+        /* تحسين قائمة الحلقات لمنع تعليق المتصفح */
         .ep-list { 
-            max-height: 70vh; /* زيادة مساحة التمرير */
-            overflow-y: auto; 
-            -webkit-overflow-scrolling: touch;
+            max-height: none; /* جعل القائمة تفتح بالكامل مع الصفحة لسحب أسهل */
+            overflow: visible; 
         }
         
         .ep-item { 
@@ -78,16 +82,15 @@
             background: #1a1a1a; margin-bottom: 8px; border-radius: 10px;
             border: 1px solid #282828; overflow: hidden;
             flex-direction: row-reverse;
-            transition: background 0.2s;
+            transition: transform 0.1s;
         }
         
-        .ep-item:active { background: #252525; } /* تأثير عند اللمس */
+        .ep-item:active { transform: scale(0.98); } /* تأثير بسيط عند الضغط */
 
         .ep-name-clickable {
             flex-grow: 1; padding: 15px;
             cursor: pointer; -webkit-tap-highlight-color: transparent;
             text-align: right;
-            user-select: none;
         }
 
         .ep-name-text { 
@@ -98,22 +101,15 @@
         }
 
         .lib-control-btn {
-            background: transparent; 
-            border: none; 
-            height: 50px; 
-            font-size: 18px; 
-            cursor: pointer; 
-            display: none; 
-            flex-shrink: 0;
-            outline: none;
-            padding: 0 12px;
+            background: transparent; border: none; 
+            height: 50px; font-size: 18px; 
+            cursor: pointer; display: none; 
+            flex-shrink: 0; outline: none; padding: 0 12px;
         }
         
         .single-delete-btn { color: #ff4444; }
         .single-edit-btn { color: #4caf50; }
         
-        .ep-list::-webkit-scrollbar { width: 4px; }
-        .ep-list::-webkit-scrollbar-thumb { background: #444; border-radius: 10px; }
     </style>
 </head>
 <body>
@@ -213,21 +209,13 @@
 
         function editSingleEpisode(key, oldName, oldUrl) {
             var newName = prompt("تعديل اسم المقطع:", oldName);
-            if (newName === null) return; 
+            if (newName === null) return;
             var newUrl = prompt("تعديل رابط المقطع:", oldUrl);
-            if (newUrl === null) return; 
-
-            if (newName.trim() === "" || newUrl.trim() === "") {
-                alert("لا يمكن ترك الحقول فارغة");
-                return;
-            }
-
+            if (newUrl === null) return;
+            if (newName.trim() === "" || newUrl.trim() === "") { alert("لا يمكن ترك الحقول فارغة"); return; }
             var xhr = new XMLHttpRequest();
             xhr.open("PATCH", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library/" + key + ".json", true);
-            xhr.onload = function() {
-                showStatus("تم التعديل بنجاح ✅");
-                loadStream();
-            };
+            xhr.onload = function() { showStatus("تم التعديل بنجاح ✅"); loadStream(); };
             xhr.send(JSON.stringify({ name: newName, url: newUrl }));
         }
 
@@ -235,10 +223,7 @@
             if(confirm("حذف هذه الحلقة؟")) {
                 var xhr = new XMLHttpRequest();
                 xhr.open("DELETE", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library/" + key + ".json", true);
-                xhr.onload = function() {
-                    showStatus("تم حذف الحلقة بنجاح");
-                    loadStream();
-                };
+                xhr.onload = function() { showStatus("تم حذف الحلقة بنجاح"); loadStream(); };
                 xhr.send();
             }
         }
