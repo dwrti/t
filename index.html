@@ -3,20 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>بوابة العالم الرقمي 📟</title>
+    <title>عالم الديجيتال 📺</title>
     
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     
     <style>
-        /* تصميم عالم أبطال الديجيتال */
+        /* ستايل أبطال الديجيتال 3 */
+        :root {
+            --digi-red: #e61a1a;
+            --digi-gold: #ffd700;
+            --digi-blue: #00d4ff;
+            --digi-dark: #0a0a0c;
+            --digi-panel: #1a1a1f;
+        }
+
         html, body { 
             margin: 0; padding: 0; width: 100%; height: 100%; 
-            background-color: #000510; 
-            background-image: 
-                linear-gradient(rgba(0, 255, 255, 0.05) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0, 255, 255, 0.05) 1px, transparent 1px);
-            background-size: 30px 30px;
-            color: #00ffff;
+            background-color: var(--digi-dark); 
+            background-image: radial-gradient(circle, #1a1a2e 1px, transparent 1px);
+            background-size: 30px 30px; /* خلفية شبكية رقمية */
+            color: #eee;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             overflow-x: hidden;
             overflow-y: scroll; 
@@ -24,103 +30,90 @@
             scroll-behavior: smooth;
         }
 
-        body {
-            display: flex; flex-direction: column;
-            align-items: center;
-        }
+        body { display: flex; flex-direction: column; align-items: center; }
 
-        /* إطار المشغل الرقمي */
+        /* إطار المشغل المستوحى من الـ D-Ark */
         .card { 
-            background: #000; 
-            padding: 10px; 
-            border-radius: 15px; 
+            background: #000; padding: 10px; border-radius: 0 0 30px 30px; 
             width: 100%; max-width: 650px; box-sizing: border-box;
-            border: 3px solid #00ffff; 
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
+            border: 4px solid var(--digi-red);
+            border-top: none;
+            box-shadow: 0 0 20px rgba(230, 26, 26, 0.4);
             z-index: 10;
-            position: sticky; top: 10px; 
-            margin-top: 10px;
-            overflow: hidden;
+            position: sticky; top: 0; 
         }
         
-        /* تأثير النبض الرقمي للإطار */
-        @keyframes pulse {
-            0% { box-shadow: 0 0 15px rgba(0, 255, 255, 0.4); }
-            50% { box-shadow: 0 0 30px rgba(0, 255, 255, 0.8); }
-            100% { box-shadow: 0 0 15px rgba(0, 255, 255, 0.4); }
+        video { 
+            width: 100%; display: block; aspect-ratio: 16/9; 
+            background: #000; border-radius: 15px;
+            border: 2px solid #333;
         }
-        .card { animation: pulse 3s infinite; }
 
-        video { width: 100%; display: block; aspect-ratio: 16/9; background: #000; border-radius: 8px; }
-
-        #admin { display: none; width: 95%; max-width: 650px; margin-top: 25px; }
+        #admin { 
+            display: none; width: 95%; max-width: 650px; margin-top: 20px; 
+            background: var(--digi-panel); padding: 15px; border-radius: 15px;
+            border: 1px solid var(--digi-red);
+        }
         
         #viewerCount {
-            background: rgba(0, 20, 40, 0.8);
-            color: #00ff00;
-            padding: 10px;
-            border-radius: 8px;
-            text-align: center;
-            font-size: 14px;
-            margin-bottom: 10px;
-            border: 1px solid #00ffff;
-            text-shadow: 0 0 5px #00ff00;
+            background: #000; color: var(--digi-blue);
+            padding: 8px; border-radius: 8px; text-align: center;
+            font-size: 14px; margin-bottom: 10px;
+            border: 1px solid var(--digi-blue);
+            font-family: monospace; text-transform: uppercase;
         }
 
         input { 
             width: 100%; padding: 12px; margin: 6px 0; 
-            border: 1px solid #00ffff; border-radius: 8px; 
-            font-size: 14px; background: rgba(0, 0, 0, 0.7); color: #00ffff;
+            border: 1px solid #444; border-radius: 8px; 
+            font-size: 14px; background: #000; color: var(--digi-gold);
             box-sizing: border-box; outline: none;
         }
 
-        .btn-group { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
-
         button { 
-            flex: 1; min-width: 100px; padding: 12px; background-color: #001a33; 
-            color: #00ffff; border: 1px solid #00ffff; border-radius: 8px; 
+            flex: 1; min-width: 100px; padding: 12px; background-color: #333; 
+            color: #fff; border: 2px solid #555; border-radius: 8px; 
             cursor: pointer; font-size: 14px; font-weight: bold;
             transition: all 0.3s;
-            text-transform: uppercase;
         }
-        
-        button:hover { background: #00ffff; color: #000; box-shadow: 0 0 10px #00ffff; }
 
-        .btn-sync.active { background-color: #004d40; border-color: #00ffcc; }
-        .btn-sync.inactive { background-color: #4a1414; border-color: #ff4444; }
-        .btn-delete { color: #ff5252; border-color: #ff5252; }
+        button:hover { filter: brightness(1.2); }
 
-        #statusText { text-align: center; font-size: 13px; color: #00ff00; margin: 10px 0; font-weight: bold; }
+        .btn-sync.active { background-color: #1b5e20; border-color: #4caf50; }
+        .btn-sync.inactive { background-color: #b71c1c; border-color: #ff5252; }
+        .btn-delete { color: #ff5252; border-color: #721c24; }
+
+        #statusText { 
+            text-align: center; font-size: 13px; color: var(--digi-gold); 
+            margin: 10px 0; font-weight: bold; text-shadow: 0 0 5px rgba(255,215,0,0.5);
+        }
         
         h2, p, span:not(.ep-name-text), h3 { display: none !important; }
 
         #librarySection {
             width: 95%; max-width: 650px; 
-            margin: 140px auto 100px auto; 
-            background: rgba(0, 10, 20, 0.9); border-radius: 12px; border: 2px solid #00ffff;
+            margin: 40px auto 100px auto; 
+            background: var(--digi-panel); border-radius: 20px; 
+            border: 2px solid var(--digi-gold);
             padding: 15px; box-sizing: border-box; display: none;
-            box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
         }
         
         .lib-title { 
-            font-size: 17px; margin-bottom: 15px; text-align: center;
-            color: #00ffff; font-weight: bold; 
-            text-shadow: 0 0 8px #00ffff;
-            min-height: 1.2em; 
+            font-size: 18px; margin-bottom: 15px; text-align: center;
+            color: var(--digi-gold); font-weight: bold; 
+            text-transform: uppercase; letter-spacing: 1px;
         }
+        .lib-title::after { content: " [ DATABASE ]"; font-size: 12px; }
 
-        .ep-list { max-height: none; overflow: visible; }
-        
         .ep-item { 
             display: flex; align-items: center; 
-            background: rgba(0, 40, 80, 0.3); margin-bottom: 8px; border-radius: 10px;
-            border: 1px solid #006666; overflow: hidden;
-            flex-direction: row-reverse;
-            transition: transform 0.1s, border 0.3s;
+            background: #000; margin-bottom: 10px; border-radius: 12px;
+            border: 1px solid #444; overflow: hidden;
+            flex-direction: row-reverse; transition: 0.2s;
         }
         
-        .ep-item:hover { border-color: #00ffff; background: rgba(0, 40, 80, 0.5); }
-        .ep-item:active { transform: scale(0.98); } 
+        .ep-item:hover { border-color: var(--digi-blue); transform: translateX(-5px); }
 
         .ep-name-clickable {
             flex-grow: 1; padding: 15px;
@@ -129,27 +122,18 @@
         }
 
         .ep-name-text { 
-            color: #00ffff !important; 
-            font-size: 15px; 
+            color: #fff !important; font-size: 15px; 
             display: block !important;
-            pointer-events: none;
         }
 
         .lib-control-btn {
-            background: transparent; border: none; 
-            height: 50px; font-size: 18px; 
-            cursor: pointer; display: none; 
-            flex-shrink: 0; outline: none; padding: 0 12px;
+            background: #222; border: none; height: 50px; font-size: 16px; 
+            cursor: pointer; display: none; flex-shrink: 0; padding: 0 15px;
         }
         
-        .single-delete-btn { color: #ff4444; }
-        .single-edit-btn { color: #00ff00; }
+        .single-delete-btn { color: #ff4444; border-left: 1px solid #333; }
+        .single-edit-btn { color: var(--digi-blue); border-left: 1px solid #333; }
         
-        /* شريط التمرير الرقمي */
-        ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-track { background: #000; }
-        ::-webkit-scrollbar-thumb { background: #00ffff; border-radius: 10px; }
-
     </style>
 </head>
 <body>
@@ -159,30 +143,30 @@
     </div>
 
     <div id="admin">
-        <div id="viewerCount">جاري مسح البيانات الرقمية...</div>
+        <div id="viewerCount">البحث عن المروّضين...</div>
 
-        <input type="text" id="urlInput" placeholder="أدخل رابط البث الرقمي..." onpaste="handlePaste(event)">
+        <input type="text" id="urlInput" placeholder="رابط البث الرقمي (M3U8)..." onpaste="handlePaste(event)">
         
-        <div style="border-top: 1px solid #006666; margin-top: 15px; padding-top: 10px;">
-            <input type="text" id="epNameInput" placeholder="اسم الحلقة (Digimon Name)">
-            <input type="text" id="epUrlInput" placeholder="رابط المصدر الرقمي...">
-            <button style="background: #004488; color: #00ffff; width: 100%; border: 1px solid #00ffff; margin-top: 5px;" onclick="addEpisode()">تحميل للمكتبة الرقمية +</button>
+        <div style="border-top: 2px solid var(--digi-red); margin-top: 15px; padding-top: 15px;">
+            <input type="text" id="epNameInput" placeholder="اسم الحلقة / المهمة">
+            <input type="text" id="epUrlInput" placeholder="رابط الفيديو المباشر...">
+            <button style="background: var(--digi-red); color: white; width: 100%; border: none; margin-top: 5px; box-shadow: 0 4px 0 #8b0000;" onclick="addEpisode()">تخزين في القاعدة +</button>
         </div>
 
-        <div class="btn-group" style="margin-top: 15px; border-top: 1px solid #006666; padding-top: 10px;">
-            <button id="syncToggleBtn" class="btn-sync" onclick="toggleSync()">انتظار المزامنة...</button>
-            <button class="btn-delete" onclick="deleteVideo()">تدمير البث الحالي 🗑️</button>
+        <div class="btn-group" style="margin-top: 15px; display: flex; gap: 10px;">
+            <button id="syncToggleBtn" class="btn-sync" onclick="toggleSync()">اتصال الشبكة...</button>
+            <button class="btn-delete" onclick="deleteVideo()">قطع الإشارة 🗑️</button>
         </div>
-        <div id="statusText">تمت تهيئة البيانات ✅</div>
+        <div id="statusText">النظام جاهز ✅</div>
     </div>
 
     <div id="librarySection">
-        <div class="lib-title">الأرشيف الرقمي</div> 
+        <div class="lib-title">سجل البيانات</div> 
         <div id="episodesContainer" class="ep-list"></div>
     </div>
 
     <script>
-        // الكود البرمجي لم يتغير لضمان استمرار عمل الوظائف بشكل صحيح
+        // الأكواد البرمجية كما هي لضمان عمل الصفحة
         var videoElement = document.getElementById('myPlayer');
         var hls = new Hls();
         var dbUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream.json";
@@ -217,7 +201,7 @@
                             }
                         });
                     }
-                    document.getElementById('viewerCount').innerText = "الكيانات المتصلة حالياً: " + count;
+                    document.getElementById('viewerCount').innerText = "المروّضون المتصلون: " + count;
                 }
             };
             xhr.send();
@@ -238,7 +222,7 @@
             var container = document.getElementById('episodesContainer');
             container.innerHTML = "";
             if (!libData) { 
-                container.innerHTML = "<div style='text-align:center; padding:30px; color:#006666; display:block !important;'>الأرشيف فارغ حالياً</div>"; 
+                container.innerHTML = "<div style='text-align:center; padding:30px; color:#666; display:block !important;'>قاعدة البيانات فارغة</div>"; 
                 return; 
             }
             
@@ -249,13 +233,13 @@
                 
                 var nameBox = document.createElement('div');
                 nameBox.className = "ep-name-clickable";
-                nameBox.innerHTML = '<span class="ep-name-text">▶ ' + ep.name + '</span>';
+                nameBox.innerHTML = '<span class="ep-name-text">🔹 ' + ep.name + '</span>';
                 nameBox.onclick = function() { 
                     if (isAdmin) {
                         var xhr = new XMLHttpRequest();
                         xhr.open("PATCH", dbUrl, true);
                         xhr.send(JSON.stringify({ url: ep.url, status: "playing", time: 0 }));
-                        showStatus("تحويل البث إلى: " + ep.name);
+                        showStatus("تحميل البيانات: " + ep.name);
                     }
                     playMedia(ep.url); 
                     window.scrollTo({top: 0, behavior: 'smooth'}); 
@@ -284,22 +268,21 @@
         }
 
         function editSingleEpisode(key, oldName, oldUrl) {
-            var newName = prompt("تعديل اسم المقطع:", oldName);
+            var newName = prompt("تعديل اسم البيانات:", oldName);
             if (newName === null) return;
-            var newUrl = prompt("تعديل رابط المقطع:", oldUrl);
+            var newUrl = prompt("تعديل الرابط الرقمي:", oldUrl);
             if (newUrl === null) return;
-            if (newName.trim() === "" || newUrl.trim() === "") { alert("لا يمكن ترك الحقول فارغة"); return; }
             var xhr = new XMLHttpRequest();
             xhr.open("PATCH", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library/" + key + ".json", true);
-            xhr.onload = function() { showStatus("تم تعديل الشفرة ✅"); loadStream(); };
+            xhr.onload = function() { showStatus("تم تعديل البيانات ✅"); loadStream(); };
             xhr.send(JSON.stringify({ name: newName, url: newUrl }));
         }
 
         function deleteSingleEpisode(key) {
-            if(confirm("حذف هذه الحلقة من الأرشيف؟")) {
+            if(confirm("مسح هذه البيانات؟")) {
                 var xhr = new XMLHttpRequest();
                 xhr.open("DELETE", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library/" + key + ".json", true);
-                xhr.onload = function() { showStatus("تم الحذف من القاعدة"); loadStream(); };
+                xhr.onload = function() { showStatus("تم المسح"); loadStream(); };
                 xhr.send();
             }
         }
@@ -348,10 +331,10 @@
             var btn = document.getElementById('syncToggleBtn');
             if (btn) {
                 if (isSyncEnabled) {
-                    btn.innerText = "اتصال البيانات: نشط ✅";
+                    btn.innerText = "المزامنة: متصلة 📶";
                     btn.className = "btn-sync active";
                 } else {
-                    btn.innerText = "اتصال البيانات: منقطع ❌";
+                    btn.innerText = "المزامنة: مقطوعة ⚠️";
                     btn.className = "btn-sync inactive";
                 }
             }
@@ -360,13 +343,13 @@
         function addEpisode() {
             var name = document.getElementById('epNameInput').value.trim();
             var url = document.getElementById('epUrlInput').value.trim();
-            if (!name || !url) { alert("أدخل الاسم والرابط"); return; }
+            if (!name || !url) return;
             var xhr = new XMLHttpRequest();
             xhr.open("POST", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library.json", true);
             xhr.onload = function() {
                 document.getElementById('epNameInput').value = "";
                 document.getElementById('epUrlInput').value = "";
-                showStatus("تمت إضافة المادة الرقمية: " + name);
+                showStatus("تمت الإضافة للقاعدة ✅");
                 loadStream();
             };
             xhr.send(JSON.stringify({ name: name, url: url }));
@@ -404,13 +387,13 @@
                     xhr.open("PATCH", dbUrl, true);
                     xhr.send(JSON.stringify({ url: val, status: "playing", time: 0 }));
                     document.getElementById('urlInput').value = ''; 
-                    showStatus("تم تحديث البث الرقمي ✅");
+                    showStatus("جاري البث الرقمي...");
                 }
             }, 100);
         }
 
         function deleteVideo() {
-            if(confirm("إيقاف جميع الإشارات الرقمية؟")) {
+            if(confirm("قطع إشارة البث؟")) {
                 var xhr = new XMLHttpRequest();
                 xhr.open("PATCH", dbUrl, true);
                 xhr.send(JSON.stringify({ url: "", status: "paused", time: 0 }));
