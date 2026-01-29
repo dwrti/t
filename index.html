@@ -93,23 +93,34 @@
         
         .ep-item { 
             display: flex; align-items: center; 
-            background: transparent; margin-bottom: 8px; 
-            width: 100%; border: none;
+            background: rgba(255,255,255,0.03); margin-bottom: 4px; 
+            width: 100%; border: none; border-radius: 5px;
         }
         
         .ep-name-clickable {
-            flex-grow: 1; padding: 15px;
+            flex-grow: 1; padding: 12px;
             cursor: pointer; -webkit-tap-highlight-color: transparent;
-            text-align: center;
+            text-align: right;
         }
 
-        .ep-name-text { color: #bbbbbb !important; font-size: 16px; display: block !important; }
+        .ep-name-text { color: #bbbbbb !important; font-size: 15px; display: block !important; }
 
-        .lib-control-btn { background: transparent; border: none; height: 40px; font-size: 16px; cursor: pointer; padding: 0 10px; }
+        .lib-control-btn { background: transparent; border: none; height: 40px; font-size: 14px; cursor: pointer; padding: 0 10px; }
         .single-delete-btn { color: #883333; }
         .single-edit-btn { color: #338833; }
 
-        /* ستايل إضافة M3U الجديد */
+        /* ستايل المجلدات الجديد */
+        .folder-container { width: 100%; margin-bottom: 10px; border: 1px solid #222; border-radius: 8px; overflow: hidden; }
+        .folder-header { 
+            background: #111; padding: 15px; cursor: pointer; 
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid #222; font-weight: bold; color: #4caf50;
+        }
+        .folder-content { display: none; padding: 5px; background: #050505; }
+        .folder-header::after { content: '📁'; margin-right: 10px; }
+        .folder-container.active .folder-content { display: block; }
+        .folder-container.active .folder-header { background: #1a1a1a; }
+
         .m3u-section {
             background: #080808; border: 1px dashed #333;
             padding: 10px; border-radius: 10px; margin-top: 15px;
@@ -138,7 +149,7 @@
                 <div style="font-size: 12px; color: #888; margin-bottom: 5px;">استيراد قائمة قنوات (M3U):</div>
                 <input type="file" id="m3uFile" accept=".m3u,.m3u8" style="font-size: 12px; padding: 5px;">
                 <input type="text" id="m3uUrlInput" placeholder="أو ضع رابط ملف M3U هنا...">
-                <button style="background: #444; color: #fff; width: 100%;" onclick="importM3U()">استيراد القائمة 📥</button>
+                <button style="background: #444; color: #fff; width: 100%;" onclick="importM3U()">استيراد القائمة مرتبة 📥</button>
             </div>
 
             <div class="btn-group" style="margin-top: 15px; border-top: 1px solid #111; padding-top: 10px;">
@@ -164,7 +175,7 @@
         var isSyncEnabled = true;
         var myUserId = Math.random().toString(36).substring(7);
 
-        // --- دوال M3U الجديدة ---
+        // --- دوال M3U المتطورة ---
         function importM3U() {
             const fileInput = document.getElementById('m3uFile');
             const urlInput = document.getElementById('m3uUrlInput');
@@ -187,31 +198,103 @@
         function parseM3UContent(content) {
             const lines = content.split('\n');
             let channelsAdded = 0;
-            showStatus("جاري المعالجة...");
+            showStatus("جاري ترتيب القنوات...");
 
             for (let i = 0; i < lines.length; i++) {
                 if (lines[i].startsWith('#EXTINF:')) {
-                    // استخراج الاسم: يبحث عن النص بعد آخر فاصلة في سطر EXTINF
                     const info = lines[i];
+                    // البحث عن تصنيف القناة group-title
+                    let category = "قنوات عامة";
+                    const groupMatch = info.match(/group-title="([^"]+)"/);
+                    if (groupMatch) category = groupMatch[1];
+
                     const name = info.substring(info.lastIndexOf(',') + 1).trim() || "قناة غير معروفة";
                     const url = lines[i + 1] ? lines[i + 1].trim() : "";
 
                     if (url && url.startsWith('http')) {
-                        saveToLibrary(name, url);
+                        // حفظ القناة مع تصنيفها
+                        saveToLibrary(name, url, category);
                         channelsAdded++;
                     }
                 }
             }
-            showStatus("تم إضافة " + channelsAdded + " قناة ✅");
+            showStatus("تم إضافة " + channelsAdded + " قناة بنجاح ✅");
             document.getElementById('m3uFile').value = "";
             document.getElementById('m3uUrlInput').value = "";
             setTimeout(loadStream, 1500);
         }
 
-        function saveToLibrary(name, url) {
+        function saveToLibrary(name, url, category = "عام") {
             var xhr = new XMLHttpRequest();
             xhr.open("POST", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library.json", true);
-            xhr.send(JSON.stringify({ name: name, url: url }));
+            xhr.send(JSON.stringify({ name: name, url: url, category: category }));
+        }
+
+        function renderLibrary(libData) {
+            var container = document.getElementById('episodesContainer');
+            container.innerHTML = "";
+            if (!libData) { 
+                container.innerHTML = "<div style='text-align:center; padding:30px; color:#444; display:block !important;'>المكتبة فارغة</div>"; 
+                return; 
+            }
+            
+            // تجميع القنوات حسب المجلدات (Categories)
+            const folders = {};
+            Object.keys(libData).forEach(key => {
+                const ep = libData[key];
+                const cat = ep.category || "قنوات أخرى";
+                if (!folders[cat]) folders[cat] = [];
+                folders[cat].push({ key, ...ep });
+            });
+
+            // عرض المجلدات
+            Object.keys(folders).forEach(catName => {
+                const folderDiv = document.createElement('div');
+                folderDiv.className = "folder-container";
+                
+                const header = document.createElement('div');
+                header.className = "folder-header";
+                header.innerHTML = `<span>${catName} (${folders[catName].length})</span>`;
+                header.onclick = function() { folderDiv.classList.toggle('active'); };
+                
+                const content = document.createElement('div');
+                content.className = "folder-content";
+
+                folders[catName].forEach(ep => {
+                    var item = document.createElement('div');
+                    item.className = "ep-item";
+                    
+                    var nameBox = document.createElement('div');
+                    nameBox.className = "ep-name-clickable";
+                    nameBox.innerHTML = '<span class="ep-name-text">' + ep.name + '</span>';
+                    nameBox.onclick = function() { 
+                        if (isAdmin) {
+                            var xhr = new XMLHttpRequest();
+                            xhr.open("PATCH", dbUrl, true);
+                            xhr.send(JSON.stringify({ url: ep.url, status: "playing", time: 0 }));
+                            showStatus("جاري تشغيل: " + ep.name);
+                        }
+                        playMedia(ep.url); 
+                        window.scrollTo({top: 0, behavior: 'smooth'}); 
+                    };
+
+                    if (isAdmin) {
+                        var delBtn = document.createElement('button');
+                        delBtn.className = "lib-control-btn single-delete-btn";
+                        delBtn.innerHTML = "✕";
+                        delBtn.onclick = function(e) { e.stopPropagation(); deleteSingleEpisode(ep.key); };
+                        item.appendChild(nameBox);
+                        item.appendChild(delBtn);
+                    } else {
+                        item.appendChild(nameBox);
+                    }
+                    content.appendChild(item);
+                });
+
+                folderDiv.appendChild(header);
+                folderDiv.appendChild(content);
+                container.appendChild(folderDiv);
+            });
         }
         // --- نهاية دوال M3U ---
 
@@ -257,56 +340,6 @@
             videoElement.play().catch(function(e){});
         }
 
-        function renderLibrary(libData) {
-            var container = document.getElementById('episodesContainer');
-            container.innerHTML = "";
-            if (!libData) { 
-                container.innerHTML = "<div style='text-align:center; padding:30px; color:#444; display:block !important;'>المكتبة فارغة</div>"; 
-                return; 
-            }
-            
-            Object.keys(libData).forEach(function(key) {
-                var ep = libData[key];
-                var item = document.createElement('div');
-                item.className = "ep-item";
-                
-                var nameBox = document.createElement('div');
-                nameBox.className = "ep-name-clickable";
-                nameBox.innerHTML = '<span class="ep-name-text">' + ep.name + '</span>';
-                nameBox.onclick = function() { 
-                    if (isAdmin) {
-                        var xhr = new XMLHttpRequest();
-                        xhr.open("PATCH", dbUrl, true);
-                        xhr.send(JSON.stringify({ url: ep.url, status: "playing", time: 0 }));
-                        showStatus("جاري تشغيل: " + ep.name);
-                    }
-                    playMedia(ep.url); 
-                    window.scrollTo({top: 0, behavior: 'smooth'}); 
-                };
-
-                if (isAdmin) {
-                    var delBtn = document.createElement('button');
-                    delBtn.className = "lib-control-btn single-delete-btn";
-                    delBtn.style.display = "block";
-                    delBtn.innerHTML = "✕";
-                    delBtn.onclick = function(e) { e.stopPropagation(); deleteSingleEpisode(key); };
-                    
-                    var editBtn = document.createElement('button');
-                    editBtn.className = "lib-control-btn single-edit-btn";
-                    editBtn.style.display = "block";
-                    editBtn.innerHTML = "✏️";
-                    editBtn.onclick = function(e) { e.stopPropagation(); editSingleEpisode(key, ep.name, ep.url); };
-
-                    item.appendChild(editBtn);
-                    item.appendChild(nameBox);
-                    item.appendChild(delBtn);
-                } else {
-                    item.appendChild(nameBox);
-                }
-                container.appendChild(item);
-            });
-        }
-
         function editSingleEpisode(key, oldName, oldUrl) {
             var newName = prompt("تعديل اسم المقطع:", oldName);
             if (newName === null) return;
@@ -319,7 +352,7 @@
         }
 
         function deleteSingleEpisode(key) {
-            if(confirm("حذف هذه الحلقة؟")) {
+            if(confirm("حذف هذه القناة؟")) {
                 var xhr = new XMLHttpRequest();
                 xhr.open("DELETE", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library/" + key + ".json", true);
                 xhr.onload = function() { showStatus("تم الحذف"); loadStream(); };
@@ -392,7 +425,7 @@
                 showStatus("تمت إضافة: " + name);
                 loadStream();
             };
-            xhr.send(JSON.stringify({ name: name, url: url }));
+            xhr.send(JSON.stringify({ name: name, url: url, category: "مضافة يدوياً" }));
         }
 
         function updateDatabaseState() {
