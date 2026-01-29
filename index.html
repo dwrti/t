@@ -3,19 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>دورتي الكرتونية 🎨📺</title>
+    <title>دورتي الكرتونية 📺</title>
     
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     
     <style>
-        /* إعدادات الخلفية الكرتونية */
+        /* ستايل عالم الكرتون */
+        :root {
+            --cartoon-blue: #00a8ff;
+            --cartoon-red: #ff4757;
+            --cartoon-green: #2ed573;
+            --cartoon-black: #2f3542;
+            --border-size: 4px;
+        }
+
         html, body { 
             margin: 0; padding: 0; width: 100%; height: 100%; 
-            background-color: #FFDE59; /* لون أصفر مبهج */
-            background-image: radial-gradient(#FFBD59 2px, transparent 2px);
-            background-size: 30px 30px; /* تنقيط كرتوني خفيف */
-            color: #333;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1e272e; /* خلفية غامقة كرتونية */
+            color: #fff;
+            font-family: 'Cairo', 'Segoe UI', sans-serif;
             overflow-x: hidden;
             overflow-y: scroll; 
             -webkit-overflow-scrolling: touch; 
@@ -25,95 +31,89 @@
         body {
             display: flex; flex-direction: column;
             align-items: center;
-            padding-bottom: 50px;
+            background-image: radial-gradient(circle, #2f3542 1px, transparent 1px);
+            background-size: 20px 20px; /* تأثير منقط كرتوني للخلفية */
         }
 
         /* إطار المشغل الكرتوني */
         .card { 
-            background: #FF5757; /* إطار أحمر كرتوني */
-            padding: 15px; 
-            border-radius: 25px; 
-            width: 90%; max-width: 650px; box-sizing: border-box;
-            border: 5px solid #000;
-            box-shadow: 10px 10px 0px #000;
+            background: var(--cartoon-black); padding: 10px; border-radius: 0 0 20px 20px; 
+            width: 100%; max-width: 650px; box-sizing: border-box;
+            border: var(--border-size) solid #000;
+            border-top: none;
             z-index: 10;
-            position: sticky; top: 10px;
-            margin-top: 20px;
+            position: sticky; top: 0; 
+            box-shadow: 0 8px 0 rgba(0,0,0,0.3);
         }
         
         video { 
             width: 100%; display: block; aspect-ratio: 16/9; 
-            background: #000; 
-            border-radius: 15px;
-            border: 4px solid #000;
+            background: #000; border-radius: 12px;
+            border: 3px solid #000;
         }
 
-        /* لوحة التحكم للأدمن */
-        #admin { 
-            display: none; width: 90%; max-width: 650px; margin-top: 30px; 
-            background: #fff; padding: 20px; border-radius: 20px;
-            border: 4px solid #000; box-shadow: 8px 8px 0px #5CE1E6;
-        }
+        #admin { display: none; width: 90%; max-width: 650px; margin-top: 25px; }
         
         #viewerCount {
-            background: #5CE1E6;
+            background: var(--cartoon-green);
             color: #000;
             padding: 10px;
-            border-radius: 50px;
+            border-radius: 15px;
             text-align: center;
             font-size: 16px;
             margin-bottom: 15px;
-            border: 3px solid #000;
-            font-weight: bold;
+            border: var(--border-size) solid #000;
+            font-weight: 900;
+            box-shadow: 4px 4px 0 #000;
         }
 
         input { 
             width: 100%; padding: 12px; margin: 8px 0; 
-            border: 3px solid #000; border-radius: 12px; 
+            border: var(--border-size) solid #000; border-radius: 12px; 
             font-size: 14px; background: #fff; color: #000;
             box-sizing: border-box; outline: none;
-            transition: transform 0.2s;
+            font-weight: bold;
         }
-        input:focus { transform: scale(1.02); }
 
         .btn-group { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
 
         button { 
             flex: 1; min-width: 100px; padding: 12px; 
-            background-color: #7ED957; /* أخضر كرتوني */
-            color: #000; border: 3px solid #000; border-radius: 15px; 
-            cursor: pointer; font-size: 14px; font-weight: 900;
-            box-shadow: 4px 4px 0px #000;
-            transition: all 0.2s;
+            background-color: var(--cartoon-blue); 
+            color: #000; border: var(--border-size) solid #000; border-radius: 12px; 
+            cursor: pointer; font-size: 15px; font-weight: 900;
+            transition: all 0.1s;
+            box-shadow: 4px 4px 0 #000;
+            position: relative;
         }
-        button:active { transform: translate(2px, 2px); box-shadow: 0px 0px 0px #000; }
 
-        .btn-sync.active { background-color: #7ED957; }
-        .btn-sync.inactive { background-color: #FF5757; color: white; }
-        .btn-delete { background-color: #FF3131; color: #fff; }
-
-        #statusText { 
-            text-align: center; font-size: 14px; color: #000; 
-            margin: 10px 0; font-weight: bold; 
-            background: #FFFF00; padding: 5px; border-radius: 10px; border: 2px solid #000;
+        button:active {
+            transform: translate(2px, 2px);
+            box-shadow: 0px 0px 0 #000;
         }
+
+        .btn-sync.active { background-color: var(--cartoon-green); }
+        .btn-sync.inactive { background-color: var(--cartoon-red); color: #fff; }
+        .btn-delete { background-color: var(--cartoon-red); color: #fff; }
+
+        #statusText { text-align: center; font-size: 14px; color: var(--cartoon-green); margin: 10px 0; font-weight: 900; text-shadow: 2px 2px 0 #000; }
         
-        /* إخفاء العناصر غير المرغوبة كما في الكود الأصلي */
         h2, p, span:not(.ep-name-text), h3 { display: none !important; }
 
-        /* تصميم المكتبة الكرتوني */
+        /* قسم المكتبة الكرتوني */
         #librarySection {
             width: 90%; max-width: 650px; 
-            margin: 40px auto; 
-            background: #CB6CE6; /* لون بنفسجي جذاب */
-            border-radius: 25px; border: 4px solid #000;
+            margin: 40px auto 100px auto; 
+            background: var(--cartoon-blue); border-radius: 20px; 
+            border: var(--border-size) solid #000;
             padding: 20px; box-sizing: border-box; display: none;
-            box-shadow: 10px 10px 0px #000;
+            box-shadow: 8px 8px 0 rgba(0,0,0,0.2);
         }
         
         .lib-title { 
-            font-size: 20px; margin-bottom: 20px; text-align: center;
-            color: #fff; font-weight: 900; text-shadow: 2px 2px 0px #000;
+            font-size: 20px; margin-bottom: 15px; text-align: center;
+            color: #000; font-weight: 900; 
+            min-height: 1.2em; 
         }
 
         .ep-list { max-height: none; overflow: visible; }
@@ -121,13 +121,13 @@
         .ep-item { 
             display: flex; align-items: center; 
             background: #fff; margin-bottom: 12px; border-radius: 15px;
-            border: 3px solid #000; overflow: hidden;
+            border: var(--border-size) solid #000; overflow: hidden;
             flex-direction: row-reverse;
-            transition: transform 0.2s;
-            box-shadow: 4px 4px 0px #000;
+            transition: transform 0.1s;
+            box-shadow: 4px 4px 0 rgba(0,0,0,0.1);
         }
         
-        .ep-item:hover { transform: translateY(-3px); }
+        .ep-item:active { transform: scale(0.96); } 
 
         .ep-name-clickable {
             flex-grow: 1; padding: 15px;
@@ -137,20 +137,23 @@
 
         .ep-name-text { 
             color: #000 !important; 
-            font-size: 16px; font-weight: bold;
+            font-size: 16px; 
+            font-weight: 800;
             display: block !important;
             pointer-events: none;
         }
 
         .lib-control-btn {
-            background: #eee; border: none; border-left: 3px solid #000;
-            height: 50px; font-size: 18px; 
+            background: #eee; border: none; 
+            border-left: var(--border-size) solid #000;
+            height: 54px; font-size: 20px; 
             cursor: pointer; display: none; 
             flex-shrink: 0; outline: none; padding: 0 15px;
+            box-shadow: none; border-radius: 0;
         }
         
-        .single-delete-btn { background: #FF5757; color: white; }
-        .single-edit-btn { background: #5CE1E6; }
+        .single-delete-btn { color: var(--cartoon-red); }
+        .single-edit-btn { color: var(--cartoon-green); }
         
     </style>
 </head>
@@ -161,17 +164,17 @@
     </div>
 
     <div id="admin">
-        <div id="viewerCount">عدد المتفرجين الآن: جاري التحميل...</div>
+        <div id="viewerCount">عدد المتصلين الآن: جاري التحميل...</div>
 
-        <input type="text" id="urlInput" placeholder="ضع رابط البث هنا يا بطل..." onpaste="handlePaste(event)">
+        <input type="text" id="urlInput" placeholder="رابط البث المباشر الأساسي..." onpaste="handlePaste(event)">
         
-        <div style="border-top: 3px dashed #000; margin-top: 15px; padding-top: 15px;">
-            <input type="text" id="epNameInput" placeholder="اسم الحلقة (مثلاً: سبونج بوب 1)">
-            <input type="text" id="epUrlInput" placeholder="رابط المقطع المباشر...">
-            <button style="background: #5271FF; color: white; width: 100%; margin-top: 5px;" onclick="addEpisode()">إضافة للمكتبة السحرية +</button>
+        <div style="border-top: var(--border-size) solid #000; margin-top: 15px; padding-top: 10px;">
+            <input type="text" id="epNameInput" placeholder="اسم العمل / الحلقة">
+            <input type="text" id="epUrlInput" placeholder="رابط الفيديو المباشر...">
+            <button style="background: var(--cartoon-blue); color: black; width: 100%;" onclick="addEpisode()">إضافة للمكتبة +</button>
         </div>
 
-        <div class="btn-group" style="margin-top: 15px; border-top: 3px dashed #000; padding-top: 15px;">
+        <div class="btn-group" style="margin-top: 15px; border-top: var(--border-size) solid #000; padding-top: 15px;">
             <button id="syncToggleBtn" class="btn-sync" onclick="toggleSync()">جاري التحميل...</button>
             <button class="btn-delete" onclick="deleteVideo()">حذف فيديو البث 🗑️</button>
         </div>
@@ -179,12 +182,11 @@
     </div>
 
     <div id="librarySection">
-        <div class="lib-title">🎬 قائمة الحلقات الكرتونية 🎬</div> 
-        <div id="episodesContainer" class="ep-list"></div>
+        <div class="lib-title">🎬 مكتبة الحلقات</div> <div id="episodesContainer" class="ep-list"></div>
     </div>
 
     <script>
-        // الكود البرمجي لم يتغير لضمان عمل الصفحة بنفس الكفاءة السابقة
+        // --- الكود البرمجي يبقى كما هو تماماً لضمان عمل الصفحة ---
         var videoElement = document.getElementById('myPlayer');
         var hls = new Hls();
         var dbUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream.json";
@@ -219,7 +221,7 @@
                             }
                         });
                     }
-                    document.getElementById('viewerCount').innerText = "عدد المتصلين الآن: " + count;
+                    document.getElementById('viewerCount').innerText = "المشاهدون الآن: " + count + " 👥";
                 }
             };
             xhr.send();
@@ -240,7 +242,7 @@
             var container = document.getElementById('episodesContainer');
             container.innerHTML = "";
             if (!libData) { 
-                container.innerHTML = "<div style='text-align:center; padding:30px; color:#fff; font-weight:bold; display:block !important;'>المكتبة فارغة حالياً.. أضف شيئاً ممتعاً!</div>"; 
+                container.innerHTML = "<div style='text-align:center; padding:30px; color:#000; font-weight:bold; display:block !important;'>المكتبة خالية حالياً 📺</div>"; 
                 return; 
             }
             
