@@ -13,19 +13,18 @@
             background-color: #0a0a0a; color: #eee;
             display: flex; flex-direction: column;
             align-items: center;    
-            overflow-x: hidden; overflow-y: auto; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            /* إضافة خاصية السحب السلس */
-            scroll-behavior: smooth;
-            -webkit-overflow-scrolling: touch;
+            /* تحسين السحب ليكون سلس */
+            overflow-x: hidden; overflow-y: auto; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            -webkit-overflow-scrolling: touch; /* دعم السحب السلس في iOS */
+            overscroll-behavior-y: contain; /* منع اهتزاز الصفحة عند الوصول للنهاية */
         }
 
         .card { 
             background: #000; padding: 0; border-radius: 0; 
             width: 100%; max-width: 650px; box-sizing: border-box;
-            border-bottom: 2px solid #222; z-index: 100;
-            /* تثبيت المشغل في الأعلى */
-            position: sticky;
-            top: 0;
+            border-bottom: 2px solid #222; z-index: 10;
+            position: sticky; top: 0; /* تثبيت الفيديو لتسهيل التصفح تحته */
         }
         
         video { width: 100%; display: block; aspect-ratio: 16/9; background: #000; }
@@ -45,6 +44,7 @@
             flex: 1; min-width: 100px; padding: 12px; background-color: #222; 
             color: #fff; border: 1px solid #333; border-radius: 8px; 
             cursor: pointer; font-size: 14px; font-weight: bold;
+            touch-action: manipulation; /* تسريع استجابة اللمس */
         }
 
         .btn-sync.active { background-color: #1b5e20; border-color: #2e7d32; }
@@ -67,20 +67,27 @@
             color: #fff; font-weight: bold; border-right: 4px solid #4caf50;
         }
 
-        /* تعديل القائمة لتكون جزء من سحب الصفحة الكلي وليس سكرول داخلي */
-        .ep-list { height: auto; overflow: visible; }
+        .ep-list { 
+            max-height: 70vh; /* زيادة مساحة التمرير */
+            overflow-y: auto; 
+            -webkit-overflow-scrolling: touch;
+        }
         
         .ep-item { 
             display: flex; align-items: center; 
             background: #1a1a1a; margin-bottom: 8px; border-radius: 10px;
             border: 1px solid #282828; overflow: hidden;
             flex-direction: row-reverse;
+            transition: background 0.2s;
         }
         
+        .ep-item:active { background: #252525; } /* تأثير عند اللمس */
+
         .ep-name-clickable {
             flex-grow: 1; padding: 15px;
             cursor: pointer; -webkit-tap-highlight-color: transparent;
             text-align: right;
+            user-select: none;
         }
 
         .ep-name-text { 
@@ -90,7 +97,6 @@
             pointer-events: none;
         }
 
-        /* أزرار التحكم في المكتبة */
         .lib-control-btn {
             background: transparent; 
             border: none; 
@@ -106,8 +112,8 @@
         .single-delete-btn { color: #ff4444; }
         .single-edit-btn { color: #4caf50; }
         
-        /* إخفاء السكرول بار للحفاظ على المظهر السلس */
-        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        .ep-list::-webkit-scrollbar { width: 4px; }
+        .ep-list::-webkit-scrollbar-thumb { background: #444; border-radius: 10px; }
     </style>
 </head>
 <body>
@@ -133,6 +139,7 @@
     </div>
 
     <div id="librarySection">
+        <div class="lib-title">المكتبة</div>
         <div id="episodesContainer" class="ep-list"></div>
     </div>
 
@@ -207,7 +214,6 @@
         function editSingleEpisode(key, oldName, oldUrl) {
             var newName = prompt("تعديل اسم المقطع:", oldName);
             if (newName === null) return; 
-            
             var newUrl = prompt("تعديل رابط المقطع:", oldUrl);
             if (newUrl === null) return; 
 
@@ -241,16 +247,13 @@
             if (!data) return;
             isSyncEnabled = data.syncEnabled !== false; 
             updateSyncButtonUI();
-
             var lib = document.getElementById('librarySection');
-            
             if (isAdmin || !isSyncEnabled) {
                 lib.style.display = "block";
                 renderLibrary(data.library);
             } else {
                 lib.style.display = "none";
             }
-
             if (isSyncEnabled && !isAdmin) {
                 if (data.url !== lastUrl) playMedia(data.url);
                 if (Math.abs(videoElement.currentTime - data.time) > 3) videoElement.currentTime = data.time;
@@ -282,7 +285,6 @@
 
         function updateSyncButtonUI() {
             var btn = document.getElementById('syncToggleBtn');
-            if (!btn) return;
             if (isSyncEnabled) {
                 btn.innerText = "المزامنة: مفعلة ✅";
                 btn.className = "btn-sync active";
