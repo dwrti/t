@@ -174,9 +174,10 @@
         var isAdmin = window.location.hash === "#ana";
         var isSyncEnabled = true;
         var myUserId = Math.random().toString(36).substring(7);
-        var openFolders = {}; // لتخزين حالة المجلدات المفتوحة
+        
+        // متغير عالمي لحفظ أسماء المجلدات المفتوحة
+        var openFolders = new Set();
 
-        // --- دوال M3U المتطورة ---
         function importM3U() {
             const fileInput = document.getElementById('m3uFile');
             const urlInput = document.getElementById('m3uUrlInput');
@@ -204,7 +205,6 @@
             for (let i = 0; i < lines.length; i++) {
                 if (lines[i].startsWith('#EXTINF:')) {
                     const info = lines[i];
-                    // البحث عن تصنيف القناة group-title
                     let category = "قنوات عامة";
                     const groupMatch = info.match(/group-title="([^"]+)"/);
                     if (groupMatch) category = groupMatch[1];
@@ -213,7 +213,6 @@
                     const url = lines[i + 1] ? lines[i + 1].trim() : "";
 
                     if (url && url.startsWith('http')) {
-                        // حفظ القناة مع تصنيفها
                         saveToLibrary(name, url, category);
                         channelsAdded++;
                     }
@@ -233,13 +232,22 @@
 
         function renderLibrary(libData) {
             var container = document.getElementById('episodesContainer');
+            
+            // قبل المسح، نحفظ أي مجلد هو "active" حالياً في الـ Set
+            document.querySelectorAll('.folder-container.active').forEach(function(f) {
+                var titleElement = f.querySelector('.folder-header span');
+                if (titleElement) {
+                    var titleText = titleElement.innerText.split(' (')[0]; 
+                    openFolders.add(titleText);
+                }
+            });
+
             container.innerHTML = "";
             if (!libData) { 
                 container.innerHTML = "<div style='text-align:center; padding:30px; color:#444; display:block !important;'>المكتبة فارغة</div>"; 
                 return; 
             }
             
-            // تجميع القنوات حسب المجلدات (Categories)
             const folders = {};
             Object.keys(libData).forEach(key => {
                 const ep = libData[key];
@@ -248,21 +256,26 @@
                 folders[cat].push({ key, ...ep });
             });
 
-            // عرض المجلدات
             Object.keys(folders).forEach(catName => {
                 const folderDiv = document.createElement('div');
                 folderDiv.className = "folder-container";
                 
-                // استعادة حالة المجلد (إذا كان مفتوحاً سابقاً)
-                if (openFolders[catName]) folderDiv.classList.add('active');
-
+                // إذا كان المجلد مخزناً كـ "مفتوح"، نعيد فتحه فوراً
+                if (openFolders.has(catName)) {
+                    folderDiv.classList.add('active');
+                }
+                
                 const header = document.createElement('div');
                 header.className = "folder-header";
                 header.innerHTML = `<span>${catName} (${folders[catName].length})</span>`;
                 header.onclick = function() { 
-                    folderDiv.classList.toggle('active');
-                    // حفظ الحالة عند النقر
-                    openFolders[catName] = folderDiv.classList.contains('active');
+                    folderDiv.classList.toggle('active'); 
+                    // تحديث الـ Set بناءً على ضغطة المستخدم
+                    if (folderDiv.classList.contains('active')) {
+                        openFolders.add(catName);
+                    } else {
+                        openFolders.delete(catName);
+                    }
                 };
                 
                 const content = document.createElement('div');
@@ -304,7 +317,6 @@
                 container.appendChild(folderDiv);
             });
         }
-        // --- نهاية دوال M3U ---
 
         function updatePresence() {
             var xhr = new XMLHttpRequest();
@@ -346,17 +358,6 @@
                 hls.loadSource(url); hls.attachMedia(videoElement);
             } else { videoElement.src = url; }
             videoElement.play().catch(function(e){});
-        }
-
-        function editSingleEpisode(key, oldName, oldUrl) {
-            var newName = prompt("تعديل اسم المقطع:", oldName);
-            if (newName === null) return;
-            var newUrl = prompt("تعديل رابط المقطع:", oldUrl);
-            if (newUrl === null) return;
-            var xhr = new XMLHttpRequest();
-            xhr.open("PATCH", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library/" + key + ".json", true);
-            xhr.onload = function() { showStatus("تم التعديل ✅"); loadStream(); };
-            xhr.send(JSON.stringify({ name: newName, url: newUrl }));
         }
 
         function deleteSingleEpisode(key) {
