@@ -24,10 +24,10 @@
 
         /* تثبيت المشغل في الأعلى */
         .card { 
-            position: -webkit-sticky; 
+            position: -webkit-sticky; /* لدعم متصفحات آيفون القديمة */
             position: sticky; 
             top: 0; 
-            z-index: 1000; 
+            z-index: 1000; /* لضمان بقائه فوق كل شيء */
             background: #000; 
             width: 100%; 
             max-width: 800px; 
@@ -42,6 +42,7 @@
             outline: none; 
         }
 
+        /* حاوية المحتوى تحت المشغل */
         #contentWrapper {
             width: 100%;
             display: flex;
@@ -80,6 +81,7 @@
         
         h2, p, span:not(.ep-name-text), h3 { display: none !important; }
 
+        /* قسم المكتبة */
         #librarySection {
             width: 95%; max-width: 700px; 
             margin: 20px auto 120px auto; 
@@ -107,21 +109,13 @@
         .lib-control-btn { background: transparent; border: none; height: 40px; font-size: 16px; cursor: pointer; padding: 0 10px; }
         .single-delete-btn { color: #883333; }
         .single-edit-btn { color: #338833; }
-        
+        .single-move-btn { color: #888833; }
+
         .group-header {
             width: 100%; background: #111; padding: 10px; margin: 15px 0 5px 0;
             border-radius: 5px; color: #4caf50; font-weight: bold; text-align: right;
-            display: flex; justify-content: space-between; align-items: center;
         }
-
-        /* تنسيق اختيار الكل */
-        .admin-bulk-actions {
-            width: 100%; display: none; background: #0a0a0a; padding: 10px; 
-            border-radius: 8px; margin-bottom: 10px; border: 1px dashed #333;
-            justify-content: space-between; align-items: center;
-        }
-        .bulk-check { transform: scale(1.3); margin-left: 10px; }
-
+        
     </style>
 </head>
 <body>
@@ -136,7 +130,7 @@
             <input type="text" id="urlInput" placeholder="رابط البث المباشر الأساسي..." onpaste="handlePaste(event)">
             
             <div style="border-top: 1px solid #111; margin-top: 15px; padding-top: 10px;">
-                <input type="text" id="groupNameInput" placeholder="اسم المجموعة الجديدة...">
+                <input type="text" id="groupNameInput" placeholder="اسم المجموعة الجديدة (مثال: سبيستون)">
                 <button style="background: #2e7d32; color: white; width: 100%; border: none;" onclick="addGroup()">إضافة مجموعة +</button>
             </div>
 
@@ -155,10 +149,7 @@
         </div>
 
         <div id="librarySection">
-            <div id="bulkActions" class="admin-bulk-actions">
-                <label style="font-size: 14px;"><input type="checkbox" id="selectAll" onclick="toggleSelectAll()"> تحديد الكل</label>
-                <button onclick="moveSelected()" style="min-width: 80px; padding: 5px; background: #888833; font-size: 12px;">نقل المحدد 📁</button>
-            </div>
+            <div class="lib-title">&nbsp;</div> 
             <div id="episodesContainer" class="ep-list"></div>
         </div>
     </div>
@@ -219,9 +210,9 @@
             var container = document.getElementById('episodesContainer');
             container.innerHTML = "";
             
-            if(isAdmin) {
-                document.getElementById('bulkActions').style.display = "flex";
-                var gSelect = document.getElementById('groupSelect');
+            // تحديث قائمة المجموعات في لوحة التحكم
+            var gSelect = document.getElementById('groupSelect');
+            if(isAdmin && gSelect) {
                 gSelect.innerHTML = '<option value="">بدون مجموعة (الرئيسية)</option>';
                 if(groupsData) {
                     Object.keys(groupsData).forEach(function(gk) {
@@ -237,6 +228,7 @@
                 return; 
             }
             
+            // ترتيب الفيديوهات حسب المجموعات
             var grouped = { "main": [] };
             if(groupsData) Object.keys(groupsData).forEach(function(k){ grouped[k] = []; });
 
@@ -254,22 +246,13 @@
                 if (gid !== "main" && groupsData && groupsData[gid]) {
                     var header = document.createElement('div');
                     header.className = "group-header";
-                    header.innerHTML = "<span>📁 " + groupsData[gid].name + "</span>";
+                    header.innerText = "📁 " + groupsData[gid].name;
                     container.appendChild(header);
                 }
 
                 grouped[gid].forEach(function(ep) {
                     var item = document.createElement('div');
                     item.className = "ep-item";
-                    
-                    if(isAdmin) {
-                        var cb = document.createElement('input');
-                        cb.type = "checkbox";
-                        cb.className = "bulk-check";
-                        cb.value = ep.id;
-                        item.appendChild(cb);
-                    }
-
                     var nameBox = document.createElement('div');
                     nameBox.className = "ep-name-clickable";
                     nameBox.innerHTML = '<span class="ep-name-text">' + ep.name + '</span>';
@@ -295,7 +278,13 @@
                         editBtn.innerHTML = "✏️";
                         editBtn.onclick = function(e) { e.stopPropagation(); editSingleEpisode(ep.id, ep.name, ep.url); };
 
+                        var moveBtn = document.createElement('button');
+                        moveBtn.className = "lib-control-btn single-move-btn";
+                        moveBtn.innerHTML = "📁";
+                        moveBtn.onclick = function(e) { e.stopPropagation(); moveEpisode(ep.id); };
+
                         item.appendChild(editBtn);
+                        item.appendChild(moveBtn);
                         item.appendChild(nameBox);
                         item.appendChild(delBtn);
                     } else {
@@ -306,41 +295,6 @@
             });
         }
 
-        function toggleSelectAll() {
-            var isChecked = document.getElementById('selectAll').checked;
-            var checks = document.querySelectorAll('.bulk-check');
-            checks.forEach(function(c) { c.checked = isChecked; });
-        }
-
-        function moveSelected() {
-            var selectedIds = [];
-            document.querySelectorAll('.bulk-check:checked').forEach(function(c) { selectedIds.push(c.value); });
-            if(selectedIds.length === 0) { alert("يرجى تحديد فيديوهات أولاً"); return; }
-
-            var gSelect = document.getElementById('groupSelect');
-            var options = "";
-            for(var i=0; i<gSelect.options.length; i++) { options += (i+1) + "- " + gSelect.options[i].text + "\n"; }
-            
-            var choice = prompt("اختر رقم المجموعة للنقل إليها (" + selectedIds.length + " فيديو):\n" + options);
-            if(choice && gSelect.options[choice-1]) {
-                var newGroupId = gSelect.options[choice-1].value;
-                var count = 0;
-                selectedIds.forEach(function(id) {
-                    var xhr = new XMLHttpRequest();
-                    xhr.open("PATCH", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library/" + id + ".json", true);
-                    xhr.onload = function() { 
-                        count++; 
-                        if(count === selectedIds.length) { 
-                            showStatus("تم نقل " + count + " فيديو ✅"); 
-                            document.getElementById('selectAll').checked = false;
-                            loadStream(); 
-                        } 
-                    };
-                    xhr.send(JSON.stringify({ groupId: newGroupId }));
-                });
-            }
-        }
-
         function addGroup() {
             var name = document.getElementById('groupNameInput').value.trim();
             if (!name) return;
@@ -348,6 +302,22 @@
             xhr.open("POST", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/groups.json", true);
             xhr.onload = function() { document.getElementById('groupNameInput').value = ""; loadStream(); };
             xhr.send(JSON.stringify({ name: name }));
+        }
+
+        function moveEpisode(key) {
+            var gSelect = document.getElementById('groupSelect');
+            var options = "";
+            for(var i=0; i<gSelect.options.length; i++) {
+                options += (i+1) + "- " + gSelect.options[i].text + "\n";
+            }
+            var choice = prompt("اختر رقم المجموعة للنقل إليها:\n" + options);
+            if(choice && gSelect.options[choice-1]) {
+                var newGroupId = gSelect.options[choice-1].value;
+                var xhr = new XMLHttpRequest();
+                xhr.open("PATCH", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library/" + key + ".json", true);
+                xhr.onload = function() { showStatus("تم النقل ✅"); loadStream(); };
+                xhr.send(JSON.stringify({ groupId: newGroupId }));
+            }
         }
 
         function editSingleEpisode(key, oldName, oldUrl) {
