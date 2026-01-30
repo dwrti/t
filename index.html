@@ -64,7 +64,7 @@
             box-sizing: border-box; outline: none;
         }
 
-        /* تنسيق حقل البحث الجديد */
+        /* تنسيق حقل البحث */
         #searchInput {
             border: 1px solid #333;
             background: #111;
@@ -94,9 +94,8 @@
             display: none;
         }
         
-        .lib-title { display: none; } /* تم إخفاء كلمة المكتبة هنا */
+        .lib-title { display: none; }
 
-        /* تعديل القوائم المخفية */
         .group-container { width: 100%; margin-bottom: 10px; border-bottom: 1px solid #111; }
         
         .group-header {
@@ -172,7 +171,7 @@
         </div>
 
         <div id="librarySection">
-            <input type="text" id="searchInput" placeholder="بحث عن مقطع أو مجموعة..." onkeyup="filterLibrary()">
+            <input type="text" id="searchInput" placeholder="بحث عن مقطع أو مجموعة..." oninput="debouncedFilter()">
             <div class="lib-title">المكتبة</div> 
             <div id="episodesContainer"></div>
         </div>
@@ -188,51 +187,60 @@
         var isSyncEnabled = true;
         var myUserId = Math.random().toString(36).substring(7);
         var openFolders = {};
+        var searchTimeout = null;
 
-        // دالة البحث الجديدة
+        // دالة البحث المتطورة (Debounced Filter)
+        function debouncedFilter() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(filterLibrary, 300);
+        }
+
         function filterLibrary() {
-            var filter = document.getElementById('searchInput').value.toLowerCase();
+            var filter = document.getElementById('searchInput').value.toLowerCase().trim();
             var containers = document.querySelectorAll('.group-container');
             
-            containers.forEach(function(container) {
-                var header = container.querySelector('.group-header');
-                var items = container.querySelectorAll('.ep-item');
-                var groupVisible = false;
-                var groupName = header.innerText.toLowerCase();
+            requestAnimationFrame(function() {
+                for (var i = 0; i < containers.length; i++) {
+                    var container = containers[i];
+                    var header = container.querySelector('.group-header');
+                    var list = container.querySelector('.ep-list');
+                    var items = container.querySelectorAll('.ep-item');
+                    var groupName = header.innerText.toLowerCase();
+                    var groupVisible = false;
 
-                // إذا كان اسم المجموعة يطابق البحث
-                if (groupName.includes(filter)) {
-                    groupVisible = true;
-                    // إظهار كل العناصر داخل هذه المجموعة
-                    items.forEach(item => item.style.display = "");
-                } else {
-                    // فحص العناصر الفردية
-                    items.forEach(function(item) {
-                        var text = item.querySelector('.ep-name-text').innerText.toLowerCase();
-                        if (text.includes(filter)) {
-                            item.style.display = "";
-                            groupVisible = true;
-                        } else {
-                            item.style.display = "none";
-                        }
-                    });
-                }
-
-                if (groupVisible) {
-                    container.style.display = "";
-                    if (filter.length > 0) {
-                        container.querySelector('.ep-list').classList.add('show');
-                        header.classList.add('open');
-                    } else {
-                        // إعادة الحالة الأصلية إذا كان البحث فارغاً
+                    if (filter === "") {
+                        container.style.display = "";
+                        for (var x = 0; x < items.length; x++) items[x].style.display = "";
                         var gid = header.getAttribute('data-gid');
                         if (!openFolders[gid]) {
-                            container.querySelector('.ep-list').classList.remove('show');
+                            list.classList.remove('show');
                             header.classList.remove('open');
                         }
+                        continue;
                     }
-                } else {
-                    container.style.display = "none";
+
+                    if (groupName.indexOf(filter) > -1) {
+                        groupVisible = true;
+                        for (var j = 0; j < items.length; j++) items[j].style.display = "";
+                    } else {
+                        for (var k = 0; k < items.length; k++) {
+                            var itemName = items[k].querySelector('.ep-name-text').innerText.toLowerCase();
+                            if (itemName.indexOf(filter) > -1) {
+                                items[k].style.display = "";
+                                groupVisible = true;
+                            } else {
+                                items[k].style.display = "none";
+                            }
+                        }
+                    }
+
+                    if (groupVisible) {
+                        container.style.display = "";
+                        list.classList.add('show');
+                        header.classList.add('open');
+                    } else {
+                        container.style.display = "none";
+                    }
                 }
             });
         }
@@ -391,7 +399,6 @@
                 groupWrapper.appendChild(listDiv);
                 container.appendChild(groupWrapper);
             });
-            // إعادة تطبيق الفلتر بعد الرندر لضمان بقاء نتائج البحث
             if(document.getElementById('searchInput').value) filterLibrary();
         }
 
@@ -498,10 +505,8 @@
             var url = document.getElementById('epUrlInput').value.trim();
             var gid = document.getElementById('groupSelect').value;
             if (!name || !url) return;
-            
             if(gid) openFolders[gid] = true;
             else openFolders["main"] = true;
-
             var xhr = new XMLHttpRequest();
             xhr.open("POST", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library.json", true);
             xhr.onload = function() {
