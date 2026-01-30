@@ -24,10 +24,10 @@
 
         /* تثبيت المشغل في الأعلى */
         .card { 
-            position: -webkit-sticky; /* لدعم متصفحات آيفون القديمة */
+            position: -webkit-sticky; 
             position: sticky; 
             top: 0; 
-            z-index: 1000; /* لضمان بقائه فوق كل شيء */
+            z-index: 1000; 
             background: #000; 
             width: 100%; 
             max-width: 800px; 
@@ -42,7 +42,6 @@
             outline: none; 
         }
 
-        /* حاوية المحتوى تحت المشغل */
         #contentWrapper {
             width: 100%;
             display: flex;
@@ -81,7 +80,6 @@
         
         h2, p, span:not(.ep-name-text), h3 { display: none !important; }
 
-        /* قسم المكتبة */
         #librarySection {
             width: 95%; max-width: 700px; 
             margin: 20px auto 120px auto; 
@@ -111,10 +109,26 @@
         .single-edit-btn { color: #338833; }
         .single-move-btn { color: #888833; }
 
+        /* ستايل المجموعات القابلة للطي */
         .group-header {
-            width: 100%; background: #111; padding: 10px; margin: 15px 0 5px 0;
-            border-radius: 5px; color: #4caf50; font-weight: bold; text-align: right;
+            width: 100%; background: #111; padding: 12px; margin: 10px 0 2px 0;
+            border-radius: 8px; color: #4caf50; font-weight: bold; text-align: right;
+            cursor: pointer; border: 1px solid #222; display: flex; justify-content: space-between;
         }
+        .group-header::after { content: '▼'; font-size: 12px; color: #555; }
+        .group-header.active::after { content: '▲'; }
+        
+        .group-content {
+            width: 100%;
+            display: none; /* مخفية افتراضياً */
+            flex-direction: column;
+            background: #050505;
+            border-radius: 0 0 8px 8px;
+            margin-bottom: 10px;
+            border: 1px solid #111;
+            border-top: none;
+        }
+        .group-content.show { display: flex; }
         
     </style>
 </head>
@@ -210,7 +224,6 @@
             var container = document.getElementById('episodesContainer');
             container.innerHTML = "";
             
-            // تحديث قائمة المجموعات في لوحة التحكم
             var gSelect = document.getElementById('groupSelect');
             if(isAdmin && gSelect) {
                 gSelect.innerHTML = '<option value="">بدون مجموعة (الرئيسية)</option>';
@@ -228,7 +241,6 @@
                 return; 
             }
             
-            // ترتيب الفيديوهات حسب المجموعات
             var grouped = { "main": [] };
             if(groupsData) Object.keys(groupsData).forEach(function(k){ grouped[k] = []; });
 
@@ -243,11 +255,25 @@
             Object.keys(grouped).forEach(function(gid) {
                 if (grouped[gid].length === 0 && gid !== "main") return;
                 
+                var currentContainer = container;
+
                 if (gid !== "main" && groupsData && groupsData[gid]) {
                     var header = document.createElement('div');
                     header.className = "group-header";
                     header.innerText = "📁 " + groupsData[gid].name;
+                    
+                    var gContent = document.createElement('div');
+                    gContent.className = "group-content";
+                    gContent.id = "group-content-" + gid;
+
+                    header.onclick = function() {
+                        this.classList.toggle('active');
+                        gContent.classList.toggle('show');
+                    };
+
                     container.appendChild(header);
+                    container.appendChild(gContent);
+                    currentContainer = gContent;
                 }
 
                 grouped[gid].forEach(function(ep) {
@@ -290,7 +316,7 @@
                     } else {
                         item.appendChild(nameBox);
                     }
-                    container.appendChild(item);
+                    currentContainer.appendChild(item);
                 });
             });
         }
