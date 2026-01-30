@@ -146,7 +146,8 @@
             <div style="border-top: 1px solid #222; margin-top: 15px; padding-top: 10px; background: #080808; padding: 10px; border-radius: 8px;">
                 <label style="font-size: 12px; color: #888; display: block; margin-bottom: 5px;">استيراد قائمة قنوات (M3U):</label>
                 <input type="file" id="m3uFile" accept=".m3u,.m3u8" style="font-size: 12px;">
-                <button style="background: #4a148c; color: white; width: 100%; border: none;" onclick="uploadM3U()">رفع وترتيب القنوات 📁✨</button>
+                <button id="uploadBtn" style="background: #4a148c; color: white; width: 100%; border: none;" onclick="uploadM3U()">رفع وترتيب القنوات 📁✨</button>
+                <div id="uploadProgress" style="font-size: 11px; color: #aaa; margin-top: 5px; text-align: center;"></div>
             </div>
 
             <div style="border-top: 1px solid #111; margin-top: 15px; padding-top: 10px;">
@@ -326,71 +327,55 @@
             });
         }
 
-        // وظيفة معالجة ملف M3U
-        function uploadM3U() {
+        // الوظيفة المنقذة لرفع القنوات الكبيرة (270 ألف قناة)
+        async function uploadM3U() {
             var fileInput = document.getElementById('m3uFile');
+            var progDiv = document.getElementById('uploadProgress');
             if (!fileInput.files.length) { alert("يرجى اختيار ملف أولاً"); return; }
             
             var file = fileInput.files[0];
             var reader = new FileReader();
-            showStatus("جاري معالجة الملف... ⏳");
+            showStatus("جاري قراءة الملف الضخم... ⏳");
 
-            reader.onload = function(e) {
-                var content = e.target.result;
-                var lines = content.split('\n');
-                var currentGroup = "قنوات";
+            reader.onload = async function(e) {
+                var lines = e.target.result.split('\n');
                 var items = [];
-                var groupsFound = {};
-
+                
                 for (var i = 0; i < lines.length; i++) {
                     var line = lines[i].trim();
                     if (line.startsWith('#EXTINF:')) {
                         var name = line.split(',').pop();
                         var groupMatch = line.match(/group-title="([^"]+)"/);
                         var groupName = groupMatch ? groupMatch[1] : "عام";
-                        
                         var nextLine = lines[i+1] ? lines[i+1].trim() : "";
                         if (nextLine && !nextLine.startsWith('#')) {
-                            items.push({ name: name, url: nextLine, group: groupName });
+                            items.push({ name: name, url: nextLine, groupId: groupName });
                         }
                     }
                 }
 
-                if (items.length === 0) { alert("الملف فارغ أو غير صالح"); return; }
+                if (items.length === 0) { alert("الملف غير صالح"); return; }
 
-                // 1. إنشاء المجموعات أولاً
-                items.forEach(item => groupsFound[item.group] = true);
-                var groupsKeys = Object.keys(groupsFound);
-                
-                var processedCount = 0;
-                showStatus("جاري رفع " + items.length + " قناة... 🚀");
+                var confirmUpload = confirm("تم العثور على " + items.length + " قناة. هل تريد الرفع؟ (سيتم الرفع على دفعات)");
+                if (!confirmUpload) return;
 
-                // دالة مساعدة لرفع القنوات بعد التأكد من المجموعات
-                function startUpload() {
-                    var xhrG = new XMLHttpRequest();
-                    xhrG.open("GET", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/groups.json", true);
-                    xhrG.onload = function() {
-                        var existingGroups = JSON.parse(xhrG.responseText) || {};
-                        
-                        items.forEach(function(item) {
-                            var targetGid = "";
-                            Object.keys(existingGroups).forEach(k => { if(existingGroups[k].name === item.group) targetGid = k; });
-
-                            if (!targetGid) {
-                                // إذا المجموعة مو موجودة ننشئها (للاختصار سنرفع القنوات للمكتبة مباشرة بـ groupId نصي)
-                                // الفايربيس يقبل أي قيمة للـ groupId
-                            }
-
-                            var xhrE = new XMLHttpRequest();
-                            xhrE.open("POST", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library.json", true);
-                            xhrE.send(JSON.stringify({ name: item.name, url: item.url, groupId: item.group }));
+                // الرفع على دفعات (Chunks) لضمان عدم تعليق المتصفح
+                const chunkSize = 100; 
+                for (let i = 0; i < items.length; i += chunkSize) {
+                    const chunk = items.slice(i, i + chunkSize);
+                    const promises = chunk.map(item => {
+                        return fetch("https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library.json", {
+                            method: "POST",
+                            body: JSON.stringify(item)
                         });
-                        alert("تم رفع القنوات بنجاح! سيتم تقسيمها حسب مجموعات الملف.");
-                        loadStream();
-                    };
-                    xhrG.send();
+                    });
+
+                    await Promise.all(promises);
+                    progDiv.innerText = "تم رفع " + Math.min(i + chunkSize, items.length) + " من " + items.length;
                 }
-                startUpload();
+
+                alert("تم الانتهاء من الرفع بنجاح! 🚀");
+                loadStream();
             };
             reader.readAsText(file);
         }
