@@ -369,10 +369,7 @@
             if(confirm("حذف هذه الحلقة؟")) {
                 var xhr = new XMLHttpRequest();
                 xhr.open("DELETE", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library/" + key + ".json", true);
-                xhr.onload = function() { 
-                    showStatus("تم الحذف ✅"); 
-                    loadStream(); // تحديث فوري للقائمة
-                };
+                xhr.onload = function() { showStatus("تم الحذف"); loadStream(); };
                 xhr.send();
             }
         }
@@ -503,10 +500,6 @@
             if(confirm("حذف البث؟")) {
                 var xhr = new XMLHttpRequest();
                 xhr.open("PATCH", dbUrl, true);
-                xhr.onload = function() {
-                    showStatus("تم حذف البث 🗑️");
-                    loadStream(); // لتحديث المشغل فوراً
-                };
                 xhr.send(JSON.stringify({ url: "", status: "paused", time: 0 }));
             }
         }
