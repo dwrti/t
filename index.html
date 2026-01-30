@@ -130,13 +130,6 @@
         .single-delete-btn { color: #883333; }
         .single-edit-btn { color: #338833; }
         .single-move-btn { color: #888833; }
-
-        /* ستايل البحث الجديد */
-        .search-container {
-            display: flex; gap: 5px; margin-bottom: 15px; width: 100%;
-        }
-        #searchInput { margin: 0; flex: 4; }
-        #searchBtn { flex: 1; background: #333; min-width: 60px; }
         
     </style>
 </head>
@@ -172,10 +165,6 @@
 
         <div id="librarySection">
             <div class="lib-title">المكتبة</div> 
-            <div class="search-container">
-                <input type="text" id="searchInput" placeholder="ابحث عن مقطع...">
-                <button id="searchBtn" onclick="filterLibrary()">بحث</button>
-            </div>
             <div id="episodesContainer"></div>
         </div>
     </div>
@@ -189,6 +178,7 @@
         var isAdmin = window.location.hash === "#ana";
         var isSyncEnabled = true;
         var myUserId = Math.random().toString(36).substring(7);
+        // الذاكرة لأسماء المجموعات المفتوحة
         var openFolders = {};
 
         function updatePresence() {
@@ -237,45 +227,14 @@
             header.classList.toggle('open');
             var list = header.nextElementSibling;
             list.classList.toggle('show');
+            // حفظ الحالة فوراً عند الضغط
             openFolders[gid] = list.classList.contains('show');
-        }
-
-        // وظيفة البحث الجديدة
-        function filterLibrary() {
-            var term = document.getElementById('searchInput').value.toLowerCase();
-            var items = document.querySelectorAll('.ep-item');
-            var containers = document.querySelectorAll('.group-container');
-
-            containers.forEach(function(container) {
-                var list = container.querySelector('.ep-list');
-                var header = container.querySelector('.group-header');
-                var hasVisible = false;
-
-                var containerItems = container.querySelectorAll('.ep-item');
-                containerItems.forEach(function(item) {
-                    var name = item.querySelector('.ep-name-text').innerText.toLowerCase();
-                    if (name.includes(term)) {
-                        item.style.display = "flex";
-                        hasVisible = true;
-                    } else {
-                        item.style.display = "none";
-                    }
-                });
-
-                if (hasVisible) {
-                    container.style.display = "block";
-                    if (term !== "") {
-                        list.classList.add('show');
-                        header.classList.add('open');
-                    }
-                } else {
-                    container.style.display = "none";
-                }
-            });
         }
 
         function renderLibrary(libData, groupsData) {
             var container = document.getElementById('episodesContainer');
+            
+            // تحديث الذاكرة الحالية من العناصر الموجودة في الصفحة قبل مسحها
             var currentHeaders = container.querySelectorAll('.group-header');
             currentHeaders.forEach(function(h) {
                 var gid = h.getAttribute('data-gid');
@@ -286,7 +245,7 @@
             
             var gSelect = document.getElementById('groupSelect');
             if(isAdmin && gSelect) {
-                var currentSelection = gSelect.value;
+                var currentSelection = gSelect.value; // حفظ التحديد الحالي
                 gSelect.innerHTML = '<option value="">بدون مجموعة (الرئيسية)</option>';
                 if(groupsData) {
                     Object.keys(groupsData).forEach(function(gk) {
@@ -295,7 +254,7 @@
                         gSelect.appendChild(opt);
                     });
                 }
-                gSelect.value = currentSelection;
+                gSelect.value = currentSelection; // إعادة التحديد
             }
 
             if (!libData) { 
@@ -325,7 +284,9 @@
                 header.setAttribute('data-gid', gid);
                 header.innerText = (gid === "main") ? "📂 القائمة الرئيسية" : "📁 " + (groupsData[gid] ? groupsData[gid].name : "مجموعة");
                 
+                // تطبيق الحالة من الذاكرة
                 if (openFolders[gid]) header.classList.add('open');
+                
                 header.onclick = function() { toggleFolder(this, gid); };
 
                 var listDiv = document.createElement('div');
@@ -378,8 +339,6 @@
                 groupWrapper.appendChild(listDiv);
                 container.appendChild(groupWrapper);
             });
-            // إعادة تطبيق الفلترة بعد الرندر إذا كان هناك نص في البحث
-            if(document.getElementById('searchInput').value !== "") filterLibrary();
         }
 
         function addGroup() {
@@ -485,7 +444,11 @@
             var url = document.getElementById('epUrlInput').value.trim();
             var gid = document.getElementById('groupSelect').value;
             if (!name || !url) return;
-            if(gid) openFolders[gid] = true; else openFolders["main"] = true;
+            
+            // تحديث الذاكرة فوراً قبل الإرسال
+            if(gid) openFolders[gid] = true;
+            else openFolders["main"] = true;
+
             var xhr = new XMLHttpRequest();
             xhr.open("POST", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library.json", true);
             xhr.onload = function() {
