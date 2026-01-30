@@ -177,6 +177,8 @@
         var isAdmin = window.location.hash === "#ana";
         var isSyncEnabled = true;
         var myUserId = Math.random().toString(36).substring(7);
+        // متغير جديد لحفظ حالة القوائم المفتوحة
+        var openFolders = {};
 
         function updatePresence() {
             var xhr = new XMLHttpRequest();
@@ -220,11 +222,13 @@
             videoElement.play().catch(function(e){});
         }
 
-        // دالة طي القوائم
-        function toggleFolder(header) {
+        // تعديل دالة طي القوائم لحفظ الحالة
+        function toggleFolder(header, gid) {
             header.classList.toggle('open');
             var list = header.nextElementSibling;
             list.classList.toggle('show');
+            // حفظ حالة القائمة (مفتوحة أو مغلقة)
+            openFolders[gid] = list.classList.contains('show');
         }
 
         function renderLibrary(libData, groupsData) {
@@ -268,10 +272,19 @@
                 var header = document.createElement('div');
                 header.className = "group-header";
                 header.innerText = (gid === "main") ? "📂 القائمة الرئيسية" : "📁 " + groupsData[gid].name;
-                header.onclick = function() { toggleFolder(this); };
+                
+                // إضافة الحالة المخزنة مسبقاً للهيدر
+                if (openFolders[gid]) header.classList.add('open');
+                
+                header.onclick = function() { toggleFolder(this, gid); };
 
                 var listDiv = document.createElement('div');
                 listDiv.className = "ep-list";
+                
+                // استرجاع حالة القائمة (إذا كانت مفتوحة تبقى مفتوحة)
+                if (openFolders[gid]) {
+                    listDiv.classList.add('show');
+                }
 
                 grouped[gid].forEach(function(ep) {
                     var item = document.createElement('div');
