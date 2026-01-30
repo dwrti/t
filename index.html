@@ -211,16 +211,18 @@
             xhr.send();
         }
 
-        // تم التعديل هنا لمسح الصورة فور حذف الرابط
+        // تحسين دالة التشغيل لتفريغ الشاشة حرفياً عند الحذف
         function playMedia(url) {
-            if (!url || url.trim() === "") { 
-                lastUrl = "";
-                videoElement.src = ""; 
-                videoElement.removeAttribute("src"); 
-                if (hls) { hls.destroy(); hls = new Hls(); }
-                videoElement.load(); // يفرغ الذاكرة المؤقتة للصورة
+            // إذا كان الرابط فارغاً، فرغ المشغل تماماً
+            if (!url || url === "") { 
+                videoElement.pause();
+                videoElement.removeAttribute('src'); // إزالة المصدر
+                videoElement.load(); // إعادة تحميل العنصر لتفريغ الذاكرة المرئية
+                if (hls) hls.destroy(); 
+                lastUrl = ""; 
                 return; 
             }
+
             if (url === lastUrl) return;
             lastUrl = url;
             if (Hls.isSupported() && (url.includes('m3u8') || url.includes('.ts'))) {
@@ -233,6 +235,7 @@
                 playPromise.catch(function(error) {
                     videoElement.muted = true;
                     videoElement.play();
+                    showStatus("اضغط على السماعة لتفعيل الصوت 🔊");
                 });
             }
         }
@@ -392,12 +395,17 @@
             }
             
             if (isSyncEnabled && !isAdmin) {
-                if (data.url !== lastUrl) playMedia(data.url);
+                // إذا كان الرابط في السيرفر فارغاً، فرغ الشاشة فوراً
+                if (!data.url || data.url === "") {
+                    if (lastUrl !== "") playMedia(""); 
+                } else if (data.url !== lastUrl) {
+                    playMedia(data.url);
+                }
                 
                 var timeDiff = Math.abs(videoElement.currentTime - data.time);
-                if (timeDiff > 2.5) videoElement.currentTime = data.time;
+                if (timeDiff > 2.5 && data.url !== "") videoElement.currentTime = data.time;
                 
-                if (data.status === "playing" && videoElement.paused) {
+                if (data.status === "playing" && videoElement.paused && data.url !== "") {
                     videoElement.play().catch(function(e){
                         videoElement.muted = true;
                         videoElement.play();
@@ -461,7 +469,7 @@
         }
 
         function updateDatabaseState() {
-            if (!isAdmin || !isSyncEnabled) return;
+            if (!isAdmin || !isSyncEnabled || lastUrl === "") return;
             var xhr = new XMLHttpRequest();
             xhr.open("PATCH", dbUrl, true);
             var state = { status: videoElement.paused ? "paused" : "playing", time: videoElement.currentTime };
@@ -497,12 +505,14 @@
             }, 100);
         }
 
-        // تم التعديل هنا لضمان الحذف الفوري للصورة
         function deleteVideo() {
-            if(confirm("حذف البث؟")) {
-                playMedia(""); // يمسح الصورة فوراً عند الأدمن
+            if(confirm("حذف البث وتفريغ الشاشة؟")) {
                 var xhr = new XMLHttpRequest();
                 xhr.open("PATCH", dbUrl, true);
+                xhr.onload = function() {
+                    playMedia(""); // تفريغ فوري للأدمن
+                    showStatus("تم الحذف والتفريغ ✅");
+                };
                 xhr.send(JSON.stringify({ url: "", status: "paused", time: 0 }));
             }
         }
