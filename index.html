@@ -134,7 +134,7 @@
 </head>
 <body>
 
-    <div class="card" id="playerCard">
+    <div class="card">
         <video id="myPlayer" controls autoplay playsinline></video>
     </div>
 
@@ -170,7 +170,6 @@
 
     <script>
         var videoElement = document.getElementById('myPlayer');
-        var playerCard = document.getElementById('playerCard');
         var hls = new Hls();
         var dbUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream.json";
         var presenceUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/presence";
@@ -179,6 +178,17 @@
         var isSyncEnabled = true;
         var myUserId = Math.random().toString(36).substring(7);
         var openFolders = {};
+
+        // --- دالة تفعيل الشاشة الكاملة ---
+        function openFullscreen() {
+            if (videoElement.requestFullscreen) {
+                videoElement.requestFullscreen();
+            } else if (videoElement.webkitRequestFullscreen) { /* Safari / iPhone */
+                videoElement.webkitRequestFullscreen();
+            } else if (videoElement.msRequestFullscreen) { /* IE11 */
+                videoElement.msRequestFullscreen();
+            }
+        }
 
         function updatePresence() {
             var xhr = new XMLHttpRequest();
@@ -222,48 +232,16 @@
             
             var playPromise = videoElement.play();
             if (playPromise !== undefined) {
-                playPromise.catch(function(error) {
+                playPromise.then(function() {
+                    // تشغيل الشاشة الكاملة بمجرد بدء المقطع
+                    openFullscreen();
+                }).catch(function(error) {
                     videoElement.muted = true;
                     videoElement.play();
-                    showStatus("اضغط على السماعة لتفعيل الصوت 🔊");
+                    showStatus("اضغط لتفعيل الصوت والشاشة الكاملة 🔊");
                 });
             }
         }
-
-        // --- ميزة ملء الشاشة المتزامنة ---
-        function handleFullscreenSync(remoteIsFS) {
-            var currentFS = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
-            
-            if (remoteIsFS && !currentFS) {
-                // محاولة تكبير الشاشة عند المتابع
-                var requestMethod = videoElement.requestFullscreen || videoElement.webkitRequestFullscreen || videoElement.mozRequestFullScreen || videoElement.msRequestFullscreen;
-                if (requestMethod) {
-                    requestMethod.call(videoElement).catch(e => {
-                        console.log("Fullscreen blocked: Needs user interaction first.");
-                    });
-                }
-            } else if (!remoteIsFS && currentFS) {
-                // تصغير الشاشة عند المتابع إذا صغرها الأدمن
-                var exitMethod = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
-                if (exitMethod) exitMethod.call(document);
-            }
-        }
-
-        // مراقبة الأدمن عند تغيير حجم الشاشة لديه
-        document.addEventListener('fullscreenchange', onFSChange);
-        document.addEventListener('webkitfullscreenchange', onFSChange);
-        document.addEventListener('mozfullscreenchange', onFSChange);
-        document.addEventListener('MSFullscreenChange', onFSChange);
-
-        function onFSChange() {
-            if (isAdmin && isSyncEnabled) {
-                var isFS = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
-                var xhr = new XMLHttpRequest();
-                xhr.open("PATCH", dbUrl, true);
-                xhr.send(JSON.stringify({ isFullscreen: isFS }));
-            }
-        }
-        // ---------------------------------
 
         function toggleFolder(header, gid) {
             header.classList.toggle('open');
@@ -426,16 +404,13 @@
                 if (timeDiff > 2.5) videoElement.currentTime = data.time;
                 
                 if (data.status === "playing" && videoElement.paused) {
-                    videoElement.play().catch(function(e){
+                    videoElement.play().then(function(){ openFullscreen(); }).catch(function(e){
                         videoElement.muted = true;
                         videoElement.play();
                     });
                 } else if (data.status === "paused" && !videoElement.paused) {
                     videoElement.pause();
                 }
-
-                // تنفيذ مزامنة الشاشة الكاملة للمتابعين
-                handleFullscreenSync(!!data.isFullscreen);
             }
         }
 
@@ -493,14 +468,9 @@
 
         function updateDatabaseState() {
             if (!isAdmin || !isSyncEnabled) return;
-            var isFS = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
             var xhr = new XMLHttpRequest();
             xhr.open("PATCH", dbUrl, true);
-            var state = { 
-                status: videoElement.paused ? "paused" : "playing", 
-                time: videoElement.currentTime,
-                isFullscreen: isFS
-            };
+            var state = { status: videoElement.paused ? "paused" : "playing", time: videoElement.currentTime };
             xhr.send(JSON.stringify(state));
         }
 
@@ -529,6 +499,8 @@
                     xhr.send(JSON.stringify({ url: val, status: "playing", time: 0 }));
                     document.getElementById('urlInput').value = ''; 
                     showStatus("تم التحديث ✅");
+                    // تفعيل الشاشة الكاملة للأدمن عند اللصق
+                    playMedia(val);
                 }
             }, 100);
         }
@@ -537,7 +509,7 @@
             if(confirm("حذف البث؟")) {
                 var xhr = new XMLHttpRequest();
                 xhr.open("PATCH", dbUrl, true);
-                xhr.send(JSON.stringify({ url: "", status: "paused", time: 0, isFullscreen: false }));
+                xhr.send(JSON.stringify({ url: "", status: "paused", time: 0 }));
             }
         }
 
@@ -549,6 +521,13 @@
                 setTimeout(function() { status.style.display = "none"; }, 3000);
             }
         }
+
+        // --- مستمع لتفعيل الشاشة الكاملة عند أول تفاعل للمشاهد ---
+        document.addEventListener('click', function() {
+            if (videoElement.src || (hls && hls.url)) {
+                openFullscreen();
+            }
+        }, { once: true });
 
         window.onload = function() {
             loadStream();
