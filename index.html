@@ -24,10 +24,10 @@
 
         /* تثبيت المشغل في الأعلى */
         .card { 
-            position: -webkit-sticky; 
+            position: -webkit-sticky; /* لدعم متصفحات آيفون القديمة */
             position: sticky; 
             top: 0; 
-            z-index: 1000; 
+            z-index: 1000; /* لضمان بقائه فوق كل شيء */
             background: #000; 
             width: 100%; 
             max-width: 800px; 
@@ -42,6 +42,7 @@
             outline: none; 
         }
 
+        /* حاوية المحتوى تحت المشغل */
         #contentWrapper {
             width: 100%;
             display: flex;
@@ -57,7 +58,7 @@
             margin-bottom: 10px; border: 1px solid #1a1a1a;
         }
 
-        input, select { 
+        input { 
             width: 100%; padding: 12px; margin: 6px 0; 
             border: 1px solid #222; border-radius: 8px; 
             font-size: 14px; background: #0a0a0a; color: #fff;
@@ -80,56 +81,34 @@
         
         h2, p, span:not(.ep-name-text), h3 { display: none !important; }
 
+        /* قسم المكتبة */
         #librarySection {
             width: 95%; max-width: 700px; 
             margin: 20px auto 120px auto; 
             display: none;
         }
         
-        .lib-title { display: none; } /* تم إخفاء كلمة المكتبة هنا */
+        .lib-title { font-size: 17px; margin-bottom: 15px; text-align: center; color: #555; }
 
-        /* تعديل القوائم المخفية */
-        .group-container { width: 100%; margin-bottom: 10px; border-bottom: 1px solid #111; }
-        
-        .group-header {
-            width: 100%; background: #111; padding: 15px; 
-            border-radius: 8px; color: #bbbbbb; font-weight: bold; /* تم تعديل اللون ليتطابق مع المقاطع */
-            text-align: center; cursor: pointer; display: flex; 
-            justify-content: center; align-items: center;
-            box-sizing: border-box; position: relative;
-        }
-
-        .group-header::after { content: '▼'; font-size: 12px; color: #444; position: absolute; left: 15px; }
-        .group-header.open::after { content: '▲'; }
-
-        .ep-list { 
-            display: none; /* مخفية افتراضياً */
-            flex-direction: column; 
-            align-items: center; 
-            padding: 10px 0;
-        }
-
-        .ep-list.show { display: flex; }
+        .ep-list { display: flex; flex-direction: column; align-items: center; }
         
         .ep-item { 
             display: flex; align-items: center; 
-            background: #050505; margin-bottom: 4px; 
-            width: 100%; border-radius: 5px;
-            justify-content: center;
+            background: transparent; margin-bottom: 8px; 
+            width: 100%; border: none;
         }
         
         .ep-name-clickable {
-            flex-grow: 1; padding: 12px;
+            flex-grow: 1; padding: 15px;
             cursor: pointer; -webkit-tap-highlight-color: transparent;
             text-align: center;
         }
 
-        .ep-name-text { color: #bbbbbb !important; font-size: 15px; display: block !important; }
+        .ep-name-text { color: #bbbbbb !important; font-size: 16px; display: block !important; }
 
         .lib-control-btn { background: transparent; border: none; height: 40px; font-size: 16px; cursor: pointer; padding: 0 10px; }
         .single-delete-btn { color: #883333; }
         .single-edit-btn { color: #338833; }
-        .single-move-btn { color: #888833; }
         
     </style>
 </head>
@@ -145,14 +124,8 @@
             <input type="text" id="urlInput" placeholder="رابط البث المباشر الأساسي..." onpaste="handlePaste(event)">
             
             <div style="border-top: 1px solid #111; margin-top: 15px; padding-top: 10px;">
-                <input type="text" id="groupNameInput" placeholder="اسم المجموعة الجديدة (مثال: سبيستون)">
-                <button style="background: #2e7d32; color: white; width: 100%; border: none;" onclick="addGroup()">إضافة مجموعة +</button>
-            </div>
-
-            <div style="border-top: 1px solid #111; margin-top: 15px; padding-top: 10px;">
                 <input type="text" id="epNameInput" placeholder="اسم العمل / الحلقة">
                 <input type="text" id="epUrlInput" placeholder="رابط الفيديو المباشر...">
-                <select id="groupSelect"><option value="">بدون مجموعة (الرئيسية)</option></select>
                 <button style="background: #1a3a8a; color: white; width: 100%; border: none; margin-top: 5px;" onclick="addEpisode()">إضافة للمكتبة +</button>
             </div>
 
@@ -164,12 +137,13 @@
         </div>
 
         <div id="librarySection">
-            <div class="lib-title">المكتبة</div> 
-            <div id="episodesContainer"></div>
+            <div class="lib-title">&nbsp;</div> 
+            <div id="episodesContainer" class="ep-list"></div>
         </div>
     </div>
 
     <script>
+        // --- الكود البرمجي (نفس منطقك السابق بدون تغيير لضمان عمل المزامنة) ---
         var videoElement = document.getElementById('myPlayer');
         var hls = new Hls();
         var dbUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream.json";
@@ -178,8 +152,6 @@
         var isAdmin = window.location.hash === "#ana";
         var isSyncEnabled = true;
         var myUserId = Math.random().toString(36).substring(7);
-        // الذاكرة لأسماء المجموعات المفتوحة
-        var openFolders = {};
 
         function updatePresence() {
             var xhr = new XMLHttpRequest();
@@ -223,147 +195,54 @@
             videoElement.play().catch(function(e){});
         }
 
-        function toggleFolder(header, gid) {
-            header.classList.toggle('open');
-            var list = header.nextElementSibling;
-            list.classList.toggle('show');
-            // حفظ الحالة فوراً عند الضغط
-            openFolders[gid] = list.classList.contains('show');
-        }
-
-        function renderLibrary(libData, groupsData) {
+        function renderLibrary(libData) {
             var container = document.getElementById('episodesContainer');
-            
-            // تحديث الذاكرة الحالية من العناصر الموجودة في الصفحة قبل مسحها
-            var currentHeaders = container.querySelectorAll('.group-header');
-            currentHeaders.forEach(function(h) {
-                var gid = h.getAttribute('data-gid');
-                if(gid) openFolders[gid] = h.classList.contains('open');
-            });
-
             container.innerHTML = "";
-            
-            var gSelect = document.getElementById('groupSelect');
-            if(isAdmin && gSelect) {
-                var currentSelection = gSelect.value; // حفظ التحديد الحالي
-                gSelect.innerHTML = '<option value="">بدون مجموعة (الرئيسية)</option>';
-                if(groupsData) {
-                    Object.keys(groupsData).forEach(function(gk) {
-                        var opt = document.createElement('option');
-                        opt.value = gk; opt.innerText = groupsData[gk].name;
-                        gSelect.appendChild(opt);
-                    });
-                }
-                gSelect.value = currentSelection; // إعادة التحديد
-            }
-
             if (!libData) { 
                 container.innerHTML = "<div style='text-align:center; padding:30px; color:#444; display:block !important;'>المكتبة فارغة</div>"; 
                 return; 
             }
             
-            var grouped = { "main": [] };
-            if(groupsData) Object.keys(groupsData).forEach(function(k){ grouped[k] = []; });
-
             Object.keys(libData).forEach(function(key) {
                 var ep = libData[key];
-                var gid = ep.groupId || "main";
-                if(!grouped[gid]) grouped[gid] = [];
-                ep.id = key;
-                grouped[gid].push(ep);
-            });
-
-            Object.keys(grouped).forEach(function(gid) {
-                if (grouped[gid].length === 0 && gid !== "main") return;
+                var item = document.createElement('div');
+                item.className = "ep-item";
                 
-                var groupWrapper = document.createElement('div');
-                groupWrapper.className = "group-container";
-
-                var header = document.createElement('div');
-                header.className = "group-header";
-                header.setAttribute('data-gid', gid);
-                header.innerText = (gid === "main") ? "📂 القائمة الرئيسية" : "📁 " + (groupsData[gid] ? groupsData[gid].name : "مجموعة");
-                
-                // تطبيق الحالة من الذاكرة
-                if (openFolders[gid]) header.classList.add('open');
-                
-                header.onclick = function() { toggleFolder(this, gid); };
-
-                var listDiv = document.createElement('div');
-                listDiv.className = "ep-list";
-                if (openFolders[gid]) listDiv.classList.add('show');
-
-                grouped[gid].forEach(function(ep) {
-                    var item = document.createElement('div');
-                    item.className = "ep-item";
-                    var nameBox = document.createElement('div');
-                    nameBox.className = "ep-name-clickable";
-                    nameBox.innerHTML = '<span class="ep-name-text">' + ep.name + '</span>';
-                    nameBox.onclick = function() { 
-                        if (isAdmin) {
-                            var xhr = new XMLHttpRequest();
-                            xhr.open("PATCH", dbUrl, true);
-                            xhr.send(JSON.stringify({ url: ep.url, status: "playing", time: 0 }));
-                        }
-                        playMedia(ep.url); 
-                        window.scrollTo({top: 0, behavior: 'smooth'}); 
-                    };
-
+                var nameBox = document.createElement('div');
+                nameBox.className = "ep-name-clickable";
+                nameBox.innerHTML = '<span class="ep-name-text">' + ep.name + '</span>';
+                nameBox.onclick = function() { 
                     if (isAdmin) {
-                        var delBtn = document.createElement('button');
-                        delBtn.className = "lib-control-btn single-delete-btn";
-                        delBtn.innerHTML = "✕";
-                        delBtn.onclick = function(e) { e.stopPropagation(); deleteSingleEpisode(ep.id); };
-                        
-                        var editBtn = document.createElement('button');
-                        editBtn.className = "lib-control-btn single-edit-btn";
-                        editBtn.innerHTML = "✏️";
-                        editBtn.onclick = function(e) { e.stopPropagation(); editSingleEpisode(ep.id, ep.name, ep.url); };
-
-                        var moveBtn = document.createElement('button');
-                        moveBtn.className = "lib-control-btn single-move-btn";
-                        moveBtn.innerHTML = "📁";
-                        moveBtn.onclick = function(e) { e.stopPropagation(); moveEpisode(ep.id); };
-
-                        item.appendChild(editBtn);
-                        item.appendChild(moveBtn);
-                        item.appendChild(nameBox);
-                        item.appendChild(delBtn);
-                    } else {
-                        item.appendChild(nameBox);
+                        var xhr = new XMLHttpRequest();
+                        xhr.open("PATCH", dbUrl, true);
+                        xhr.send(JSON.stringify({ url: ep.url, status: "playing", time: 0 }));
+                        showStatus("جاري تشغيل: " + ep.name);
                     }
-                    listDiv.appendChild(item);
-                });
+                    playMedia(ep.url); 
+                    window.scrollTo({top: 0, behavior: 'smooth'}); 
+                };
 
-                groupWrapper.appendChild(header);
-                groupWrapper.appendChild(listDiv);
-                container.appendChild(groupWrapper);
+                if (isAdmin) {
+                    var delBtn = document.createElement('button');
+                    delBtn.className = "lib-control-btn single-delete-btn";
+                    delBtn.style.display = "block";
+                    delBtn.innerHTML = "✕";
+                    delBtn.onclick = function(e) { e.stopPropagation(); deleteSingleEpisode(key); };
+                    
+                    var editBtn = document.createElement('button');
+                    editBtn.className = "lib-control-btn single-edit-btn";
+                    editBtn.style.display = "block";
+                    editBtn.innerHTML = "✏️";
+                    editBtn.onclick = function(e) { e.stopPropagation(); editSingleEpisode(key, ep.name, ep.url); };
+
+                    item.appendChild(editBtn);
+                    item.appendChild(nameBox);
+                    item.appendChild(delBtn);
+                } else {
+                    item.appendChild(nameBox);
+                }
+                container.appendChild(item);
             });
-        }
-
-        function addGroup() {
-            var name = document.getElementById('groupNameInput').value.trim();
-            if (!name) return;
-            var xhr = new XMLHttpRequest();
-            xhr.open("POST", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/groups.json", true);
-            xhr.onload = function() { document.getElementById('groupNameInput').value = ""; loadStream(); };
-            xhr.send(JSON.stringify({ name: name }));
-        }
-
-        function moveEpisode(key) {
-            var gSelect = document.getElementById('groupSelect');
-            var options = "";
-            for(var i=0; i<gSelect.options.length; i++) {
-                options += (i+1) + "- " + gSelect.options[i].text + "\n";
-            }
-            var choice = prompt("اختر رقم المجموعة للنقل إليها:\n" + options);
-            if(choice && gSelect.options[choice-1]) {
-                var newGroupId = gSelect.options[choice-1].value;
-                var xhr = new XMLHttpRequest();
-                xhr.open("PATCH", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library/" + key + ".json", true);
-                xhr.onload = function() { showStatus("تم النقل ✅"); loadStream(); };
-                xhr.send(JSON.stringify({ groupId: newGroupId }));
-            }
         }
 
         function editSingleEpisode(key, oldName, oldUrl) {
@@ -393,7 +272,7 @@
             var lib = document.getElementById('librarySection');
             if (isAdmin || !isSyncEnabled) {
                 lib.style.display = "block";
-                renderLibrary(data.library, data.groups);
+                renderLibrary(data.library);
             } else {
                 lib.style.display = "none";
             }
@@ -442,13 +321,7 @@
         function addEpisode() {
             var name = document.getElementById('epNameInput').value.trim();
             var url = document.getElementById('epUrlInput').value.trim();
-            var gid = document.getElementById('groupSelect').value;
             if (!name || !url) return;
-            
-            // تحديث الذاكرة فوراً قبل الإرسال
-            if(gid) openFolders[gid] = true;
-            else openFolders["main"] = true;
-
             var xhr = new XMLHttpRequest();
             xhr.open("POST", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library.json", true);
             xhr.onload = function() {
@@ -457,7 +330,7 @@
                 showStatus("تمت إضافة: " + name);
                 loadStream();
             };
-            xhr.send(JSON.stringify({ name: name, url: url, groupId: gid }));
+            xhr.send(JSON.stringify({ name: name, url: url }));
         }
 
         function updateDatabaseState() {
@@ -507,11 +380,9 @@
 
         function showStatus(msg) {
             var status = document.getElementById('statusText');
-            if(status) {
-                status.innerText = msg;
-                status.style.display = "block";
-                setTimeout(function() { status.style.display = "none"; }, 3000);
-            }
+            status.innerText = msg;
+            status.style.display = "block";
+            setTimeout(function() { status.style.display = "none"; }, 3000);
         }
 
         window.onload = function() {
