@@ -211,9 +211,16 @@
             xhr.send();
         }
 
-        // تحسين دالة التشغيل لتجاوز قيود المتصفح
+        // تم التعديل هنا: تنظيف الشاشة فوراً عند حذف الرابط
         function playMedia(url) {
-            if (!url) { videoElement.src = ""; if (hls) hls.destroy(); lastUrl = ""; return; }
+            if (!url || url.trim() === "") { 
+                videoElement.src = ""; 
+                videoElement.removeAttribute("src");
+                if (hls) { hls.destroy(); hls = new Hls(); }
+                videoElement.load(); // يمسح آخر صورة ظاهرة
+                lastUrl = ""; 
+                return; 
+            }
             if (url === lastUrl) return;
             lastUrl = url;
             if (Hls.isSupported() && (url.includes('m3u8') || url.includes('.ts'))) {
@@ -221,13 +228,11 @@
                 hls.loadSource(url); hls.attachMedia(videoElement);
             } else { videoElement.src = url; }
             
-            // محاولة التشغيل، وإذا فشل (بسبب كتم الصوت) يتم تشغيله صامتاً
             var playPromise = videoElement.play();
             if (playPromise !== undefined) {
                 playPromise.catch(function(error) {
                     videoElement.muted = true;
                     videoElement.play();
-                    showStatus("اضغط على السماعة لتفعيل الصوت 🔊");
                 });
             }
         }
@@ -374,7 +379,6 @@
             }
         }
 
-        // تحسين المزامنة لتكون أدق وأسرع
         function syncPlayer(data) {
             if (!data) return;
             isSyncEnabled = data.syncEnabled !== false; 
@@ -390,11 +394,9 @@
             if (isSyncEnabled && !isAdmin) {
                 if (data.url !== lastUrl) playMedia(data.url);
                 
-                // مزامنة الوقت إذا كان الفارق أكثر من ثانيتين لتفادي التقطيع
                 var timeDiff = Math.abs(videoElement.currentTime - data.time);
                 if (timeDiff > 2.5) videoElement.currentTime = data.time;
                 
-                // إجبار التشغيل إذا كان الأدمن يشغل الفيديو
                 if (data.status === "playing" && videoElement.paused) {
                     videoElement.play().catch(function(e){
                         videoElement.muted = true;
@@ -466,7 +468,6 @@
             xhr.send(JSON.stringify(state));
         }
 
-        // تقليل الفاصل الزمني لسرعة المزامنة (2 ثانية بدلاً من 5)
         setInterval(function() {
             updatePresence();
             if (!isAdmin) loadStream();
@@ -496,10 +497,15 @@
             }, 100);
         }
 
+        // تم التعديل هنا: استدعاء دالة المسح محلياً فور الحذف
         function deleteVideo() {
             if(confirm("حذف البث؟")) {
                 var xhr = new XMLHttpRequest();
                 xhr.open("PATCH", dbUrl, true);
+                xhr.onload = function() {
+                    playMedia(""); // يمسح الفيديو فوراً للأدمن دون انتظار السيرفر
+                    showStatus("تم حذف فيديو البث 🗑️");
+                };
                 xhr.send(JSON.stringify({ url: "", status: "paused", time: 0 }));
             }
         }
