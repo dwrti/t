@@ -274,7 +274,7 @@
                 header.className = "group-header";
                 header.innerText = (gid === "main") ? "📂 القائمة الرئيسية" : "📁 " + groupsData[gid].name;
                 
-                // إضافة الحالة المخزنة مسبقاً للهيدر
+                // استرجاع حالة السهم (فتح/إغلاق) من الذاكرة
                 if (openFolders[gid]) header.classList.add('open');
                 
                 header.onclick = function() { toggleFolder(this, gid); };
@@ -282,7 +282,7 @@
                 var listDiv = document.createElement('div');
                 listDiv.className = "ep-list";
                 
-                // استرجاع حالة القائمة (إذا كانت مفتوحة تبقى مفتوحة)
+                // استرجاع حالة القائمة (إظهار/إخفاء) من الذاكرة
                 if (openFolders[gid]) {
                     listDiv.classList.add('show');
                 }
