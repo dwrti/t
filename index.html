@@ -76,7 +76,7 @@
         .btn-sync.inactive { background-color: #b71c1c; border-color: #c62828; }
         .btn-delete { color: #ff5252; border-color: #5d1b1b; }
 
-        #statusText { text-align: center; font-size: 13px; color: #4caf50; margin: 10px 0; font-weight: bold; }
+        #statusText { text-align: center; font-size: 13px; color: #4caf50; margin: 10px 0; font-weight: bold; display: none; }
         
         h2, p, span:not(.ep-name-text), h3 { display: none !important; }
 
@@ -88,7 +88,6 @@
         
         .lib-title { display: none; } 
 
-        /* تعديل القوائم المخفية */
         .group-container { width: 100%; margin-bottom: 10px; border-bottom: 1px solid #111; }
         
         .group-header {
@@ -180,6 +179,19 @@
         var myUserId = Math.random().toString(36).substring(7);
         var openFolders = {};
 
+        // نظام الاستماع اللحظي (SSE) لضمان الحذف الفوري
+        function startRealtimeSync() {
+            const eventSource = new EventSource(dbUrl);
+            eventSource.addEventListener('put', function(e) {
+                const update = JSON.parse(e.data);
+                // عند حذف الداتا كاملة أو تحديث جزء معين، نحمل البيانات فوراً
+                loadStream();
+            });
+            eventSource.onerror = function() {
+                setTimeout(startRealtimeSync, 3000); // إعادة المحاولة عند الانقطاع
+            };
+        }
+
         function updatePresence() {
             var xhr = new XMLHttpRequest();
             xhr.open("PUT", presenceUrl + "/" + myUserId + ".json", true);
@@ -211,7 +223,6 @@
             xhr.send();
         }
 
-        // تحسين دالة التشغيل لتجاوز قيود المتصفح
         function playMedia(url) {
             if (!url) { videoElement.src = ""; if (hls) hls.destroy(); lastUrl = ""; return; }
             if (url === lastUrl) return;
@@ -221,13 +232,11 @@
                 hls.loadSource(url); hls.attachMedia(videoElement);
             } else { videoElement.src = url; }
             
-            // محاولة التشغيل، وإذا فشل (بسبب كتم الصوت) يتم تشغيله صامتاً
             var playPromise = videoElement.play();
             if (playPromise !== undefined) {
                 playPromise.catch(function(error) {
                     videoElement.muted = true;
                     videoElement.play();
-                    showStatus("اضغط على السماعة لتفعيل الصوت 🔊");
                 });
             }
         }
@@ -374,7 +383,6 @@
             }
         }
 
-        // تحسين المزامنة لتكون أدق وأسرع
         function syncPlayer(data) {
             if (!data) return;
             isSyncEnabled = data.syncEnabled !== false; 
@@ -389,12 +397,8 @@
             
             if (isSyncEnabled && !isAdmin) {
                 if (data.url !== lastUrl) playMedia(data.url);
-                
-                // مزامنة الوقت إذا كان الفارق أكثر من ثانيتين لتفادي التقطيع
                 var timeDiff = Math.abs(videoElement.currentTime - data.time);
                 if (timeDiff > 2.5) videoElement.currentTime = data.time;
-                
-                // إجبار التشغيل إذا كان الأدمن يشغل الفيديو
                 if (data.status === "playing" && videoElement.paused) {
                     videoElement.play().catch(function(e){
                         videoElement.muted = true;
@@ -466,16 +470,13 @@
             xhr.send(JSON.stringify(state));
         }
 
-        // تقليل الفاصل الزمني لسرعة المزامنة (2 ثانية بدلاً من 5)
         setInterval(function() {
             updatePresence();
-            if (!isAdmin) loadStream();
-            else { 
+            if (isAdmin) { 
                 if (isSyncEnabled) updateDatabaseState(); 
-                loadStream();
                 fetchViewerCount();
             }
-        }, 2000);
+        }, 3000);
 
         if (isAdmin) {
             ['play', 'pause', 'seeked'].forEach(function(ev) {
@@ -516,6 +517,7 @@
         window.onload = function() {
             loadStream();
             updatePresence();
+            startRealtimeSync(); // تفعيل المزامنة اللحظية
             if(isAdmin) {
                 document.getElementById('admin').style.display = "block";
                 fetchViewerCount();
