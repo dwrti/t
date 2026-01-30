@@ -64,6 +64,14 @@
             box-sizing: border-box; outline: none;
         }
 
+        /* تنسيق حقل البحث الجديد */
+        #searchInput {
+            border: 1px solid #333;
+            background: #111;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
         .btn-group { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
 
         button { 
@@ -93,7 +101,7 @@
         
         .group-header {
             width: 100%; background: #111; padding: 15px; 
-            border-radius: 8px; color: #bbbbbb; font-weight: bold; /* تم تعديل اللون ليتطابق مع المقاطع */
+            border-radius: 8px; color: #bbbbbb; font-weight: bold;
             text-align: center; cursor: pointer; display: flex; 
             justify-content: center; align-items: center;
             box-sizing: border-box; position: relative;
@@ -103,7 +111,7 @@
         .group-header.open::after { content: '▲'; }
 
         .ep-list { 
-            display: none; /* مخفية افتراضياً */
+            display: none; 
             flex-direction: column; 
             align-items: center; 
             padding: 10px 0;
@@ -164,6 +172,7 @@
         </div>
 
         <div id="librarySection">
+            <input type="text" id="searchInput" placeholder="بحث عن مقطع أو مجموعة..." onkeyup="filterLibrary()">
             <div class="lib-title">المكتبة</div> 
             <div id="episodesContainer"></div>
         </div>
@@ -178,8 +187,55 @@
         var isAdmin = window.location.hash === "#ana";
         var isSyncEnabled = true;
         var myUserId = Math.random().toString(36).substring(7);
-        // الذاكرة لأسماء المجموعات المفتوحة
         var openFolders = {};
+
+        // دالة البحث الجديدة
+        function filterLibrary() {
+            var filter = document.getElementById('searchInput').value.toLowerCase();
+            var containers = document.querySelectorAll('.group-container');
+            
+            containers.forEach(function(container) {
+                var header = container.querySelector('.group-header');
+                var items = container.querySelectorAll('.ep-item');
+                var groupVisible = false;
+                var groupName = header.innerText.toLowerCase();
+
+                // إذا كان اسم المجموعة يطابق البحث
+                if (groupName.includes(filter)) {
+                    groupVisible = true;
+                    // إظهار كل العناصر داخل هذه المجموعة
+                    items.forEach(item => item.style.display = "");
+                } else {
+                    // فحص العناصر الفردية
+                    items.forEach(function(item) {
+                        var text = item.querySelector('.ep-name-text').innerText.toLowerCase();
+                        if (text.includes(filter)) {
+                            item.style.display = "";
+                            groupVisible = true;
+                        } else {
+                            item.style.display = "none";
+                        }
+                    });
+                }
+
+                if (groupVisible) {
+                    container.style.display = "";
+                    if (filter.length > 0) {
+                        container.querySelector('.ep-list').classList.add('show');
+                        header.classList.add('open');
+                    } else {
+                        // إعادة الحالة الأصلية إذا كان البحث فارغاً
+                        var gid = header.getAttribute('data-gid');
+                        if (!openFolders[gid]) {
+                            container.querySelector('.ep-list').classList.remove('show');
+                            header.classList.remove('open');
+                        }
+                    }
+                } else {
+                    container.style.display = "none";
+                }
+            });
+        }
 
         function updatePresence() {
             var xhr = new XMLHttpRequest();
@@ -227,14 +283,11 @@
             header.classList.toggle('open');
             var list = header.nextElementSibling;
             list.classList.toggle('show');
-            // حفظ الحالة فوراً عند الضغط
             openFolders[gid] = list.classList.contains('show');
         }
 
         function renderLibrary(libData, groupsData) {
             var container = document.getElementById('episodesContainer');
-            
-            // تحديث الذاكرة الحالية من العناصر الموجودة في الصفحة قبل مسحها
             var currentHeaders = container.querySelectorAll('.group-header');
             currentHeaders.forEach(function(h) {
                 var gid = h.getAttribute('data-gid');
@@ -245,7 +298,7 @@
             
             var gSelect = document.getElementById('groupSelect');
             if(isAdmin && gSelect) {
-                var currentSelection = gSelect.value; // حفظ التحديد الحالي
+                var currentSelection = gSelect.value;
                 gSelect.innerHTML = '<option value="">بدون مجموعة (الرئيسية)</option>';
                 if(groupsData) {
                     Object.keys(groupsData).forEach(function(gk) {
@@ -254,7 +307,7 @@
                         gSelect.appendChild(opt);
                     });
                 }
-                gSelect.value = currentSelection; // إعادة التحديد
+                gSelect.value = currentSelection;
             }
 
             if (!libData) { 
@@ -284,7 +337,6 @@
                 header.setAttribute('data-gid', gid);
                 header.innerText = (gid === "main") ? "📂 القائمة الرئيسية" : "📁 " + (groupsData[gid] ? groupsData[gid].name : "مجموعة");
                 
-                // تطبيق الحالة من الذاكرة
                 if (openFolders[gid]) header.classList.add('open');
                 
                 header.onclick = function() { toggleFolder(this, gid); };
@@ -339,6 +391,8 @@
                 groupWrapper.appendChild(listDiv);
                 container.appendChild(groupWrapper);
             });
+            // إعادة تطبيق الفلتر بعد الرندر لضمان بقاء نتائج البحث
+            if(document.getElementById('searchInput').value) filterLibrary();
         }
 
         function addGroup() {
@@ -445,7 +499,6 @@
             var gid = document.getElementById('groupSelect').value;
             if (!name || !url) return;
             
-            // تحديث الذاكرة فوراً قبل الإرسال
             if(gid) openFolders[gid] = true;
             else openFolders["main"] = true;
 
