@@ -32,6 +32,7 @@
             width: 100%; 
             max-width: 800px; 
             box-shadow: 0 4px 15px rgba(0,0,0,0.8);
+            min-height: 200px; /* ضمان بقاء المساحة سوداء حتى لو حُذف الفيديو */
         }
         
         video { 
@@ -134,7 +135,7 @@
 </head>
 <body>
 
-    <div class="card" id="videoCard">
+    <div class="card" id="videoContainer">
         <video id="myPlayer" controls autoplay playsinline></video>
     </div>
 
@@ -210,34 +211,29 @@
             xhr.send();
         }
 
-        // دالة محسنة لتفريغ المشغل ومسح الوقت وكل شيء
+        // دالة تشغيل الفيديو - تم تعديلها لتفرغ الشاشة تماماً عند الحذف
         function playMedia(url) {
+            var container = document.getElementById('videoContainer');
+            
+            // إذا كان الرابط فارغاً، احذف الفيديو من الشاشة
             if (!url || url === "") { 
-                videoElement.pause();
-                if (hls) hls.destroy(); 
-                
-                // الحل الجذري: تصفير العنصر تماماً وإعادة بنائه
-                var oldPlayer = videoElement;
-                var newPlayer = document.createElement('video');
-                newPlayer.id = 'myPlayer';
-                newPlayer.controls = true;
-                newPlayer.autoplay = true;
-                newPlayer.setAttribute('playsinline', '');
-                
-                oldPlayer.parentNode.replaceChild(newPlayer, oldPlayer);
-                videoElement = newPlayer;
-                
-                // إعادة ربط أحداث الأدمن بالعنصر الجديد
+                if (hls) hls.destroy();
+                container.innerHTML = ""; // تفريغ الحاوية تماماً
+                lastUrl = ""; 
+                return; 
+            }
+
+            // إذا لم يكن هناك فيديو (بعد الحذف)، أنشئه مجدداً
+            if (!document.getElementById('myPlayer')) {
+                container.innerHTML = '<video id="myPlayer" controls autoplay playsinline></video>';
+                videoElement = document.getElementById('myPlayer');
                 if (isAdmin) {
                     ['play', 'pause', 'seeked'].forEach(function(ev) {
                         videoElement.addEventListener(ev, function() { if(isSyncEnabled) updateDatabaseState(); });
                     });
                 }
-                
-                lastUrl = ""; 
-                return; 
             }
-            
+
             if (url === lastUrl) return;
             lastUrl = url;
             if (Hls.isSupported() && (url.includes('m3u8') || url.includes('.ts'))) {
@@ -409,22 +405,20 @@
             }
             
             if (isSyncEnabled && !isAdmin) {
-                if (!data.url || data.url === "") {
-                    if (lastUrl !== "") playMedia(""); 
-                } else if (data.url !== lastUrl) {
-                    playMedia(data.url);
-                }
+                if (data.url !== lastUrl) playMedia(data.url);
                 
-                var timeDiff = Math.abs(videoElement.currentTime - data.time);
-                if (timeDiff > 2.5 && data.url !== "") videoElement.currentTime = data.time;
-                
-                if (data.status === "playing" && videoElement.paused && data.url !== "") {
-                    videoElement.play().catch(function(e){
-                        videoElement.muted = true;
-                        videoElement.play();
-                    });
-                } else if (data.status === "paused" && !videoElement.paused) {
-                    videoElement.pause();
+                if (data.url && data.url !== "") {
+                    var timeDiff = Math.abs(videoElement.currentTime - data.time);
+                    if (timeDiff > 2.5) videoElement.currentTime = data.time;
+                    
+                    if (data.status === "playing" && videoElement.paused) {
+                        videoElement.play().catch(function(e){
+                            videoElement.muted = true;
+                            videoElement.play();
+                        });
+                    } else if (data.status === "paused" && !videoElement.paused) {
+                        videoElement.pause();
+                    }
                 }
             }
         }
@@ -482,7 +476,7 @@
         }
 
         function updateDatabaseState() {
-            if (!isAdmin || !isSyncEnabled || lastUrl === "") return;
+            if (!isAdmin || !isSyncEnabled || !videoElement) return;
             var xhr = new XMLHttpRequest();
             xhr.open("PATCH", dbUrl, true);
             var state = { status: videoElement.paused ? "paused" : "playing", time: videoElement.currentTime };
@@ -499,7 +493,7 @@
             }
         }, 2000);
 
-        if (isAdmin) {
+        if (isAdmin && videoElement) {
             ['play', 'pause', 'seeked'].forEach(function(ev) {
                 videoElement.addEventListener(ev, function() { if(isSyncEnabled) updateDatabaseState(); });
             });
@@ -519,12 +513,11 @@
         }
 
         function deleteVideo() {
-            if(confirm("حذف البث وتصفير المشغل بالكامل؟")) {
+            if(confirm("حذف الفيديو وتفريغ الشاشة؟")) {
                 var xhr = new XMLHttpRequest();
                 xhr.open("PATCH", dbUrl, true);
                 xhr.onload = function() {
-                    playMedia(""); // تصفير شامل وفوري
-                    showStatus("تم التصفير بالكامل ✅");
+                    playMedia(""); // تفريغ الشاشة للأدمن فوراً
                 };
                 xhr.send(JSON.stringify({ url: "", status: "paused", time: 0 }));
             }
