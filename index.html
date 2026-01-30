@@ -2,139 +2,169 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Live</title>
-    
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>مشغل السينما المتزامن</title>
     <style>
-        body, html { 
-            margin: 0; padding: 0; width: 100%; height: 100%; 
-            background-color: #050505; color: #fff;
-            display: flex;
-            flex-direction: column;
-            justify-content: center; 
-            align-items: center;    
-            overflow: hidden;
+        :root { 
+            --ios-blue: #0A84FF; --ios-bg: #000000; --ios-card: #1C1C1E; 
+            --ios-text: #FFFFFF; --ios-gray: #2C2C2E; --ios-red: #FF453A;
         }
-
-        .card { 
-            background: #111; 
-            padding: 10px; 
-            border-radius: 12px; 
-            box-shadow: 0 4px 25px rgba(0,0,0,0.7); 
-            width: 95%; 
-            max-width: 650px; 
-            box-sizing: border-box;
-            border: 1px solid #222;
-        }
-        
-        video { 
-            width: 100%; 
-            border-radius: 8px; 
-            background: #000; 
-            aspect-ratio: 16/9;
-            display: block;
-        }
-
-        #admin { 
-            display: none; 
-            width: 95%;
-            max-width: 650px;
-            margin-top: 15px;
-        }
-        
-        input { 
-            width: 100%; 
-            padding: 12px; 
-            margin: 5px 0; 
-            border: 1px solid #333; 
-            border-radius: 8px; 
-            font-size: 16px; 
-            background: #1a1a1a;
-            color: #fff;
-            box-sizing: border-box;
-            text-align: center;
-        }
-        
-        /* تم تعديل لون الزر هنا ليكون داكن */
-        button { 
-            width: 100%;
-            padding: 12px; 
-            background-color: #222; 
-            color: #555;
-            border: 1px solid #333; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            height: 45px;
-        }
-
-        h2, p, span, h3 { display: none !important; }
+        body { font-family: -apple-system, system-ui, sans-serif; background: var(--ios-bg); color: var(--ios-text); margin: 0; padding: 0; }
+        .video-box { width: 100%; background: #000; position: sticky; top: 0; z-index: 1000; border-bottom: 1px solid var(--ios-gray); }
+        video { width: 100%; max-height: 230px; outline: none; }
+        .content { padding: 15px; max-width: 500px; margin: auto; }
+        .status { font-size: 11px; background: var(--ios-gray); color: #32D74B; padding: 5px 12px; border-radius: 20px; display: inline-block; margin-bottom: 15px; }
+        .card { background: var(--ios-card); border-radius: 14px; padding: 18px; margin-bottom: 15px; }
+        h3 { margin-top: 0; font-size: 17px; display: flex; align-items: center; gap: 8px; }
+        input { width: 100%; padding: 12px; border: 1px solid #3A3A3C; border-radius: 10px; margin: 5px 0 10px 0; box-sizing: border-box; font-size: 16px; background: #2C2C2E; color: white; outline: none; }
+        button { width: 100%; padding: 14px; border: none; border-radius: 12px; font-weight: 600; font-size: 16px; cursor: pointer; transition: 0.2s; }
+        .btn-green { background: #32D74B; color: black; margin-top: 5px; }
+        .playlist-item { border-bottom: 0.5px solid #38383A; padding: 14px 5px; display: flex; justify-content: space-between; align-items: center; }
+        .video-info { flex-grow: 1; cursor: pointer; color: var(--ios-blue); font-size: 14px; text-align: right; }
+        .delete-btn { color: var(--ios-red); padding: 5px 10px; font-size: 18px; cursor: pointer; border: none; background: none; }
     </style>
 </head>
 <body>
 
-    <div class="card">
-        <video id="myPlayer" controls autoplay playsinline></video>
+    <div class="video-box">
+        <video id="mainVideo" controls autoplay muted playsinline crossorigin="anonymous"></video>
     </div>
 
-    <div id="admin">
-        <input type="text" id="urlInput" placeholder="...">
-        <button onclick="updateData()"></button>
+    <div class="content">
+        <div id="status" class="status">متصل بالخادم 🟢</div>
+        <div id="adminPanel" class="card" style="display:none;">
+            <h3>➕ إضافة فيديو (أدمن)</h3>
+            <input type="text" id="videoName" placeholder="اسم المقطع">
+            <input type="text" id="videoUrl" placeholder="رابط mp4 مباشر">
+            <button class="btn-green" onclick="addVideo()">حفظ في القائمة</button>
+        </div>
+        <div class="card">
+            <h3>📺 قائمة التشغيل</h3>
+            <div id="playlistContainer"></div>
+        </div>
     </div>
 
-    <script>
-        var videoElement = document.getElementById('myPlayer');
-        var hls = new Hls();
-        var dbUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream.json";
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, set, onValue, push, remove, get, onDisconnect } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-        function playMedia(url) {
-            if (!url) return;
-            if (Hls.isSupported() && url.includes('m3u8')) {
-                hls.destroy();
-                hls = new Hls();
-                hls.loadSource(url);
-                hls.attachMedia(videoElement);
-                hls.on(Hls.Events.MANIFEST_PARSED, function() {
-                    videoElement.play().catch(function(e){});
-                });
-            } else {
-                videoElement.src = url;
-                videoElement.play().catch(function(e){});
-            }
+        const firebaseConfig = {
+            apiKey: "AIzaSyCti-23NWF1huMJTMPVaZ-aenF-R5WqaAo",
+            authDomain: "axnt-4c959.firebaseapp.com",
+            databaseURL: "https://axnt-4c959-default-rtdb.firebaseio.com",
+            projectId: "axnt-4c959",
+            storageBucket: "axnt-4c959.firebasestorage.app",
+            messagingSenderId: "129633921633",
+            appId: "1:129633921633:web:27afeed43d41da2a4e9820"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const video = document.getElementById('mainVideo');
+        const syncRef = ref(db, 'cinema/sync');
+        const listRef = ref(db, 'cinema/playlist');
+        const adminStatusRef = ref(db, 'cinema/admin_active');
+
+        let isAdmin = window.location.href.includes('ana');
+        let isInternalUpdate = false;
+        let isAdmOnline = false;
+
+        if (isAdmin) {
+            document.getElementById('adminPanel').style.display = 'block';
+            set(adminStatusRef, true);
+            onDisconnect(adminStatusRef).remove();
         }
 
-        function loadStream() {
-            var xhr = new XMLHttpRequest();
-            xhr.open("GET", dbUrl, true);
-            xhr.onload = function () {
-                if (xhr.status === 200) {
-                    var data = JSON.parse(xhr.responseText);
-                    if (data && data.url) {
-                        playMedia(data.url);
+        onValue(adminStatusRef, (s) => { isAdmOnline = s.exists(); });
+
+        window.addVideo = () => {
+            const name = document.getElementById('videoName').value || "فيديو غير مسمى";
+            const url = document.getElementById('videoUrl').value;
+            if(!url) return;
+            push(listRef, { url: url.replace('download=true', 'download=false'), title: name });
+            document.getElementById('videoUrl').value = "";
+            document.getElementById('videoName').value = "";
+        };
+
+        window.deleteItem = async (id) => {
+            if(confirm("حذف المقطع؟")) {
+                const itemRef = ref(db, `cinema/playlist/${id}`);
+                const snapshot = await get(itemRef);
+                if (snapshot.exists()) {
+                    const deletedUrl = snapshot.val().url;
+                    // إذا كان الفيديو المحذوف هو نفسه الذي يعمل الآن، نحذفه من شاشة الجميع
+                    if (video.src === deletedUrl) {
+                        set(syncRef, { url: "", time: 0, playing: false, trigger: Date.now() });
                     }
                 }
-            };
-            xhr.send();
-        }
-
-        function updateData() {
-            var val = document.getElementById('urlInput').value.trim();
-            if (!val) return;
-            var xhr = new XMLHttpRequest();
-            xhr.open("PUT", dbUrl, true);
-            xhr.onload = function () {
-                loadStream();
-            };
-            xhr.send(JSON.stringify({ url: val }));
-        }
-
-        window.onload = function() {
-            loadStream();
-            if(window.location.hash === "#ana") {
-                document.getElementById('admin').style.display = "block";
+                remove(itemRef);
             }
         };
+
+        window.playThis = (url) => {
+            if (isAdmin || !isAdmOnline) {
+                set(syncRef, { url: url, time: 0, playing: true, trigger: Date.now() });
+            }
+        };
+
+        onValue(listRef, (snap) => {
+            const container = document.getElementById('playlistContainer');
+            container.innerHTML = "";
+            snap.forEach(child => {
+                const item = child.val();
+                const div = document.createElement('div');
+                div.className = 'playlist-item';
+                div.innerHTML = `
+                    <div class="video-info" onclick="playThis('${item.url}')">🎬 ${item.title}</div>
+                    ${isAdmin ? `<button class="delete-btn" onclick="deleteItem('${child.key}')">🗑️</button>` : ''}
+                `;
+                container.appendChild(div);
+            });
+        });
+
+        const syncData = (evType) => {
+            if (isInternalUpdate) return;
+            if (isAdmin || !isAdmOnline) {
+                set(syncRef, {
+                    url: video.src,
+                    time: video.currentTime,
+                    playing: evType === 'seeking' ? true : !video.paused,
+                    trigger: Date.now()
+                });
+            }
+        };
+
+        ['play', 'pause', 'seeking'].forEach(ev => {
+            video.addEventListener(ev, () => syncData(ev));
+        });
+
+        setInterval(() => {
+            if (isAdmin && !video.paused && video.src) syncData('sync');
+        }, 3000);
+
+        onValue(syncRef, (snap) => {
+            const data = snap.val();
+            if (!data || isInternalUpdate) {
+                if (!data?.url) { video.src = ""; video.load(); }
+                return;
+            }
+
+            isInternalUpdate = true;
+            if (video.src !== data.url) {
+                video.src = data.url;
+                video.load();
+            }
+
+            const latency = (Date.now() - data.trigger) / 1000;
+            const correctedTime = data.playing ? data.time + latency : data.time;
+
+            if (Math.abs(video.currentTime - correctedTime) > 1.5) {
+                video.currentTime = correctedTime;
+            }
+
+            data.playing ? video.play().catch(() => {}) : video.pause();
+            setTimeout(() => { isInternalUpdate = false; }, 200);
+        });
     </script>
 </body>
 </html>
