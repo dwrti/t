@@ -88,6 +88,7 @@
         
         .lib-title { display: none; } 
 
+        /* تعديل القوائم المخفية */
         .group-container { width: 100%; margin-bottom: 10px; border-bottom: 1px solid #111; }
         
         .group-header {
@@ -179,17 +180,6 @@
         var myUserId = Math.random().toString(36).substring(7);
         var openFolders = {};
 
-        // --- دالة تفعيل الشاشة الكاملة ---
-        function openFullscreen() {
-            if (videoElement.requestFullscreen) {
-                videoElement.requestFullscreen();
-            } else if (videoElement.webkitRequestFullscreen) { /* Safari / iPhone */
-                videoElement.webkitRequestFullscreen();
-            } else if (videoElement.msRequestFullscreen) { /* IE11 */
-                videoElement.msRequestFullscreen();
-            }
-        }
-
         function updatePresence() {
             var xhr = new XMLHttpRequest();
             xhr.open("PUT", presenceUrl + "/" + myUserId + ".json", true);
@@ -221,6 +211,7 @@
             xhr.send();
         }
 
+        // تحسين دالة التشغيل لتجاوز قيود المتصفح
         function playMedia(url) {
             if (!url) { videoElement.src = ""; if (hls) hls.destroy(); lastUrl = ""; return; }
             if (url === lastUrl) return;
@@ -230,15 +221,13 @@
                 hls.loadSource(url); hls.attachMedia(videoElement);
             } else { videoElement.src = url; }
             
+            // محاولة التشغيل، وإذا فشل (بسبب كتم الصوت) يتم تشغيله صامتاً
             var playPromise = videoElement.play();
             if (playPromise !== undefined) {
-                playPromise.then(function() {
-                    // تشغيل الشاشة الكاملة بمجرد بدء المقطع
-                    openFullscreen();
-                }).catch(function(error) {
+                playPromise.catch(function(error) {
                     videoElement.muted = true;
                     videoElement.play();
-                    showStatus("اضغط لتفعيل الصوت والشاشة الكاملة 🔊");
+                    showStatus("اضغط على السماعة لتفعيل الصوت 🔊");
                 });
             }
         }
@@ -385,6 +374,7 @@
             }
         }
 
+        // تحسين المزامنة لتكون أدق وأسرع
         function syncPlayer(data) {
             if (!data) return;
             isSyncEnabled = data.syncEnabled !== false; 
@@ -400,11 +390,13 @@
             if (isSyncEnabled && !isAdmin) {
                 if (data.url !== lastUrl) playMedia(data.url);
                 
+                // مزامنة الوقت إذا كان الفارق أكثر من ثانيتين لتفادي التقطيع
                 var timeDiff = Math.abs(videoElement.currentTime - data.time);
                 if (timeDiff > 2.5) videoElement.currentTime = data.time;
                 
+                // إجبار التشغيل إذا كان الأدمن يشغل الفيديو
                 if (data.status === "playing" && videoElement.paused) {
-                    videoElement.play().then(function(){ openFullscreen(); }).catch(function(e){
+                    videoElement.play().catch(function(e){
                         videoElement.muted = true;
                         videoElement.play();
                     });
@@ -474,6 +466,7 @@
             xhr.send(JSON.stringify(state));
         }
 
+        // تقليل الفاصل الزمني لسرعة المزامنة (2 ثانية بدلاً من 5)
         setInterval(function() {
             updatePresence();
             if (!isAdmin) loadStream();
@@ -499,8 +492,6 @@
                     xhr.send(JSON.stringify({ url: val, status: "playing", time: 0 }));
                     document.getElementById('urlInput').value = ''; 
                     showStatus("تم التحديث ✅");
-                    // تفعيل الشاشة الكاملة للأدمن عند اللصق
-                    playMedia(val);
                 }
             }, 100);
         }
@@ -521,13 +512,6 @@
                 setTimeout(function() { status.style.display = "none"; }, 3000);
             }
         }
-
-        // --- مستمع لتفعيل الشاشة الكاملة عند أول تفاعل للمشاهد ---
-        document.addEventListener('click', function() {
-            if (videoElement.src || (hls && hls.url)) {
-                openFullscreen();
-            }
-        }, { once: true });
 
         window.onload = function() {
             loadStream();
