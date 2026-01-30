@@ -272,9 +272,9 @@
 
                 var header = document.createElement('div');
                 header.className = "group-header";
-                header.innerText = (gid === "main") ? "📂 القائمة الرئيسية" : "📁 " + (groupsData[gid] ? groupsData[gid].name : "مجموعة غير معروفة");
+                header.innerText = (gid === "main") ? "📂 القائمة الرئيسية" : "📁 " + groupsData[gid].name;
                 
-                // إضافة الحالة المخزنة مسبقاً للهيدر
+                // استعادة شكل السهم بناءً على الحالة المحفوظة
                 if (openFolders[gid]) header.classList.add('open');
                 
                 header.onclick = function() { toggleFolder(this, gid); };
@@ -282,7 +282,7 @@
                 var listDiv = document.createElement('div');
                 listDiv.className = "ep-list";
                 
-                // استرجاع حالة القائمة (إذا كانت مفتوحة تبقى مفتوحة)
+                // استعادة حالة العرض (إذا كانت مفتوحة تبقى مفتوحة)
                 if (openFolders[gid]) {
                     listDiv.classList.add('show');
                 }
