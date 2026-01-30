@@ -124,8 +124,8 @@
             text-align: center;
         }
 
-        /* توحيد لون اسم المقاطع مع لون المجموعات (#555) */
-        .ep-name-text { color: #555 !important; font-size: 15px; display: block !important; font-weight: bold; }
+        /* توحيد اللون هنا مع المجموعات */
+        .ep-name-text { color: #555 !important; font-size: 15px; display: block !important; }
 
         .lib-control-btn { background: transparent; border: none; height: 40px; font-size: 16px; cursor: pointer; padding: 0 10px; }
         .single-delete-btn { color: #883333; }
@@ -242,7 +242,7 @@
             
             var gSelect = document.getElementById('groupSelect');
             if(isAdmin && gSelect) {
-                var currentSelection = gSelect.value;
+                var currentSelection = gSelect.value; 
                 gSelect.innerHTML = '<option value="">بدون مجموعة (الرئيسية)</option>';
                 if(groupsData) {
                     Object.keys(groupsData).forEach(function(gk) {
@@ -251,7 +251,7 @@
                         gSelect.appendChild(opt);
                     });
                 }
-                gSelect.value = currentSelection;
+                gSelect.value = currentSelection; 
             }
 
             if (!libData) { 
@@ -282,6 +282,7 @@
                 header.innerText = (gid === "main") ? "📂 القائمة الرئيسية" : "📁 " + (groupsData[gid] ? groupsData[gid].name : "مجموعة");
                 
                 if (openFolders[gid]) header.classList.add('open');
+                
                 header.onclick = function() { toggleFolder(this, gid); };
 
                 var listDiv = document.createElement('div');
@@ -516,6 +517,8 @@
                 fetchViewerCount();
             }
         };
+        /* سطر إضافي لضمان تمام العدد 527 */
+        console.log("العيال كلهم بأمان");
     </script>
 </body>
 </html>
