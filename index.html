@@ -211,14 +211,14 @@
             xhr.send();
         }
 
-        // تم التعديل هنا: تنظيف الشاشة فوراً عند حذف الرابط
+        // تم التعديل هنا لمسح الصورة فور حذف الرابط
         function playMedia(url) {
             if (!url || url.trim() === "") { 
+                lastUrl = "";
                 videoElement.src = ""; 
-                videoElement.removeAttribute("src");
+                videoElement.removeAttribute("src"); 
                 if (hls) { hls.destroy(); hls = new Hls(); }
-                videoElement.load(); // يمسح آخر صورة ظاهرة
-                lastUrl = ""; 
+                videoElement.load(); // يفرغ الذاكرة المؤقتة للصورة
                 return; 
             }
             if (url === lastUrl) return;
@@ -497,15 +497,12 @@
             }, 100);
         }
 
-        // تم التعديل هنا: استدعاء دالة المسح محلياً فور الحذف
+        // تم التعديل هنا لضمان الحذف الفوري للصورة
         function deleteVideo() {
             if(confirm("حذف البث؟")) {
+                playMedia(""); // يمسح الصورة فوراً عند الأدمن
                 var xhr = new XMLHttpRequest();
                 xhr.open("PATCH", dbUrl, true);
-                xhr.onload = function() {
-                    playMedia(""); // يمسح الفيديو فوراً للأدمن دون انتظار السيرفر
-                    showStatus("تم حذف فيديو البث 🗑️");
-                };
                 xhr.send(JSON.stringify({ url: "", status: "paused", time: 0 }));
             }
         }
