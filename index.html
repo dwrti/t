@@ -88,7 +88,6 @@
         
         .lib-title { display: none; } 
 
-        /* تعديل القوائم المخفية */
         .group-container { width: 100%; margin-bottom: 10px; border-bottom: 1px solid #111; }
         
         .group-header {
@@ -135,7 +134,7 @@
 </head>
 <body>
 
-    <div class="card">
+    <div class="card" id="videoCard">
         <video id="myPlayer" controls autoplay playsinline></video>
     </div>
 
@@ -211,18 +210,34 @@
             xhr.send();
         }
 
-        // تحسين دالة التشغيل لتفريغ الشاشة حرفياً عند الحذف
+        // دالة محسنة لتفريغ المشغل ومسح الوقت وكل شيء
         function playMedia(url) {
-            // إذا كان الرابط فارغاً، فرغ المشغل تماماً
             if (!url || url === "") { 
                 videoElement.pause();
-                videoElement.removeAttribute('src'); // إزالة المصدر
-                videoElement.load(); // إعادة تحميل العنصر لتفريغ الذاكرة المرئية
                 if (hls) hls.destroy(); 
+                
+                // الحل الجذري: تصفير العنصر تماماً وإعادة بنائه
+                var oldPlayer = videoElement;
+                var newPlayer = document.createElement('video');
+                newPlayer.id = 'myPlayer';
+                newPlayer.controls = true;
+                newPlayer.autoplay = true;
+                newPlayer.setAttribute('playsinline', '');
+                
+                oldPlayer.parentNode.replaceChild(newPlayer, oldPlayer);
+                videoElement = newPlayer;
+                
+                // إعادة ربط أحداث الأدمن بالعنصر الجديد
+                if (isAdmin) {
+                    ['play', 'pause', 'seeked'].forEach(function(ev) {
+                        videoElement.addEventListener(ev, function() { if(isSyncEnabled) updateDatabaseState(); });
+                    });
+                }
+                
                 lastUrl = ""; 
                 return; 
             }
-
+            
             if (url === lastUrl) return;
             lastUrl = url;
             if (Hls.isSupported() && (url.includes('m3u8') || url.includes('.ts'))) {
@@ -235,7 +250,6 @@
                 playPromise.catch(function(error) {
                     videoElement.muted = true;
                     videoElement.play();
-                    showStatus("اضغط على السماعة لتفعيل الصوت 🔊");
                 });
             }
         }
@@ -395,7 +409,6 @@
             }
             
             if (isSyncEnabled && !isAdmin) {
-                // إذا كان الرابط في السيرفر فارغاً، فرغ الشاشة فوراً
                 if (!data.url || data.url === "") {
                     if (lastUrl !== "") playMedia(""); 
                 } else if (data.url !== lastUrl) {
@@ -506,12 +519,12 @@
         }
 
         function deleteVideo() {
-            if(confirm("حذف البث وتفريغ الشاشة؟")) {
+            if(confirm("حذف البث وتصفير المشغل بالكامل؟")) {
                 var xhr = new XMLHttpRequest();
                 xhr.open("PATCH", dbUrl, true);
                 xhr.onload = function() {
-                    playMedia(""); // تفريغ فوري للأدمن
-                    showStatus("تم الحذف والتفريغ ✅");
+                    playMedia(""); // تصفير شامل وفوري
+                    showStatus("تم التصفير بالكامل ✅");
                 };
                 xhr.send(JSON.stringify({ url: "", status: "paused", time: 0 }));
             }
