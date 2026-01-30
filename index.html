@@ -180,34 +180,6 @@
         var myUserId = Math.random().toString(36).substring(7);
         var openFolders = {};
 
-        // --- نظام الاستماع اللحظي الجديد ---
-        var eventSource = new EventSource(dbUrl);
-        eventSource.addEventListener('put', function(e) {
-            var response = JSON.parse(e.data);
-            // Firebase SSE يعيد البيانات في response.data
-            if (response && response.data !== undefined) {
-                // إذا كان التحديث لكامل الكائن أو جزء منه
-                if (response.path === "/") {
-                    syncPlayer(response.data);
-                } else {
-                    // في حال تحديث جزئي، نطلب البيانات كاملة لضمان استقرار الواجهة
-                    loadStreamOnce();
-                }
-            }
-        });
-
-        function loadStreamOnce() {
-            var xhr = new XMLHttpRequest();
-            xhr.open("GET", dbUrl, true);
-            xhr.onload = function () {
-                if (xhr.status === 200) {
-                    syncPlayer(JSON.parse(xhr.responseText));
-                }
-            };
-            xhr.send();
-        }
-        // --------------------------------
-
         function updatePresence() {
             var xhr = new XMLHttpRequest();
             xhr.open("PUT", presenceUrl + "/" + myUserId + ".json", true);
@@ -239,6 +211,7 @@
             xhr.send();
         }
 
+        // تحسين دالة التشغيل لتجاوز قيود المتصفح
         function playMedia(url) {
             if (!url) { videoElement.src = ""; if (hls) hls.destroy(); lastUrl = ""; return; }
             if (url === lastUrl) return;
@@ -248,6 +221,7 @@
                 hls.loadSource(url); hls.attachMedia(videoElement);
             } else { videoElement.src = url; }
             
+            // محاولة التشغيل، وإذا فشل (بسبب كتم الصوت) يتم تشغيله صامتاً
             var playPromise = videoElement.play();
             if (playPromise !== undefined) {
                 playPromise.catch(function(error) {
@@ -360,7 +334,7 @@
             if (!name) return;
             var xhr = new XMLHttpRequest();
             xhr.open("POST", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/groups.json", true);
-            xhr.onload = function() { document.getElementById('groupNameInput').value = ""; };
+            xhr.onload = function() { document.getElementById('groupNameInput').value = ""; loadStream(); };
             xhr.send(JSON.stringify({ name: name }));
         }
 
@@ -375,7 +349,7 @@
                 var newGroupId = gSelect.options[choice-1].value;
                 var xhr = new XMLHttpRequest();
                 xhr.open("PATCH", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library/" + key + ".json", true);
-                xhr.onload = function() { showStatus("تم النقل ✅"); };
+                xhr.onload = function() { showStatus("تم النقل ✅"); loadStream(); };
                 xhr.send(JSON.stringify({ groupId: newGroupId }));
             }
         }
@@ -387,7 +361,7 @@
             if (newUrl === null) return;
             var xhr = new XMLHttpRequest();
             xhr.open("PATCH", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library/" + key + ".json", true);
-            xhr.onload = function() { showStatus("تم التعديل ✅"); };
+            xhr.onload = function() { showStatus("تم التعديل ✅"); loadStream(); };
             xhr.send(JSON.stringify({ name: newName, url: newUrl }));
         }
 
@@ -395,36 +369,53 @@
             if(confirm("حذف هذه الحلقة؟")) {
                 var xhr = new XMLHttpRequest();
                 xhr.open("DELETE", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library/" + key + ".json", true);
-                xhr.onload = function() { showStatus("تم الحذف"); };
+                xhr.onload = function() { showStatus("تم الحذف"); loadStream(); };
                 xhr.send();
             }
         }
 
+        // تحسين المزامنة لتكون أدق وأسرع
         function syncPlayer(data) {
             if (!data) return;
             isSyncEnabled = data.syncEnabled !== false; 
             updateSyncButtonUI();
             var lib = document.getElementById('librarySection');
-            
-            // تحديث المكتبة دائماً عند حدوث تغيير
-            renderLibrary(data.library, data.groups);
-            
             if (isAdmin || !isSyncEnabled) {
                 lib.style.display = "block";
+                renderLibrary(data.library, data.groups);
             } else {
                 lib.style.display = "none";
             }
             
             if (isSyncEnabled && !isAdmin) {
                 if (data.url !== lastUrl) playMedia(data.url);
+                
+                // مزامنة الوقت إذا كان الفارق أكثر من ثانيتين لتفادي التقطيع
                 var timeDiff = Math.abs(videoElement.currentTime - data.time);
                 if (timeDiff > 2.5) videoElement.currentTime = data.time;
+                
+                // إجبار التشغيل إذا كان الأدمن يشغل الفيديو
                 if (data.status === "playing" && videoElement.paused) {
-                    videoElement.play().catch(function(e){ videoElement.muted = true; videoElement.play(); });
+                    videoElement.play().catch(function(e){
+                        videoElement.muted = true;
+                        videoElement.play();
+                    });
                 } else if (data.status === "paused" && !videoElement.paused) {
                     videoElement.pause();
                 }
             }
+        }
+
+        function loadStream() {
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", dbUrl, true);
+            xhr.onload = function () {
+                if (xhr.status === 200) {
+                    var data = JSON.parse(xhr.responseText);
+                    syncPlayer(data);
+                }
+            };
+            xhr.send();
         }
 
         function toggleSync() {
@@ -433,6 +424,7 @@
             var xhr = new XMLHttpRequest();
             xhr.open("PATCH", dbUrl, true);
             xhr.send(JSON.stringify({ syncEnabled: isSyncEnabled }));
+            updateSyncButtonUI();
         }
 
         function updateSyncButtonUI() {
@@ -461,6 +453,7 @@
                 document.getElementById('epNameInput').value = "";
                 document.getElementById('epUrlInput').value = "";
                 showStatus("تمت إضافة: " + name);
+                loadStream();
             };
             xhr.send(JSON.stringify({ name: name, url: url, groupId: gid }));
         }
@@ -473,14 +466,16 @@
             xhr.send(JSON.stringify(state));
         }
 
-        // المزامنة الدورية فقط للتواجد (Presence) وحالة المشغل للأدمن
+        // تقليل الفاصل الزمني لسرعة المزامنة (2 ثانية بدلاً من 5)
         setInterval(function() {
             updatePresence();
-            if (isAdmin) {
+            if (!isAdmin) loadStream();
+            else { 
                 if (isSyncEnabled) updateDatabaseState(); 
+                loadStream();
                 fetchViewerCount();
             }
-        }, 3000);
+        }, 2000);
 
         if (isAdmin) {
             ['play', 'pause', 'seeked'].forEach(function(ev) {
@@ -519,7 +514,7 @@
         }
 
         window.onload = function() {
-            loadStreamOnce();
+            loadStream();
             updatePresence();
             if(isAdmin) {
                 document.getElementById('admin').style.display = "block";
