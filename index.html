@@ -88,47 +88,47 @@
         
         .lib-title { font-size: 17px; margin-bottom: 15px; text-align: center; color: #555; }
 
-        .ep-list { display: flex; flex-direction: column; align-items: center; }
+        /* تعديل القوائم المخفية */
+        .group-container { width: 100%; margin-bottom: 10px; border-bottom: 1px solid #111; }
+        
+        .group-header {
+            width: 100%; background: #111; padding: 15px; 
+            border-radius: 8px; color: #4caf50; font-weight: bold; 
+            text-align: right; cursor: pointer; display: flex; 
+            justify-content: space-between; align-items: center;
+            box-sizing: border-box;
+        }
+
+        .group-header::after { content: '▼'; font-size: 12px; color: #444; }
+        .group-header.open::after { content: '▲'; }
+
+        .ep-list { 
+            display: none; /* مخفية افتراضياً */
+            flex-direction: column; 
+            align-items: center; 
+            padding: 10px 0;
+        }
+
+        .ep-list.show { display: flex; }
         
         .ep-item { 
             display: flex; align-items: center; 
-            background: transparent; margin-bottom: 8px; 
-            width: 100%; border: none;
+            background: #050505; margin-bottom: 4px; 
+            width: 100%; border-radius: 5px;
         }
         
         .ep-name-clickable {
-            flex-grow: 1; padding: 15px;
+            flex-grow: 1; padding: 12px;
             cursor: pointer; -webkit-tap-highlight-color: transparent;
-            text-align: center;
+            text-align: right;
         }
 
-        .ep-name-text { color: #bbbbbb !important; font-size: 16px; display: block !important; }
+        .ep-name-text { color: #bbbbbb !important; font-size: 15px; display: block !important; }
 
         .lib-control-btn { background: transparent; border: none; height: 40px; font-size: 16px; cursor: pointer; padding: 0 10px; }
         .single-delete-btn { color: #883333; }
         .single-edit-btn { color: #338833; }
         .single-move-btn { color: #888833; }
-
-        /* ستايل المجموعات القابلة للطي */
-        .group-header {
-            width: 100%; background: #111; padding: 12px; margin: 10px 0 2px 0;
-            border-radius: 8px; color: #4caf50; font-weight: bold; text-align: right;
-            cursor: pointer; border: 1px solid #222; display: flex; justify-content: space-between;
-        }
-        .group-header::after { content: '▼'; font-size: 12px; color: #555; }
-        .group-header.active::after { content: '▲'; }
-        
-        .group-content {
-            width: 100%;
-            display: none; /* مخفية افتراضياً */
-            flex-direction: column;
-            background: #050505;
-            border-radius: 0 0 8px 8px;
-            margin-bottom: 10px;
-            border: 1px solid #111;
-            border-top: none;
-        }
-        .group-content.show { display: flex; }
         
     </style>
 </head>
@@ -163,8 +163,8 @@
         </div>
 
         <div id="librarySection">
-            <div class="lib-title">&nbsp;</div> 
-            <div id="episodesContainer" class="ep-list"></div>
+            <div class="lib-title">المكتبة</div> 
+            <div id="episodesContainer"></div>
         </div>
     </div>
 
@@ -220,6 +220,13 @@
             videoElement.play().catch(function(e){});
         }
 
+        // دالة طي القوائم
+        function toggleFolder(header) {
+            header.classList.toggle('open');
+            var list = header.nextElementSibling;
+            list.classList.toggle('show');
+        }
+
         function renderLibrary(libData, groupsData) {
             var container = document.getElementById('episodesContainer');
             container.innerHTML = "";
@@ -255,26 +262,16 @@
             Object.keys(grouped).forEach(function(gid) {
                 if (grouped[gid].length === 0 && gid !== "main") return;
                 
-                var currentContainer = container;
+                var groupWrapper = document.createElement('div');
+                groupWrapper.className = "group-container";
 
-                if (gid !== "main" && groupsData && groupsData[gid]) {
-                    var header = document.createElement('div');
-                    header.className = "group-header";
-                    header.innerText = "📁 " + groupsData[gid].name;
-                    
-                    var gContent = document.createElement('div');
-                    gContent.className = "group-content";
-                    gContent.id = "group-content-" + gid;
+                var header = document.createElement('div');
+                header.className = "group-header";
+                header.innerText = (gid === "main") ? "📂 القائمة الرئيسية" : "📁 " + groupsData[gid].name;
+                header.onclick = function() { toggleFolder(this); };
 
-                    header.onclick = function() {
-                        this.classList.toggle('active');
-                        gContent.classList.toggle('show');
-                    };
-
-                    container.appendChild(header);
-                    container.appendChild(gContent);
-                    currentContainer = gContent;
-                }
+                var listDiv = document.createElement('div');
+                listDiv.className = "ep-list";
 
                 grouped[gid].forEach(function(ep) {
                     var item = document.createElement('div');
@@ -287,7 +284,6 @@
                             var xhr = new XMLHttpRequest();
                             xhr.open("PATCH", dbUrl, true);
                             xhr.send(JSON.stringify({ url: ep.url, status: "playing", time: 0 }));
-                            showStatus("جاري تشغيل: " + ep.name);
                         }
                         playMedia(ep.url); 
                         window.scrollTo({top: 0, behavior: 'smooth'}); 
@@ -316,8 +312,12 @@
                     } else {
                         item.appendChild(nameBox);
                     }
-                    currentContainer.appendChild(item);
+                    listDiv.appendChild(item);
                 });
+
+                groupWrapper.appendChild(header);
+                groupWrapper.appendChild(listDiv);
+                container.appendChild(groupWrapper);
             });
         }
 
