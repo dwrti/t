@@ -88,7 +88,6 @@
         
         .lib-title { display: none; } 
 
-        /* تعديل القوائم المخفية */
         .group-container { width: 100%; margin-bottom: 10px; border-bottom: 1px solid #111; }
         
         .group-header {
@@ -135,7 +134,7 @@
 </head>
 <body>
 
-    <div class="card">
+    <div class="card" id="playerCard">
         <video id="myPlayer" controls autoplay playsinline></video>
     </div>
 
@@ -171,6 +170,7 @@
 
     <script>
         var videoElement = document.getElementById('myPlayer');
+        var playerCard = document.getElementById('playerCard');
         var hls = new Hls();
         var dbUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream.json";
         var presenceUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/presence";
@@ -211,7 +211,6 @@
             xhr.send();
         }
 
-        // تحسين دالة التشغيل لتجاوز قيود المتصفح
         function playMedia(url) {
             if (!url) { videoElement.src = ""; if (hls) hls.destroy(); lastUrl = ""; return; }
             if (url === lastUrl) return;
@@ -221,7 +220,6 @@
                 hls.loadSource(url); hls.attachMedia(videoElement);
             } else { videoElement.src = url; }
             
-            // محاولة التشغيل، وإذا فشل (بسبب كتم الصوت) يتم تشغيله صامتاً
             var playPromise = videoElement.play();
             if (playPromise !== undefined) {
                 playPromise.catch(function(error) {
@@ -231,6 +229,41 @@
                 });
             }
         }
+
+        // --- ميزة ملء الشاشة المتزامنة ---
+        function handleFullscreenSync(remoteIsFS) {
+            var currentFS = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
+            
+            if (remoteIsFS && !currentFS) {
+                // محاولة تكبير الشاشة عند المتابع
+                var requestMethod = videoElement.requestFullscreen || videoElement.webkitRequestFullscreen || videoElement.mozRequestFullScreen || videoElement.msRequestFullscreen;
+                if (requestMethod) {
+                    requestMethod.call(videoElement).catch(e => {
+                        console.log("Fullscreen blocked: Needs user interaction first.");
+                    });
+                }
+            } else if (!remoteIsFS && currentFS) {
+                // تصغير الشاشة عند المتابع إذا صغرها الأدمن
+                var exitMethod = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
+                if (exitMethod) exitMethod.call(document);
+            }
+        }
+
+        // مراقبة الأدمن عند تغيير حجم الشاشة لديه
+        document.addEventListener('fullscreenchange', onFSChange);
+        document.addEventListener('webkitfullscreenchange', onFSChange);
+        document.addEventListener('mozfullscreenchange', onFSChange);
+        document.addEventListener('MSFullscreenChange', onFSChange);
+
+        function onFSChange() {
+            if (isAdmin && isSyncEnabled) {
+                var isFS = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
+                var xhr = new XMLHttpRequest();
+                xhr.open("PATCH", dbUrl, true);
+                xhr.send(JSON.stringify({ isFullscreen: isFS }));
+            }
+        }
+        // ---------------------------------
 
         function toggleFolder(header, gid) {
             header.classList.toggle('open');
@@ -374,7 +407,6 @@
             }
         }
 
-        // تحسين المزامنة لتكون أدق وأسرع
         function syncPlayer(data) {
             if (!data) return;
             isSyncEnabled = data.syncEnabled !== false; 
@@ -390,11 +422,9 @@
             if (isSyncEnabled && !isAdmin) {
                 if (data.url !== lastUrl) playMedia(data.url);
                 
-                // مزامنة الوقت إذا كان الفارق أكثر من ثانيتين لتفادي التقطيع
                 var timeDiff = Math.abs(videoElement.currentTime - data.time);
                 if (timeDiff > 2.5) videoElement.currentTime = data.time;
                 
-                // إجبار التشغيل إذا كان الأدمن يشغل الفيديو
                 if (data.status === "playing" && videoElement.paused) {
                     videoElement.play().catch(function(e){
                         videoElement.muted = true;
@@ -403,6 +433,9 @@
                 } else if (data.status === "paused" && !videoElement.paused) {
                     videoElement.pause();
                 }
+
+                // تنفيذ مزامنة الشاشة الكاملة للمتابعين
+                handleFullscreenSync(!!data.isFullscreen);
             }
         }
 
@@ -460,13 +493,17 @@
 
         function updateDatabaseState() {
             if (!isAdmin || !isSyncEnabled) return;
+            var isFS = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
             var xhr = new XMLHttpRequest();
             xhr.open("PATCH", dbUrl, true);
-            var state = { status: videoElement.paused ? "paused" : "playing", time: videoElement.currentTime };
+            var state = { 
+                status: videoElement.paused ? "paused" : "playing", 
+                time: videoElement.currentTime,
+                isFullscreen: isFS
+            };
             xhr.send(JSON.stringify(state));
         }
 
-        // تقليل الفاصل الزمني لسرعة المزامنة (2 ثانية بدلاً من 5)
         setInterval(function() {
             updatePresence();
             if (!isAdmin) loadStream();
@@ -500,7 +537,7 @@
             if(confirm("حذف البث؟")) {
                 var xhr = new XMLHttpRequest();
                 xhr.open("PATCH", dbUrl, true);
-                xhr.send(JSON.stringify({ url: "", status: "paused", time: 0 }));
+                xhr.send(JSON.stringify({ url: "", status: "paused", time: 0, isFullscreen: false }));
             }
         }
 
