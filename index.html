@@ -115,6 +115,17 @@
             width: 100%; background: #111; padding: 10px; margin: 15px 0 5px 0;
             border-radius: 5px; color: #4caf50; font-weight: bold; text-align: right;
         }
+
+        /* تنسيق أزرار التحكم الجماعي */
+        .bulk-actions {
+            width: 100%; display: flex; gap: 5px; margin-bottom: 10px;
+        }
+        .bulk-btn {
+            background: #222; font-size: 12px; padding: 5px; border: 1px solid #333;
+        }
+        .ep-checkbox {
+            width: 20px; height: 20px; margin-left: 10px; cursor: pointer;
+        }
         
     </style>
 </head>
@@ -210,7 +221,6 @@
             var container = document.getElementById('episodesContainer');
             container.innerHTML = "";
             
-            // تحديث قائمة المجموعات في لوحة التحكم
             var gSelect = document.getElementById('groupSelect');
             if(isAdmin && gSelect) {
                 gSelect.innerHTML = '<option value="">بدون مجموعة (الرئيسية)</option>';
@@ -228,7 +238,6 @@
                 return; 
             }
             
-            // ترتيب الفيديوهات حسب المجموعات
             var grouped = { "main": [] };
             if(groupsData) Object.keys(groupsData).forEach(function(k){ grouped[k] = []; });
 
@@ -248,11 +257,22 @@
                     header.className = "group-header";
                     header.innerText = "📁 " + groupsData[gid].name;
                     container.appendChild(header);
+                } else if (gid === "main" && isAdmin && grouped["main"].length > 0) {
+                    // إضافة أزرار التحكم الجماعي للرئيسية فقط
+                    var bulkDiv = document.createElement('div');
+                    bulkDiv.className = "bulk-actions";
+                    bulkDiv.innerHTML = `
+                        <button class="bulk-btn" onclick="toggleSelectAll(true)">تحديد الكل</button>
+                        <button class="bulk-btn" onclick="toggleSelectAll(false)">إلغاء</button>
+                        <button class="bulk-btn" style="background:#3a3a1a" onclick="bulkMove()">نقل المحدد 📁</button>
+                    `;
+                    container.appendChild(bulkDiv);
                 }
 
                 grouped[gid].forEach(function(ep) {
                     var item = document.createElement('div');
                     item.className = "ep-item";
+
                     var nameBox = document.createElement('div');
                     nameBox.className = "ep-name-clickable";
                     nameBox.innerHTML = '<span class="ep-name-text">' + ep.name + '</span>';
@@ -268,6 +288,15 @@
                     };
 
                     if (isAdmin) {
+                        // إضافة خانة الاختيار إذا كان في الرئيسية
+                        if (gid === "main") {
+                            var chk = document.createElement('input');
+                            chk.type = "checkbox";
+                            chk.className = "ep-checkbox";
+                            chk.value = ep.id;
+                            item.appendChild(chk);
+                        }
+
                         var delBtn = document.createElement('button');
                         delBtn.className = "lib-control-btn single-delete-btn";
                         delBtn.innerHTML = "✕";
@@ -293,6 +322,39 @@
                     container.appendChild(item);
                 });
             });
+        }
+
+        // وظائف التحكم الجماعي الجديدة
+        function toggleSelectAll(status) {
+            document.querySelectorAll('.ep-checkbox').forEach(c => c.checked = status);
+        }
+
+        function bulkMove() {
+            var selected = Array.from(document.querySelectorAll('.ep-checkbox:checked')).map(c => c.value);
+            if (selected.length === 0) return alert("اختر فيديوهات أولاً");
+            
+            var gSelect = document.getElementById('groupSelect');
+            var options = "";
+            for(var i=0; i<gSelect.options.length; i++) {
+                options += (i+1) + "- " + gSelect.options[i].text + "\n";
+            }
+            var choice = prompt("نقل (" + selected.length + ") فيديو. اختر رقم المجموعة:\n" + options);
+            if(choice && gSelect.options[choice-1]) {
+                var newGroupId = gSelect.options[choice-1].value;
+                var count = 0;
+                selected.forEach(function(key) {
+                    var xhr = new XMLHttpRequest();
+                    xhr.open("PATCH", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library/" + key + ".json", true);
+                    xhr.onload = function() { 
+                        count++;
+                        if(count === selected.length) {
+                            showStatus("تم نقل " + selected.length + " فيديو بنجاح ✅");
+                            loadStream();
+                        }
+                    };
+                    xhr.send(JSON.stringify({ groupId: newGroupId }));
+                });
+            }
         }
 
         function addGroup() {
