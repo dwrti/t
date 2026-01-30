@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Live Admin Control</title>
+    <title>Live</title>
     
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     
@@ -11,83 +11,84 @@
         body, html { 
             margin: 0; padding: 0; width: 100%; height: 100%; 
             background-color: #050505; color: #fff;
-            display: flex; flex-direction: column;
-            justify-content: flex-start; align-items: center;    
-            overflow-x: hidden; overflow-y: auto; font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center; 
+            align-items: center;    
+            overflow: hidden;
         }
 
         .card { 
-            background: #111; padding: 10px; border-radius: 12px; 
+            background: #111; 
+            padding: 10px; 
+            border-radius: 12px; 
             box-shadow: 0 4px 25px rgba(0,0,0,0.7); 
-            width: 95%; max-width: 650px; box-sizing: border-box;
-            border: 1px solid #222; margin-top: 20px;
-            z-index: 10;
+            width: 95%; 
+            max-width: 650px; 
+            box-sizing: border-box;
+            border: 1px solid #222;
         }
         
-        video { width: 100%; border-radius: 8px; background: #000; aspect-ratio: 16/9; display: block; }
+        video { 
+            width: 100%; 
+            border-radius: 8px; 
+            background: #000; 
+            aspect-ratio: 16/9;
+            display: block;
+        }
 
-        #admin { display: none; width: 95%; max-width: 650px; margin-top: 15px; z-index: 10; }
+        #admin { 
+            display: none; 
+            width: 95%;
+            max-width: 650px;
+            margin-top: 15px;
+        }
         
         input { 
-            width: 100%; padding: 12px; margin: 5px 0; 
-            border: 1px solid #333; border-radius: 8px; 
-            font-size: 14px; background: #1a1a1a; color: #fff;
-            box-sizing: border-box; text-align: center; outline: none;
+            width: 100%; 
+            padding: 15px; 
+            margin: 5px 0; 
+            border: 1px solid #333; 
+            border-radius: 8px; 
+            font-size: 16px; 
+            background: #1a1a1a;
+            color: #fff;
+            box-sizing: border-box;
+            text-align: center;
+            outline: none;
         }
 
-        .btn-group { display: flex; gap: 8px; margin-top: 5px; flex-wrap: wrap; }
+        input:focus { border-color: #007bff; }
+        
+        .btn-group { display: flex; gap: 10px; margin-top: 5px; }
 
         button { 
-            flex: 1; min-width: 120px; padding: 12px; background-color: #222; 
-            color: #ccc; border: 1px solid #333; border-radius: 8px; 
-            cursor: pointer; font-size: 13px; transition: 0.3s;
+            flex: 1;
+            padding: 12px; 
+            background-color: #222; 
+            color: #777;
+            border: 1px solid #333; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            height: 45px;
+            font-size: 14px;
+            transition: 0.3s;
         }
 
-        .btn-sync.active { background-color: #2e7d32; color: #fff; border-color: #4caf50; }
-        .btn-sync.inactive { background-color: #c62828; color: #fff; border-color: #f44336; }
+        button:hover { background-color: #2a2a2a; color: #fff; }
 
         .btn-delete { color: #ff4d4d; border-color: #442222; }
-        .btn-delete:hover { background-color: #441111; }
+        .btn-delete:hover { background-color: #441111; color: #ff4d4d; }
 
-        #statusText { text-align: center; font-size: 12px; color: #4caf50; margin: 5px 0; display: none; }
+        #statusText {
+            text-align: center;
+            font-size: 12px;
+            color: #4caf50;
+            margin-top: 5px;
+            display: none;
+        }
+
         h2, p, span, h3 { display: none !important; }
-
-        /* ستايل المكتبة */
-        #librarySection {
-            width: 95%; max-width: 650px; margin: 20px 0 40px 0;
-            background: #111; border-radius: 12px; border: 1px solid #222;
-            padding: 15px; box-sizing: border-box; display: none;
-        }
-        .lib-title { font-size: 18px; margin-bottom: 15px; border-right: 4px solid #4caf50; padding-right: 10px; color: #4caf50; font-weight: bold; }
-        .ep-list { max-height: 400px; overflow-y: auto; }
-        
-        .ep-item { 
-            display: flex; align-items: center; justify-content: space-between;
-            width: 100%; min-height: 50px;
-            background: #1a1a1a; margin-bottom: 10px; border-radius: 8px;
-            border: 1px solid #333; padding: 0 15px; box-sizing: border-box;
-            transition: all 0.2s;
-        }
-        
-        .ep-name-clickable {
-            flex-grow: 1; display: flex; align-items: center; height: 50px;
-            cursor: pointer; -webkit-tap-highlight-color: transparent;
-        }
-        .ep-name-clickable:active { opacity: 0.6; }
-
-        .ep-name-text { 
-            color: #ffffff !important; 
-            font-size: 16px; 
-            font-weight: bold;
-            display: block !important;
-            pointer-events: none;
-        }
-
-        .single-delete-btn {
-            background: #331111; color: #ff4d4d; border: 1px solid #442222;
-            padding: 5px 10px; border-radius: 6px; font-size: 16px;
-            cursor: pointer; margin-right: 10px; display: none;
-        }
     </style>
 </head>
 <body>
@@ -97,26 +98,11 @@
     </div>
 
     <div id="admin">
-        <input type="text" id="urlInput" placeholder="رابط البث المباشر الأساسي..." onpaste="handlePaste(event)">
-        
-        <div style="border-top: 1px solid #333; margin-top: 15px; padding-top: 15px;">
-            <input type="text" id="epNameInput" placeholder="اسم الحلقة (مثال: الحلقة الأولى)">
-            <input type="text" id="epUrlInput" placeholder="رابط الحلقة المباشر...">
-            <div class="btn-group">
-                <button style="background: #1e40af; color: white; border:none; width: 100%;" onclick="addEpisode()">إضافة للمكتبة +</button>
-            </div>
-        </div>
-
-        <div class="btn-group" style="margin-top: 20px; border-top: 1px solid #333; padding-top: 10px;">
-            <button id="syncToggleBtn" class="btn-sync" onclick="toggleSync()">جاري التحميل...</button>
-            <button class="btn-delete" onclick="deleteVideo()">حذف فيديو البث 🗑️</button>
+        <input type="text" id="urlInput" placeholder="ألصق الرابط هنا ليتم التحديث فوراً..." onpaste="handlePaste(event)">
+        <div class="btn-group">
+            <button class="btn-delete" onclick="deleteVideo()">حذف الفيديو 🗑️</button>
         </div>
         <div id="statusText">تم التحديث بنجاح ✅</div>
-    </div>
-
-    <div id="librarySection">
-        <div class="lib-title">مكتبة المسلسلات والأفلام</div>
-        <div id="episodesContainer" class="ep-list"></div>
     </div>
 
     <script>
@@ -125,87 +111,46 @@
         var dbUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream.json";
         var lastUrl = ""; 
         var isAdmin = window.location.hash === "#ana";
-        var isSyncEnabled = true;
 
         function playMedia(url) {
-            if (!url) { videoElement.src = ""; if (hls) hls.destroy(); lastUrl = ""; return; }
             if (url === lastUrl) return;
             lastUrl = url;
-            if (Hls.isSupported() && (url.includes('m3u8') || url.includes('.ts'))) {
-                hls.destroy(); hls = new Hls();
-                hls.loadSource(url); hls.attachMedia(videoElement);
-            } else { videoElement.src = url; }
-            videoElement.play().catch(function(e){});
-        }
 
-        function renderLibrary(libData) {
-            var container = document.getElementById('episodesContainer');
-            container.innerHTML = "";
-            if (!libData) { 
-                container.innerHTML = "<div style='text-align:center; padding:20px; color:#555; display:block !important;'>المكتبة فارغة حالياً</div>"; 
-                return; 
+            if (!url) {
+                videoElement.src = "";
+                if (hls) hls.destroy();
+                return;
             }
-            
-            Object.keys(libData).forEach(function(key) {
-                var ep = libData[key];
-                var item = document.createElement('div');
-                item.className = "ep-item";
-                
-                var nameBox = document.createElement('div');
-                nameBox.className = "ep-name-clickable";
-                nameBox.innerHTML = '<span class="ep-name-text">' + ep.name + '</span>';
-                nameBox.onclick = function() { 
-                    playMedia(ep.url); 
-                    window.scrollTo({top: 0, behavior: 'smooth'}); 
-                };
-
-                item.appendChild(nameBox);
-
-                if (isAdmin) {
-                    var delBtn = document.createElement('button');
-                    delBtn.className = "single-delete-btn";
-                    delBtn.style.display = "block";
-                    delBtn.innerHTML = "🗑️";
-                    delBtn.onclick = function() { deleteSingleEpisode(key); };
-                    item.appendChild(delBtn);
-                }
-
-                container.appendChild(item);
-            });
-        }
-
-        function deleteSingleEpisode(key) {
-            if(confirm("حذف هذه الحلقة؟")) {
-                var xhr = new XMLHttpRequest();
-                xhr.open("DELETE", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library/" + key + ".json", true);
-                xhr.onload = function() {
-                    showStatus("تم حذف الحلقة بنجاح");
-                    loadStream();
-                };
-                xhr.send();
+            if (Hls.isSupported() && url.includes('m3u8')) {
+                hls.destroy();
+                hls = new Hls();
+                hls.loadSource(url);
+                hls.attachMedia(videoElement);
+            } else {
+                videoElement.src = url;
             }
         }
+
+        // --- وظائف المزامنة اللحظية ---
 
         function syncPlayer(data) {
             if (!data) return;
-            isSyncEnabled = data.syncEnabled !== false; 
-            updateSyncButtonUI();
 
-            var lib = document.getElementById('librarySection');
-            
-            // التعديل الجديد: إذا كان أدمن تظهر دائماً، إذا كان مشاهد تتبع المزامنة
-            if (isAdmin || !isSyncEnabled) {
-                lib.style.display = "block";
-                renderLibrary(data.library);
-            } else {
-                lib.style.display = "none";
+            // 1. تحديث الرابط إذا تغير
+            if (data.url !== lastUrl) {
+                playMedia(data.url);
             }
 
-            if (isSyncEnabled) {
-                if (data.url !== lastUrl) playMedia(data.url);
-                if (Math.abs(videoElement.currentTime - data.time) > 3) videoElement.currentTime = data.time;
-                if (data.status === "playing" && videoElement.paused) videoElement.play().catch(function(e){});
-                else if (data.status === "paused" && !videoElement.paused) videoElement.pause();
+            // 2. مزامنة الوقت (إذا كان الفرق أكثر من ثانيتين)
+            if (Math.abs(videoElement.currentTime - data.time) > 2) {
+                videoElement.currentTime = data.time;
+            }
+
+            // 3. مزامنة الحالة (تشغيل/إيقاف)
+            if (data.status === "playing" && videoElement.paused) {
+                videoElement.play().catch(function(e){});
+            } else if (data.status === "paused" && !videoElement.paused) {
+                videoElement.pause();
             }
         }
 
@@ -221,91 +166,77 @@
             xhr.send();
         }
 
-        function toggleSync() {
-            if (!isAdmin) return;
-            isSyncEnabled = !isSyncEnabled;
-            var xhr = new XMLHttpRequest();
-            xhr.open("PATCH", dbUrl, true);
-            xhr.send(JSON.stringify({ syncEnabled: isSyncEnabled }));
-            updateSyncButtonUI();
-        }
-
-        function updateSyncButtonUI() {
-            var btn = document.getElementById('syncToggleBtn');
-            if (isSyncEnabled) {
-                btn.innerText = "المزامنة: مفعلة ✅";
-                btn.className = "btn-sync active";
-            } else {
-                btn.innerText = "المزامنة: معطلة ❌";
-                btn.className = "btn-sync inactive";
-            }
-        }
-
-        function addEpisode() {
-            var name = document.getElementById('epNameInput').value.trim();
-            var url = document.getElementById('epUrlInput').value.trim();
-            if (!name || !url) { alert("أدخل الاسم والرابط"); return; }
-            var xhr = new XMLHttpRequest();
-            xhr.open("POST", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library.json", true);
-            xhr.onload = function() {
-                document.getElementById('epNameInput').value = "";
-                document.getElementById('epUrlInput').value = "";
-                showStatus("تمت إضافة: " + name);
-                loadStream();
-            };
-            xhr.send(JSON.stringify({ name: name, url: url }));
+        // إرسال حالة الأدمن للقاعدة تلقائياً عند تغيير حالة الفيديو
+        if (isAdmin) {
+            var events = ['play', 'pause', 'seeked'];
+            events.forEach(function(ev) {
+                videoElement.addEventListener(ev, function() {
+                    updateDatabaseState();
+                });
+            });
         }
 
         function updateDatabaseState() {
-            if (!isAdmin || !isSyncEnabled) return;
+            if (!isAdmin) return;
             var xhr = new XMLHttpRequest();
-            xhr.open("PATCH", dbUrl, true);
-            var state = { status: videoElement.paused ? "paused" : "playing", time: videoElement.currentTime };
+            xhr.open("PATCH", dbUrl, true); // استخدام PATCH لتحديث حقول معينة فقط
+            var state = {
+                status: videoElement.paused ? "paused" : "playing",
+                time: videoElement.currentTime
+            };
             xhr.send(JSON.stringify(state));
         }
 
+        // فحص التحديثات كل ثانية لمزامنة دقيقة
         setInterval(function() {
-            if (!isAdmin) loadStream();
-            else { if (isSyncEnabled) updateDatabaseState(); loadStream(); }
+            if (!isAdmin) {
+                loadStream();
+            } else {
+                // الأدمن يرسل وقته الحالي كل ثانيتين لضمان مزامنة المشاهدين الجدد
+                updateDatabaseState();
+            }
         }, 2000);
-
-        if (isAdmin) {
-            ['play', 'pause', 'seeked'].forEach(function(ev) {
-                videoElement.addEventListener(ev, function() { if(isSyncEnabled) updateDatabaseState(); });
-            });
-        }
 
         function handlePaste(event) {
             setTimeout(function() {
                 var val = document.getElementById('urlInput').value.trim();
                 if (val) {
-                    var xhr = new XMLHttpRequest();
-                    xhr.open("PATCH", dbUrl, true);
-                    xhr.send(JSON.stringify({ url: val, status: "playing", time: 0 }));
+                    sendToDatabase(val);
                     document.getElementById('urlInput').value = ''; 
-                    showStatus("تم التحديث ✅");
+                    showStatus("تم التحديث بنجاح ✅");
                 }
             }, 100);
         }
 
         function deleteVideo() {
-            if(confirm("حذف البث؟")) {
-                var xhr = new XMLHttpRequest();
-                xhr.open("PATCH", dbUrl, true);
-                xhr.send(JSON.stringify({ url: "", status: "paused", time: 0 }));
+            if(confirm("هل أنت متأكد من حذف الفيديو الحالي؟")) {
+                sendToDatabase("");
+                showStatus("تم حذف الفيديو 🗑️");
             }
+        }
+
+        function sendToDatabase(val) {
+            var xhr = new XMLHttpRequest();
+            xhr.open("PUT", dbUrl, true);
+            xhr.send(JSON.stringify({ 
+                url: val, 
+                status: "playing", 
+                time: 0 
+            }));
         }
 
         function showStatus(msg) {
             var status = document.getElementById('statusText');
             status.innerText = msg;
             status.style.display = "block";
-            setTimeout(function() { status.style.display = "none"; }, 3000);
+            setTimeout(function() { status.style.display = "none"; }, 2000);
         }
 
         window.onload = function() {
             loadStream();
-            if(isAdmin) document.getElementById('admin').style.display = "block";
+            if(isAdmin) {
+                document.getElementById('admin').style.display = "block";
+            }
         };
     </script>
 </body>
