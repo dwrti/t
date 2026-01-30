@@ -178,7 +178,7 @@
         var isAdmin = window.location.hash === "#ana";
         var isSyncEnabled = true;
         var myUserId = Math.random().toString(36).substring(7);
-        // متغير جديد لحفظ حالة القوائم المفتوحة
+        // الذاكرة لأسماء المجموعات المفتوحة
         var openFolders = {};
 
         function updatePresence() {
@@ -223,21 +223,29 @@
             videoElement.play().catch(function(e){});
         }
 
-        // تعديل دالة طي القوائم لحفظ الحالة
         function toggleFolder(header, gid) {
             header.classList.toggle('open');
             var list = header.nextElementSibling;
             list.classList.toggle('show');
-            // حفظ حالة القائمة (مفتوحة أو مغلقة)
+            // حفظ الحالة فوراً عند الضغط
             openFolders[gid] = list.classList.contains('show');
         }
 
         function renderLibrary(libData, groupsData) {
             var container = document.getElementById('episodesContainer');
+            
+            // تحديث الذاكرة الحالية من العناصر الموجودة في الصفحة قبل مسحها
+            var currentHeaders = container.querySelectorAll('.group-header');
+            currentHeaders.forEach(function(h) {
+                var gid = h.getAttribute('data-gid');
+                if(gid) openFolders[gid] = h.classList.contains('open');
+            });
+
             container.innerHTML = "";
             
             var gSelect = document.getElementById('groupSelect');
             if(isAdmin && gSelect) {
+                var currentSelection = gSelect.value; // حفظ التحديد الحالي
                 gSelect.innerHTML = '<option value="">بدون مجموعة (الرئيسية)</option>';
                 if(groupsData) {
                     Object.keys(groupsData).forEach(function(gk) {
@@ -246,6 +254,7 @@
                         gSelect.appendChild(opt);
                     });
                 }
+                gSelect.value = currentSelection; // إعادة التحديد
             }
 
             if (!libData) { 
@@ -272,20 +281,17 @@
 
                 var header = document.createElement('div');
                 header.className = "group-header";
-                header.innerText = (gid === "main") ? "📂 القائمة الرئيسية" : "📁 " + groupsData[gid].name;
+                header.setAttribute('data-gid', gid);
+                header.innerText = (gid === "main") ? "📂 القائمة الرئيسية" : "📁 " + (groupsData[gid] ? groupsData[gid].name : "مجموعة");
                 
-                // استعادة شكل السهم بناءً على الحالة المحفوظة
+                // تطبيق الحالة من الذاكرة
                 if (openFolders[gid]) header.classList.add('open');
                 
                 header.onclick = function() { toggleFolder(this, gid); };
 
                 var listDiv = document.createElement('div');
                 listDiv.className = "ep-list";
-                
-                // استعادة حالة العرض (إذا كانت مفتوحة تبقى مفتوحة)
-                if (openFolders[gid]) {
-                    listDiv.classList.add('show');
-                }
+                if (openFolders[gid]) listDiv.classList.add('show');
 
                 grouped[gid].forEach(function(ep) {
                     var item = document.createElement('div');
@@ -438,6 +444,11 @@
             var url = document.getElementById('epUrlInput').value.trim();
             var gid = document.getElementById('groupSelect').value;
             if (!name || !url) return;
+            
+            // تحديث الذاكرة فوراً قبل الإرسال
+            if(gid) openFolders[gid] = true;
+            else openFolders["main"] = true;
+
             var xhr = new XMLHttpRequest();
             xhr.open("POST", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library.json", true);
             xhr.onload = function() {
