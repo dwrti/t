@@ -86,13 +86,14 @@
             display: none;
         }
         
-        .lib-title { display: none; } 
+        .lib-title { display: none; } /* تم إخفاء كلمة المكتبة هنا */
 
+        /* تعديل القوائم المخفية */
         .group-container { width: 100%; margin-bottom: 10px; border-bottom: 1px solid #111; }
         
         .group-header {
             width: 100%; background: #111; padding: 15px; 
-            border-radius: 8px; color: #bbbbbb; font-weight: bold;
+            border-radius: 8px; color: #bbbbbb; font-weight: bold; /* تم تعديل اللون ليتطابق مع المقاطع */
             text-align: center; cursor: pointer; display: flex; 
             justify-content: center; align-items: center;
             box-sizing: border-box; position: relative;
@@ -102,7 +103,7 @@
         .group-header.open::after { content: '▲'; }
 
         .ep-list { 
-            display: none; 
+            display: none; /* مخفية افتراضياً */
             flex-direction: column; 
             align-items: center; 
             padding: 10px 0;
@@ -174,12 +175,10 @@
         var dbUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream.json";
         var presenceUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/presence";
         var lastUrl = ""; 
-        var mainVideoUrl = ""; // لتخزين الرابط الأساسي أثناء تشغيل التمهيد
-        var introVideoUrl = "https://www.w3schools.com/html/mov_bbb.mp4"; // ضع هنا رابط فيديو التمهيد (30 ثانية)
-        var isIntroPlaying = false;
         var isAdmin = window.location.hash === "#ana";
         var isSyncEnabled = true;
         var myUserId = Math.random().toString(36).substring(7);
+        // الذاكرة لأسماء المجموعات المفتوحة
         var openFolders = {};
 
         function updatePresence() {
@@ -213,66 +212,40 @@
             xhr.send();
         }
 
-        // دالة التشغيل المعدلة لدعم فيديو التمهيد لمدة 30 ثانية
-        function playMedia(url, skipIntro = false) {
+        function playMedia(url) {
             if (!url) { videoElement.src = ""; if (hls) hls.destroy(); lastUrl = ""; return; }
-            
-            // إذا كانت المزامنة مفعلة ولم يتم تخطي التمهيد
-            if (isSyncEnabled && !skipIntro && url !== lastUrl) {
-                showStatus("جاري تشغيل فيديو التمهيد للمزامنة (30 ثانية)... ⏳");
-                mainVideoUrl = url;
-                isIntroPlaying = true;
-                loadVideoSource(introVideoUrl);
-                
-                // الانتقال للفيديو الأساسي بعد 30 ثانية
-                setTimeout(function() {
-                    if (isIntroPlaying) {
-                        isIntroPlaying = false;
-                        playMedia(mainVideoUrl, true);
-                    }
-                }, 30000); 
-                return;
-            }
-
             if (url === lastUrl) return;
             lastUrl = url;
-            loadVideoSource(url);
-        }
-
-        // دالة مساعدة لتحميل المصدر (HLS أو عادي)
-        function loadVideoSource(url) {
             if (Hls.isSupported() && (url.includes('m3u8') || url.includes('.ts'))) {
                 hls.destroy(); hls = new Hls();
                 hls.loadSource(url); hls.attachMedia(videoElement);
             } else { videoElement.src = url; }
-            
-            var playPromise = videoElement.play();
-            if (playPromise !== undefined) {
-                playPromise.catch(function(error) {
-                    videoElement.muted = true;
-                    videoElement.play();
-                });
-            }
+            videoElement.play().catch(function(e){});
         }
 
         function toggleFolder(header, gid) {
             header.classList.toggle('open');
             var list = header.nextElementSibling;
             list.classList.toggle('show');
+            // حفظ الحالة فوراً عند الضغط
             openFolders[gid] = list.classList.contains('show');
         }
 
         function renderLibrary(libData, groupsData) {
             var container = document.getElementById('episodesContainer');
+            
+            // تحديث الذاكرة الحالية من العناصر الموجودة في الصفحة قبل مسحها
             var currentHeaders = container.querySelectorAll('.group-header');
             currentHeaders.forEach(function(h) {
                 var gid = h.getAttribute('data-gid');
                 if(gid) openFolders[gid] = h.classList.contains('open');
             });
+
             container.innerHTML = "";
+            
             var gSelect = document.getElementById('groupSelect');
             if(isAdmin && gSelect) {
-                var currentSelection = gSelect.value;
+                var currentSelection = gSelect.value; // حفظ التحديد الحالي
                 gSelect.innerHTML = '<option value="">بدون مجموعة (الرئيسية)</option>';
                 if(groupsData) {
                     Object.keys(groupsData).forEach(function(gk) {
@@ -281,14 +254,17 @@
                         gSelect.appendChild(opt);
                     });
                 }
-                gSelect.value = currentSelection;
+                gSelect.value = currentSelection; // إعادة التحديد
             }
+
             if (!libData) { 
                 container.innerHTML = "<div style='text-align:center; padding:30px; color:#444; display:block !important;'>المكتبة فارغة</div>"; 
                 return; 
             }
+            
             var grouped = { "main": [] };
             if(groupsData) Object.keys(groupsData).forEach(function(k){ grouped[k] = []; });
+
             Object.keys(libData).forEach(function(key) {
                 var ep = libData[key];
                 var gid = ep.groupId || "main";
@@ -296,19 +272,27 @@
                 ep.id = key;
                 grouped[gid].push(ep);
             });
+
             Object.keys(grouped).forEach(function(gid) {
                 if (grouped[gid].length === 0 && gid !== "main") return;
+                
                 var groupWrapper = document.createElement('div');
                 groupWrapper.className = "group-container";
+
                 var header = document.createElement('div');
                 header.className = "group-header";
                 header.setAttribute('data-gid', gid);
                 header.innerText = (gid === "main") ? "📂 القائمة الرئيسية" : "📁 " + (groupsData[gid] ? groupsData[gid].name : "مجموعة");
+                
+                // تطبيق الحالة من الذاكرة
                 if (openFolders[gid]) header.classList.add('open');
+                
                 header.onclick = function() { toggleFolder(this, gid); };
+
                 var listDiv = document.createElement('div');
                 listDiv.className = "ep-list";
                 if (openFolders[gid]) listDiv.classList.add('show');
+
                 grouped[gid].forEach(function(ep) {
                     var item = document.createElement('div');
                     item.className = "ep-item";
@@ -324,19 +308,23 @@
                         playMedia(ep.url); 
                         window.scrollTo({top: 0, behavior: 'smooth'}); 
                     };
+
                     if (isAdmin) {
                         var delBtn = document.createElement('button');
                         delBtn.className = "lib-control-btn single-delete-btn";
                         delBtn.innerHTML = "✕";
                         delBtn.onclick = function(e) { e.stopPropagation(); deleteSingleEpisode(ep.id); };
+                        
                         var editBtn = document.createElement('button');
                         editBtn.className = "lib-control-btn single-edit-btn";
                         editBtn.innerHTML = "✏️";
                         editBtn.onclick = function(e) { e.stopPropagation(); editSingleEpisode(ep.id, ep.name, ep.url); };
+
                         var moveBtn = document.createElement('button');
                         moveBtn.className = "lib-control-btn single-move-btn";
                         moveBtn.innerHTML = "📁";
                         moveBtn.onclick = function(e) { e.stopPropagation(); moveEpisode(ep.id); };
+
                         item.appendChild(editBtn);
                         item.appendChild(moveBtn);
                         item.appendChild(nameBox);
@@ -346,6 +334,7 @@
                     }
                     listDiv.appendChild(item);
                 });
+
                 groupWrapper.appendChild(header);
                 groupWrapper.appendChild(listDiv);
                 container.appendChild(groupWrapper);
@@ -408,24 +397,11 @@
             } else {
                 lib.style.display = "none";
             }
-            
             if (isSyncEnabled && !isAdmin) {
-                // إذا كان فيديو التمهيد يعمل، لا نقوم بتغيير الرابط حتى ينتهي
-                if (!isIntroPlaying) {
-                    if (data.url !== lastUrl) playMedia(data.url);
-                    
-                    var timeDiff = Math.abs(videoElement.currentTime - data.time);
-                    if (timeDiff > 2.5) videoElement.currentTime = data.time;
-                }
-                
-                if (data.status === "playing" && videoElement.paused) {
-                    videoElement.play().catch(function(e){
-                        videoElement.muted = true;
-                        videoElement.play();
-                    });
-                } else if (data.status === "paused" && !videoElement.paused) {
-                    videoElement.pause();
-                }
+                if (data.url !== lastUrl) playMedia(data.url);
+                if (Math.abs(videoElement.currentTime - data.time) > 3) videoElement.currentTime = data.time;
+                if (data.status === "playing" && videoElement.paused) videoElement.play().catch(function(e){});
+                else if (data.status === "paused" && !videoElement.paused) videoElement.pause();
             }
         }
 
@@ -468,8 +444,11 @@
             var url = document.getElementById('epUrlInput').value.trim();
             var gid = document.getElementById('groupSelect').value;
             if (!name || !url) return;
+            
+            // تحديث الذاكرة فوراً قبل الإرسال
             if(gid) openFolders[gid] = true;
             else openFolders["main"] = true;
+
             var xhr = new XMLHttpRequest();
             xhr.open("POST", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library.json", true);
             xhr.onload = function() {
@@ -482,7 +461,7 @@
         }
 
         function updateDatabaseState() {
-            if (!isAdmin || !isSyncEnabled || isIntroPlaying) return;
+            if (!isAdmin || !isSyncEnabled) return;
             var xhr = new XMLHttpRequest();
             xhr.open("PATCH", dbUrl, true);
             var state = { status: videoElement.paused ? "paused" : "playing", time: videoElement.currentTime };
@@ -497,7 +476,7 @@
                 loadStream();
                 fetchViewerCount();
             }
-        }, 2000);
+        }, 5000);
 
         if (isAdmin) {
             ['play', 'pause', 'seeked'].forEach(function(ev) {
@@ -514,7 +493,6 @@
                     xhr.send(JSON.stringify({ url: val, status: "playing", time: 0 }));
                     document.getElementById('urlInput').value = ''; 
                     showStatus("تم التحديث ✅");
-                    playMedia(val); // بدء التمهيد للأدمن أيضاً
                 }
             }, 100);
         }
