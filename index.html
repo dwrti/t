@@ -88,7 +88,6 @@
         
         .lib-title { display: none; } 
 
-        /* تعديل القوائم المخفية */
         .group-container { width: 100%; margin-bottom: 10px; border-bottom: 1px solid #111; }
         
         .group-header {
@@ -175,6 +174,9 @@
         var dbUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream.json";
         var presenceUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/presence";
         var lastUrl = ""; 
+        var mainVideoUrl = ""; // لتخزين الرابط الأساسي أثناء تشغيل التمهيد
+        var introVideoUrl = "https://www.w3schools.com/html/mov_bbb.mp4"; // ضع هنا رابط فيديو التمهيد (30 ثانية)
+        var isIntroPlaying = false;
         var isAdmin = window.location.hash === "#ana";
         var isSyncEnabled = true;
         var myUserId = Math.random().toString(36).substring(7);
@@ -211,23 +213,44 @@
             xhr.send();
         }
 
-        // تحسين دالة التشغيل لتجاوز قيود المتصفح
-        function playMedia(url) {
+        // دالة التشغيل المعدلة لدعم فيديو التمهيد لمدة 30 ثانية
+        function playMedia(url, skipIntro = false) {
             if (!url) { videoElement.src = ""; if (hls) hls.destroy(); lastUrl = ""; return; }
+            
+            // إذا كانت المزامنة مفعلة ولم يتم تخطي التمهيد
+            if (isSyncEnabled && !skipIntro && url !== lastUrl) {
+                showStatus("جاري تشغيل فيديو التمهيد للمزامنة (30 ثانية)... ⏳");
+                mainVideoUrl = url;
+                isIntroPlaying = true;
+                loadVideoSource(introVideoUrl);
+                
+                // الانتقال للفيديو الأساسي بعد 30 ثانية
+                setTimeout(function() {
+                    if (isIntroPlaying) {
+                        isIntroPlaying = false;
+                        playMedia(mainVideoUrl, true);
+                    }
+                }, 30000); 
+                return;
+            }
+
             if (url === lastUrl) return;
             lastUrl = url;
+            loadVideoSource(url);
+        }
+
+        // دالة مساعدة لتحميل المصدر (HLS أو عادي)
+        function loadVideoSource(url) {
             if (Hls.isSupported() && (url.includes('m3u8') || url.includes('.ts'))) {
                 hls.destroy(); hls = new Hls();
                 hls.loadSource(url); hls.attachMedia(videoElement);
             } else { videoElement.src = url; }
             
-            // محاولة التشغيل، وإذا فشل (بسبب كتم الصوت) يتم تشغيله صامتاً
             var playPromise = videoElement.play();
             if (playPromise !== undefined) {
                 playPromise.catch(function(error) {
                     videoElement.muted = true;
                     videoElement.play();
-                    showStatus("اضغط على السماعة لتفعيل الصوت 🔊");
                 });
             }
         }
@@ -374,7 +397,6 @@
             }
         }
 
-        // تحسين المزامنة لتكون أدق وأسرع
         function syncPlayer(data) {
             if (!data) return;
             isSyncEnabled = data.syncEnabled !== false; 
@@ -388,13 +410,14 @@
             }
             
             if (isSyncEnabled && !isAdmin) {
-                if (data.url !== lastUrl) playMedia(data.url);
+                // إذا كان فيديو التمهيد يعمل، لا نقوم بتغيير الرابط حتى ينتهي
+                if (!isIntroPlaying) {
+                    if (data.url !== lastUrl) playMedia(data.url);
+                    
+                    var timeDiff = Math.abs(videoElement.currentTime - data.time);
+                    if (timeDiff > 2.5) videoElement.currentTime = data.time;
+                }
                 
-                // مزامنة الوقت إذا كان الفارق أكثر من ثانيتين لتفادي التقطيع
-                var timeDiff = Math.abs(videoElement.currentTime - data.time);
-                if (timeDiff > 2.5) videoElement.currentTime = data.time;
-                
-                // إجبار التشغيل إذا كان الأدمن يشغل الفيديو
                 if (data.status === "playing" && videoElement.paused) {
                     videoElement.play().catch(function(e){
                         videoElement.muted = true;
@@ -459,14 +482,13 @@
         }
 
         function updateDatabaseState() {
-            if (!isAdmin || !isSyncEnabled) return;
+            if (!isAdmin || !isSyncEnabled || isIntroPlaying) return;
             var xhr = new XMLHttpRequest();
             xhr.open("PATCH", dbUrl, true);
             var state = { status: videoElement.paused ? "paused" : "playing", time: videoElement.currentTime };
             xhr.send(JSON.stringify(state));
         }
 
-        // تقليل الفاصل الزمني لسرعة المزامنة (2 ثانية بدلاً من 5)
         setInterval(function() {
             updatePresence();
             if (!isAdmin) loadStream();
@@ -492,6 +514,7 @@
                     xhr.send(JSON.stringify({ url: val, status: "playing", time: 0 }));
                     document.getElementById('urlInput').value = ''; 
                     showStatus("تم التحديث ✅");
+                    playMedia(val); // بدء التمهيد للأدمن أيضاً
                 }
             }, 100);
         }
