@@ -179,9 +179,9 @@
         var myUserId = Math.random().toString(36).substring(7);
         var openFolders = {};
 
-        // رابط فيديو المقدمة (الفاصل)
-        var introUrl = "https://files.catbox.moe/6v30is.mp4"; 
-        var pendingMainUrl = ""; // لتخزين الرابط الأساسي حتى انتهاء الفاصل
+        // رابط الفاصل (نهاية إرسال سبيستون)
+        var introUrl = "https://ia804503.us.archive.org/15/items/spacetoon-closing-ident-ball-and-paddle/Space%20Toon%20closing%20Ident%20-%20Ball-And-Paddle.mp4";
+        var isIntroPlaying = false;
 
         function updatePresence() {
             var xhr = new XMLHttpRequest();
@@ -214,39 +214,35 @@
             xhr.send();
         }
 
-        // دالة التشغيل المعدلة لتشغيل الفاصل أولاً
-        function playMedia(url, skipIntro = false) {
+        // الوظيفة الأساسية لتشغيل الفيديو مع المقدمة
+        function playMedia(url) {
             if (!url) { videoElement.src = ""; if (hls) hls.destroy(); lastUrl = ""; return; }
             if (url === lastUrl) return;
 
-            // إذا لم يتم تخطي المقدمة، شغل المقدمة أولاً
-            if (!skipIntro && url !== introUrl) {
-                pendingMainUrl = url;
-                lastUrl = introUrl;
-                loadAndPlay(introUrl);
-                
-                // عند انتهاء المقدمة، شغل الفيديو الأساسي
-                videoElement.onended = function() {
-                    videoElement.onended = null; // مسح الحدث لتجنب التكرار
-                    playMedia(pendingMainUrl, true);
-                };
-                return;
-            }
-
+            // تحديث الرابط الأخير فوراً لمنع التكرار من الـ Interval
+            var targetUrl = url;
             lastUrl = url;
-            loadAndPlay(url);
+
+            // تشغيل الفاصل أولاً
+            isIntroPlaying = true;
+            loadSourceToVideo(introUrl);
+
+            // عند انتهاء الفاصل، شغل الفيديو الحقيقي
+            videoElement.onended = function() {
+                videoElement.onended = null;
+                isIntroPlaying = false;
+                loadSourceToVideo(targetUrl);
+            };
         }
 
-        function loadAndPlay(url) {
+        function loadSourceToVideo(url) {
             if (Hls.isSupported() && (url.includes('m3u8') || url.includes('.ts'))) {
                 hls.destroy(); hls = new Hls();
                 hls.loadSource(url); hls.attachMedia(videoElement);
             } else { 
                 videoElement.src = url; 
             }
-            videoElement.play().catch(function(e){
-                console.log("Auto-play blocked, waiting for user interaction");
-            });
+            videoElement.play().catch(function(e){});
         }
 
         function toggleFolder(header, gid) {
@@ -410,6 +406,7 @@
             if (!data) return;
             isSyncEnabled = data.syncEnabled !== false; 
             updateSyncButtonUI();
+            
             var lib = document.getElementById('librarySection');
             if (isAdmin || !isSyncEnabled) {
                 lib.style.display = "block";
@@ -417,13 +414,16 @@
             } else {
                 lib.style.display = "none";
             }
+
             if (isSyncEnabled && !isAdmin) {
-                if (data.url !== lastUrl && data.url !== pendingMainUrl) {
+                // إذا كان الرابط مختلفاً، شغل الـ Intro ثم الرابط الجديد
+                if (data.url && data.url !== lastUrl) {
                     playMedia(data.url);
                 }
-                // المزامنة الزمنية تعمل فقط إذا لم نكن في مرحلة الفاصل
-                if (lastUrl !== introUrl) {
-                    if (Math.abs(videoElement.currentTime - data.time) > 3) videoElement.currentTime = data.time;
+                
+                // المزامنة الزمنية تعمل فقط إذا لم نكن نشغل الفاصل حالياً
+                if (!isIntroPlaying && data.url === lastUrl) {
+                    if (Math.abs(videoElement.currentTime - data.time) > 4) videoElement.currentTime = data.time;
                     if (data.status === "playing" && videoElement.paused) videoElement.play().catch(function(e){});
                     else if (data.status === "paused" && !videoElement.paused) videoElement.pause();
                 }
@@ -485,7 +485,7 @@
         }
 
         function updateDatabaseState() {
-            if (!isAdmin || !isSyncEnabled || lastUrl === introUrl) return;
+            if (!isAdmin || !isSyncEnabled || isIntroPlaying) return;
             var xhr = new XMLHttpRequest();
             xhr.open("PATCH", dbUrl, true);
             var state = { status: videoElement.paused ? "paused" : "playing", time: videoElement.currentTime };
@@ -500,7 +500,7 @@
                 loadStream();
                 fetchViewerCount();
             }
-        }, 5000);
+        }, 4000); // زيادة سرعة التحديث قليلاً للمزامنة
 
         if (isAdmin) {
             ['play', 'pause', 'seeked'].forEach(function(ev) {
