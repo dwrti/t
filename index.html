@@ -42,15 +42,6 @@
             outline: none; 
         }
 
-        /* طبقة العد التنازلي */
-        #countdownOverlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85); display: none;
-            flex-direction: column; justify-content: center; align-items: center;
-            z-index: 10; color: #fff; text-align: center;
-        }
-        #timerDisplay { font-size: 48px; font-weight: bold; color: #4caf50; margin-top: 10px; }
-
         #contentWrapper {
             width: 100%;
             display: flex;
@@ -95,13 +86,14 @@
             display: none;
         }
         
-        .lib-title { display: none; }
+        .lib-title { display: none; } /* تم إخفاء كلمة المكتبة هنا */
 
+        /* تعديل القوائم المخفية */
         .group-container { width: 100%; margin-bottom: 10px; border-bottom: 1px solid #111; }
         
         .group-header {
             width: 100%; background: #111; padding: 15px; 
-            border-radius: 8px; color: #bbbbbb; font-weight: bold;
+            border-radius: 8px; color: #bbbbbb; font-weight: bold; /* تم تعديل اللون ليتطابق مع المقاطع */
             text-align: center; cursor: pointer; display: flex; 
             justify-content: center; align-items: center;
             box-sizing: border-box; position: relative;
@@ -111,7 +103,7 @@
         .group-header.open::after { content: '▲'; }
 
         .ep-list { 
-            display: none; 
+            display: none; /* مخفية افتراضياً */
             flex-direction: column; 
             align-items: center; 
             padding: 10px 0;
@@ -144,10 +136,6 @@
 <body>
 
     <div class="card">
-        <div id="countdownOverlay">
-            <div>جاري تجهيز العرض للجميع...</div>
-            <div id="timerDisplay">30</div>
-        </div>
         <video id="myPlayer" controls autoplay playsinline></video>
     </div>
 
@@ -183,8 +171,6 @@
 
     <script>
         var videoElement = document.getElementById('myPlayer');
-        var countdownOverlay = document.getElementById('countdownOverlay');
-        var timerDisplay = document.getElementById('timerDisplay');
         var hls = new Hls();
         var dbUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream.json";
         var presenceUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/presence";
@@ -192,8 +178,8 @@
         var isAdmin = window.location.hash === "#ana";
         var isSyncEnabled = true;
         var myUserId = Math.random().toString(36).substring(7);
+        // الذاكرة لأسماء المجموعات المفتوحة
         var openFolders = {};
-        var countdownInterval = null;
 
         function updatePresence() {
             var xhr = new XMLHttpRequest();
@@ -234,48 +220,21 @@
                 hls.destroy(); hls = new Hls();
                 hls.loadSource(url); hls.attachMedia(videoElement);
             } else { videoElement.src = url; }
-            videoElement.pause(); // ننتظر حتى ينتهي العد التنازلي
-        }
-
-        function handleSyncLogic(data) {
-            if (!data.url) {
-                countdownOverlay.style.display = "none";
-                return;
-            }
-
-            var now = Date.now();
-            var startTime = data.startTime || 0;
-            var timeLeft = Math.ceil((startTime - now) / 1000);
-
-            if (timeLeft > 0) {
-                // وضع الاستعداد
-                countdownOverlay.style.display = "flex";
-                timerDisplay.innerText = timeLeft;
-                videoElement.pause();
-                if (data.url !== lastUrl) playMedia(data.url);
-            } else {
-                // وضع التشغيل
-                countdownOverlay.style.display = "none";
-                if (data.url !== lastUrl) playMedia(data.url);
-                
-                if (isSyncEnabled && !isAdmin) {
-                    var targetTime = data.time + (Math.abs(timeLeft)); // تعويض بسيط عن فرق الوقت
-                    if (Math.abs(videoElement.currentTime - data.time) > 3) videoElement.currentTime = data.time;
-                    if (data.status === "playing" && videoElement.paused) videoElement.play().catch(e=>{});
-                    else if (data.status === "paused" && !videoElement.paused) videoElement.pause();
-                }
-            }
+            videoElement.play().catch(function(e){});
         }
 
         function toggleFolder(header, gid) {
             header.classList.toggle('open');
             var list = header.nextElementSibling;
             list.classList.toggle('show');
+            // حفظ الحالة فوراً عند الضغط
             openFolders[gid] = list.classList.contains('show');
         }
 
         function renderLibrary(libData, groupsData) {
             var container = document.getElementById('episodesContainer');
+            
+            // تحديث الذاكرة الحالية من العناصر الموجودة في الصفحة قبل مسحها
             var currentHeaders = container.querySelectorAll('.group-header');
             currentHeaders.forEach(function(h) {
                 var gid = h.getAttribute('data-gid');
@@ -283,9 +242,10 @@
             });
 
             container.innerHTML = "";
+            
             var gSelect = document.getElementById('groupSelect');
             if(isAdmin && gSelect) {
-                var currentSelection = gSelect.value;
+                var currentSelection = gSelect.value; // حفظ التحديد الحالي
                 gSelect.innerHTML = '<option value="">بدون مجموعة (الرئيسية)</option>';
                 if(groupsData) {
                     Object.keys(groupsData).forEach(function(gk) {
@@ -294,7 +254,7 @@
                         gSelect.appendChild(opt);
                     });
                 }
-                gSelect.value = currentSelection;
+                gSelect.value = currentSelection; // إعادة التحديد
             }
 
             if (!libData) { 
@@ -315,13 +275,18 @@
 
             Object.keys(grouped).forEach(function(gid) {
                 if (grouped[gid].length === 0 && gid !== "main") return;
+                
                 var groupWrapper = document.createElement('div');
                 groupWrapper.className = "group-container";
+
                 var header = document.createElement('div');
                 header.className = "group-header";
                 header.setAttribute('data-gid', gid);
                 header.innerText = (gid === "main") ? "📂 القائمة الرئيسية" : "📁 " + (groupsData[gid] ? groupsData[gid].name : "مجموعة");
+                
+                // تطبيق الحالة من الذاكرة
                 if (openFolders[gid]) header.classList.add('open');
+                
                 header.onclick = function() { toggleFolder(this, gid); };
 
                 var listDiv = document.createElement('div');
@@ -336,10 +301,11 @@
                     nameBox.innerHTML = '<span class="ep-name-text">' + ep.name + '</span>';
                     nameBox.onclick = function() { 
                         if (isAdmin) {
-                            updateVideoWithDelay(ep.url);
-                        } else {
-                            playMedia(ep.url); 
+                            var xhr = new XMLHttpRequest();
+                            xhr.open("PATCH", dbUrl, true);
+                            xhr.send(JSON.stringify({ url: ep.url, status: "playing", time: 0 }));
                         }
+                        playMedia(ep.url); 
                         window.scrollTo({top: 0, behavior: 'smooth'}); 
                     };
 
@@ -348,28 +314,31 @@
                         delBtn.className = "lib-control-btn single-delete-btn";
                         delBtn.innerHTML = "✕";
                         delBtn.onclick = function(e) { e.stopPropagation(); deleteSingleEpisode(ep.id); };
+                        
                         var editBtn = document.createElement('button');
                         editBtn.className = "lib-control-btn single-edit-btn";
                         editBtn.innerHTML = "✏️";
                         editBtn.onclick = function(e) { e.stopPropagation(); editSingleEpisode(ep.id, ep.name, ep.url); };
+
                         var moveBtn = document.createElement('button');
                         moveBtn.className = "lib-control-btn single-move-btn";
                         moveBtn.innerHTML = "📁";
                         moveBtn.onclick = function(e) { e.stopPropagation(); moveEpisode(ep.id); };
-                        item.appendChild(editBtn); item.appendChild(moveBtn); item.appendChild(nameBox); item.appendChild(delBtn);
-                    } else { item.appendChild(nameBox); }
+
+                        item.appendChild(editBtn);
+                        item.appendChild(moveBtn);
+                        item.appendChild(nameBox);
+                        item.appendChild(delBtn);
+                    } else {
+                        item.appendChild(nameBox);
+                    }
                     listDiv.appendChild(item);
                 });
-                groupWrapper.appendChild(header); groupWrapper.appendChild(listDiv); container.appendChild(groupWrapper);
-            });
-        }
 
-        function updateVideoWithDelay(url) {
-            var startTime = Date.now() + 30000; // 30 ثانية من الآن
-            var xhr = new XMLHttpRequest();
-            xhr.open("PATCH", dbUrl, true);
-            xhr.send(JSON.stringify({ url: url, status: "playing", time: 0, startTime: startTime }));
-            showStatus("سيتم التشغيل بعد 30 ثانية للكل ⏳");
+                groupWrapper.appendChild(header);
+                groupWrapper.appendChild(listDiv);
+                container.appendChild(groupWrapper);
+            });
         }
 
         function addGroup() {
@@ -384,7 +353,9 @@
         function moveEpisode(key) {
             var gSelect = document.getElementById('groupSelect');
             var options = "";
-            for(var i=0; i<gSelect.options.length; i++) options += (i+1) + "- " + gSelect.options[i].text + "\n";
+            for(var i=0; i<gSelect.options.length; i++) {
+                options += (i+1) + "- " + gSelect.options[i].text + "\n";
+            }
             var choice = prompt("اختر رقم المجموعة للنقل إليها:\n" + options);
             if(choice && gSelect.options[choice-1]) {
                 var newGroupId = gSelect.options[choice-1].value;
@@ -415,23 +386,32 @@
             }
         }
 
+        function syncPlayer(data) {
+            if (!data) return;
+            isSyncEnabled = data.syncEnabled !== false; 
+            updateSyncButtonUI();
+            var lib = document.getElementById('librarySection');
+            if (isAdmin || !isSyncEnabled) {
+                lib.style.display = "block";
+                renderLibrary(data.library, data.groups);
+            } else {
+                lib.style.display = "none";
+            }
+            if (isSyncEnabled && !isAdmin) {
+                if (data.url !== lastUrl) playMedia(data.url);
+                if (Math.abs(videoElement.currentTime - data.time) > 3) videoElement.currentTime = data.time;
+                if (data.status === "playing" && videoElement.paused) videoElement.play().catch(function(e){});
+                else if (data.status === "paused" && !videoElement.paused) videoElement.pause();
+            }
+        }
+
         function loadStream() {
             var xhr = new XMLHttpRequest();
             xhr.open("GET", dbUrl, true);
             xhr.onload = function () {
                 if (xhr.status === 200) {
                     var data = JSON.parse(xhr.responseText);
-                    if (!data) return;
-                    isSyncEnabled = data.syncEnabled !== false; 
-                    updateSyncButtonUI();
-                    var lib = document.getElementById('librarySection');
-                    if (isAdmin || !isSyncEnabled) {
-                        lib.style.display = "block";
-                        renderLibrary(data.library, data.groups);
-                    } else {
-                        lib.style.display = "none";
-                    }
-                    handleSyncLogic(data);
+                    syncPlayer(data);
                 }
             };
             xhr.send();
@@ -464,7 +444,11 @@
             var url = document.getElementById('epUrlInput').value.trim();
             var gid = document.getElementById('groupSelect').value;
             if (!name || !url) return;
-            if(gid) openFolders[gid] = true; else openFolders["main"] = true;
+            
+            // تحديث الذاكرة فوراً قبل الإرسال
+            if(gid) openFolders[gid] = true;
+            else openFolders["main"] = true;
+
             var xhr = new XMLHttpRequest();
             xhr.open("POST", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library.json", true);
             xhr.onload = function() {
@@ -477,8 +461,7 @@
         }
 
         function updateDatabaseState() {
-            // لا نحدث الحالة إذا كان هناك عد تنازلي نشط
-            if (!isAdmin || !isSyncEnabled || countdownOverlay.style.display === "flex") return;
+            if (!isAdmin || !isSyncEnabled) return;
             var xhr = new XMLHttpRequest();
             xhr.open("PATCH", dbUrl, true);
             var state = { status: videoElement.paused ? "paused" : "playing", time: videoElement.currentTime };
@@ -487,15 +470,17 @@
 
         setInterval(function() {
             updatePresence();
-            loadStream();
-            if (isAdmin) fetchViewerCount();
-        }, 3000); // زيادة سرعة التحديث لمزامنة أفضل مع العد التنازلي
+            if (!isAdmin) loadStream();
+            else { 
+                if (isSyncEnabled) updateDatabaseState(); 
+                loadStream();
+                fetchViewerCount();
+            }
+        }, 5000);
 
         if (isAdmin) {
             ['play', 'pause', 'seeked'].forEach(function(ev) {
-                videoElement.addEventListener(ev, function() { 
-                    if(isSyncEnabled && countdownOverlay.style.display !== "flex") updateDatabaseState(); 
-                });
+                videoElement.addEventListener(ev, function() { if(isSyncEnabled) updateDatabaseState(); });
             });
         }
 
@@ -503,8 +488,11 @@
             setTimeout(function() {
                 var val = document.getElementById('urlInput').value.trim();
                 if (val) {
-                    updateVideoWithDelay(val);
+                    var xhr = new XMLHttpRequest();
+                    xhr.open("PATCH", dbUrl, true);
+                    xhr.send(JSON.stringify({ url: val, status: "playing", time: 0 }));
                     document.getElementById('urlInput').value = ''; 
+                    showStatus("تم التحديث ✅");
                 }
             }, 100);
         }
@@ -513,7 +501,7 @@
             if(confirm("حذف البث؟")) {
                 var xhr = new XMLHttpRequest();
                 xhr.open("PATCH", dbUrl, true);
-                xhr.send(JSON.stringify({ url: "", status: "paused", time: 0, startTime: 0 }));
+                xhr.send(JSON.stringify({ url: "", status: "paused", time: 0 }));
             }
         }
 
