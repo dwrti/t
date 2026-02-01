@@ -44,23 +44,12 @@
 
         /* طبقة العد التنازلي */
         #countdownOverlay {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8);
-            display: none; /* مخفي افتراضياً */
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 1001;
-            pointer-events: none;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); display: none;
+            flex-direction: column; justify-content: center; align-items: center;
+            z-index: 10; color: #fff; text-align: center;
         }
-        #countdownNumber {
-            font-size: 80px;
-            font-weight: bold;
-            color: #4caf50;
-            text-shadow: 0 0 20px rgba(76, 175, 80, 0.5);
-        }
-        .countdown-text { font-size: 18px; color: #fff; margin-bottom: 10px; }
+        #timerDisplay { font-size: 48px; font-weight: bold; color: #4caf50; margin-top: 10px; }
 
         #contentWrapper {
             width: 100%;
@@ -106,13 +95,13 @@
             display: none;
         }
         
-        .lib-title { display: none; } 
+        .lib-title { display: none; }
 
         .group-container { width: 100%; margin-bottom: 10px; border-bottom: 1px solid #111; }
         
         .group-header {
             width: 100%; background: #111; padding: 15px; 
-            border-radius: 8px; color: #bbbbbb; font-weight: bold; 
+            border-radius: 8px; color: #bbbbbb; font-weight: bold;
             text-align: center; cursor: pointer; display: flex; 
             justify-content: center; align-items: center;
             box-sizing: border-box; position: relative;
@@ -155,11 +144,11 @@
 <body>
 
     <div class="card">
-        <video id="myPlayer" controls autoplay playsinline></video>
         <div id="countdownOverlay">
-            <div class="countdown-text">يتم الآن تجهيز البث للمزامنة...</div>
-            <div id="countdownNumber">10</div>
+            <div>جاري تجهيز العرض للجميع...</div>
+            <div id="timerDisplay">30</div>
         </div>
+        <video id="myPlayer" controls autoplay playsinline></video>
     </div>
 
     <div id="contentWrapper">
@@ -194,6 +183,8 @@
 
     <script>
         var videoElement = document.getElementById('myPlayer');
+        var countdownOverlay = document.getElementById('countdownOverlay');
+        var timerDisplay = document.getElementById('timerDisplay');
         var hls = new Hls();
         var dbUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream.json";
         var presenceUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/presence";
@@ -202,42 +193,12 @@
         var isSyncEnabled = true;
         var myUserId = Math.random().toString(36).substring(7);
         var openFolders = {};
-        
-        // متغيرات العد التنازلي
-        var countdownActive = false;
-        var countdownTimer = null;
+        var countdownInterval = null;
 
         function updatePresence() {
             var xhr = new XMLHttpRequest();
             xhr.open("PUT", presenceUrl + "/" + myUserId + ".json", true);
             xhr.send(JSON.stringify(Date.now()));
-        }
-
-        function startCountdown(callback) {
-            var overlay = document.getElementById('countdownOverlay');
-            var numElem = document.getElementById('countdownNumber');
-            var timeLeft = 10;
-            
-            overlay.style.display = 'flex';
-            numElem.innerText = timeLeft;
-            countdownActive = true;
-
-            // كتم الصوت مؤقتاً لضمان عدم حدوث إزعاج أثناء التزامن
-            videoElement.muted = true;
-
-            if(countdownTimer) clearInterval(countdownTimer);
-            
-            countdownTimer = setInterval(function() {
-                timeLeft--;
-                numElem.innerText = timeLeft;
-                if (timeLeft <= 0) {
-                    clearInterval(countdownTimer);
-                    overlay.style.display = 'none';
-                    countdownActive = false;
-                    videoElement.muted = false; // إعادة الصوت
-                    if(callback) callback();
-                }
-            }, 1000);
         }
 
         function fetchViewerCount() {
@@ -268,17 +229,42 @@
         function playMedia(url) {
             if (!url) { videoElement.src = ""; if (hls) hls.destroy(); lastUrl = ""; return; }
             if (url === lastUrl) return;
-            
             lastUrl = url;
+            if (Hls.isSupported() && (url.includes('m3u8') || url.includes('.ts'))) {
+                hls.destroy(); hls = new Hls();
+                hls.loadSource(url); hls.attachMedia(videoElement);
+            } else { videoElement.src = url; }
+            videoElement.pause(); // ننتظر حتى ينتهي العد التنازلي
+        }
 
-            // تشغيل العد التنازلي عند تغيير الرابط
-            startCountdown(function() {
-                if (Hls.isSupported() && (url.includes('m3u8') || url.includes('.ts'))) {
-                    hls.destroy(); hls = new Hls();
-                    hls.loadSource(url); hls.attachMedia(videoElement);
-                } else { videoElement.src = url; }
-                videoElement.play().catch(function(e){});
-            });
+        function handleSyncLogic(data) {
+            if (!data.url) {
+                countdownOverlay.style.display = "none";
+                return;
+            }
+
+            var now = Date.now();
+            var startTime = data.startTime || 0;
+            var timeLeft = Math.ceil((startTime - now) / 1000);
+
+            if (timeLeft > 0) {
+                // وضع الاستعداد
+                countdownOverlay.style.display = "flex";
+                timerDisplay.innerText = timeLeft;
+                videoElement.pause();
+                if (data.url !== lastUrl) playMedia(data.url);
+            } else {
+                // وضع التشغيل
+                countdownOverlay.style.display = "none";
+                if (data.url !== lastUrl) playMedia(data.url);
+                
+                if (isSyncEnabled && !isAdmin) {
+                    var targetTime = data.time + (Math.abs(timeLeft)); // تعويض بسيط عن فرق الوقت
+                    if (Math.abs(videoElement.currentTime - data.time) > 3) videoElement.currentTime = data.time;
+                    if (data.status === "playing" && videoElement.paused) videoElement.play().catch(e=>{});
+                    else if (data.status === "paused" && !videoElement.paused) videoElement.pause();
+                }
+            }
         }
 
         function toggleFolder(header, gid) {
@@ -297,7 +283,6 @@
             });
 
             container.innerHTML = "";
-            
             var gSelect = document.getElementById('groupSelect');
             if(isAdmin && gSelect) {
                 var currentSelection = gSelect.value;
@@ -330,15 +315,12 @@
 
             Object.keys(grouped).forEach(function(gid) {
                 if (grouped[gid].length === 0 && gid !== "main") return;
-                
                 var groupWrapper = document.createElement('div');
                 groupWrapper.className = "group-container";
-
                 var header = document.createElement('div');
                 header.className = "group-header";
                 header.setAttribute('data-gid', gid);
                 header.innerText = (gid === "main") ? "📂 القائمة الرئيسية" : "📁 " + (groupsData[gid] ? groupsData[gid].name : "مجموعة");
-                
                 if (openFolders[gid]) header.classList.add('open');
                 header.onclick = function() { toggleFolder(this, gid); };
 
@@ -354,12 +336,10 @@
                     nameBox.innerHTML = '<span class="ep-name-text">' + ep.name + '</span>';
                     nameBox.onclick = function() { 
                         if (isAdmin) {
-                            var xhr = new XMLHttpRequest();
-                            xhr.open("PATCH", dbUrl, true);
-                            // عند اختيار حلقة جديدة، نصفر الوقت ونضع الحالة "playing"
-                            xhr.send(JSON.stringify({ url: ep.url, status: "playing", time: 0 }));
+                            updateVideoWithDelay(ep.url);
+                        } else {
+                            playMedia(ep.url); 
                         }
-                        playMedia(ep.url); 
                         window.scrollTo({top: 0, behavior: 'smooth'}); 
                     };
 
@@ -368,31 +348,28 @@
                         delBtn.className = "lib-control-btn single-delete-btn";
                         delBtn.innerHTML = "✕";
                         delBtn.onclick = function(e) { e.stopPropagation(); deleteSingleEpisode(ep.id); };
-                        
                         var editBtn = document.createElement('button');
                         editBtn.className = "lib-control-btn single-edit-btn";
                         editBtn.innerHTML = "✏️";
                         editBtn.onclick = function(e) { e.stopPropagation(); editSingleEpisode(ep.id, ep.name, ep.url); };
-
                         var moveBtn = document.createElement('button');
                         moveBtn.className = "lib-control-btn single-move-btn";
                         moveBtn.innerHTML = "📁";
                         moveBtn.onclick = function(e) { e.stopPropagation(); moveEpisode(ep.id); };
-
-                        item.appendChild(editBtn);
-                        item.appendChild(moveBtn);
-                        item.appendChild(nameBox);
-                        item.appendChild(delBtn);
-                    } else {
-                        item.appendChild(nameBox);
-                    }
+                        item.appendChild(editBtn); item.appendChild(moveBtn); item.appendChild(nameBox); item.appendChild(delBtn);
+                    } else { item.appendChild(nameBox); }
                     listDiv.appendChild(item);
                 });
-
-                groupWrapper.appendChild(header);
-                groupWrapper.appendChild(listDiv);
-                container.appendChild(groupWrapper);
+                groupWrapper.appendChild(header); groupWrapper.appendChild(listDiv); container.appendChild(groupWrapper);
             });
+        }
+
+        function updateVideoWithDelay(url) {
+            var startTime = Date.now() + 30000; // 30 ثانية من الآن
+            var xhr = new XMLHttpRequest();
+            xhr.open("PATCH", dbUrl, true);
+            xhr.send(JSON.stringify({ url: url, status: "playing", time: 0, startTime: startTime }));
+            showStatus("سيتم التشغيل بعد 30 ثانية للكل ⏳");
         }
 
         function addGroup() {
@@ -407,9 +384,7 @@
         function moveEpisode(key) {
             var gSelect = document.getElementById('groupSelect');
             var options = "";
-            for(var i=0; i<gSelect.options.length; i++) {
-                options += (i+1) + "- " + gSelect.options[i].text + "\n";
-            }
+            for(var i=0; i<gSelect.options.length; i++) options += (i+1) + "- " + gSelect.options[i].text + "\n";
             var choice = prompt("اختر رقم المجموعة للنقل إليها:\n" + options);
             if(choice && gSelect.options[choice-1]) {
                 var newGroupId = gSelect.options[choice-1].value;
@@ -440,40 +415,23 @@
             }
         }
 
-        function syncPlayer(data) {
-            if (!data) return;
-            isSyncEnabled = data.syncEnabled !== false; 
-            updateSyncButtonUI();
-            var lib = document.getElementById('librarySection');
-            if (isAdmin || !isSyncEnabled) {
-                lib.style.display = "block";
-                renderLibrary(data.library, data.groups);
-            } else {
-                lib.style.display = "none";
-            }
-            
-            // المزامنة للمشاهدين
-            if (isSyncEnabled && !isAdmin) {
-                if (data.url !== lastUrl) {
-                    playMedia(data.url);
-                }
-                
-                // لا نطبق مزامنة الوقت إذا كان العد التنازلي شغالاً
-                if (!countdownActive) {
-                    if (Math.abs(videoElement.currentTime - data.time) > 3) videoElement.currentTime = data.time;
-                    if (data.status === "playing" && videoElement.paused) videoElement.play().catch(function(e){});
-                    else if (data.status === "paused" && !videoElement.paused) videoElement.pause();
-                }
-            }
-        }
-
         function loadStream() {
             var xhr = new XMLHttpRequest();
             xhr.open("GET", dbUrl, true);
             xhr.onload = function () {
                 if (xhr.status === 200) {
                     var data = JSON.parse(xhr.responseText);
-                    syncPlayer(data);
+                    if (!data) return;
+                    isSyncEnabled = data.syncEnabled !== false; 
+                    updateSyncButtonUI();
+                    var lib = document.getElementById('librarySection');
+                    if (isAdmin || !isSyncEnabled) {
+                        lib.style.display = "block";
+                        renderLibrary(data.library, data.groups);
+                    } else {
+                        lib.style.display = "none";
+                    }
+                    handleSyncLogic(data);
                 }
             };
             xhr.send();
@@ -506,10 +464,7 @@
             var url = document.getElementById('epUrlInput').value.trim();
             var gid = document.getElementById('groupSelect').value;
             if (!name || !url) return;
-            
-            if(gid) openFolders[gid] = true;
-            else openFolders["main"] = true;
-
+            if(gid) openFolders[gid] = true; else openFolders["main"] = true;
             var xhr = new XMLHttpRequest();
             xhr.open("POST", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library.json", true);
             xhr.onload = function() {
@@ -522,7 +477,8 @@
         }
 
         function updateDatabaseState() {
-            if (!isAdmin || !isSyncEnabled || countdownActive) return;
+            // لا نحدث الحالة إذا كان هناك عد تنازلي نشط
+            if (!isAdmin || !isSyncEnabled || countdownOverlay.style.display === "flex") return;
             var xhr = new XMLHttpRequest();
             xhr.open("PATCH", dbUrl, true);
             var state = { status: videoElement.paused ? "paused" : "playing", time: videoElement.currentTime };
@@ -531,17 +487,15 @@
 
         setInterval(function() {
             updatePresence();
-            if (!isAdmin) loadStream();
-            else { 
-                if (isSyncEnabled) updateDatabaseState(); 
-                loadStream();
-                fetchViewerCount();
-            }
-        }, 5000);
+            loadStream();
+            if (isAdmin) fetchViewerCount();
+        }, 3000); // زيادة سرعة التحديث لمزامنة أفضل مع العد التنازلي
 
         if (isAdmin) {
             ['play', 'pause', 'seeked'].forEach(function(ev) {
-                videoElement.addEventListener(ev, function() { if(isSyncEnabled && !countdownActive) updateDatabaseState(); });
+                videoElement.addEventListener(ev, function() { 
+                    if(isSyncEnabled && countdownOverlay.style.display !== "flex") updateDatabaseState(); 
+                });
             });
         }
 
@@ -549,11 +503,8 @@
             setTimeout(function() {
                 var val = document.getElementById('urlInput').value.trim();
                 if (val) {
-                    var xhr = new XMLHttpRequest();
-                    xhr.open("PATCH", dbUrl, true);
-                    xhr.send(JSON.stringify({ url: val, status: "playing", time: 0 }));
+                    updateVideoWithDelay(val);
                     document.getElementById('urlInput').value = ''; 
-                    showStatus("تم التحديث ✅");
                 }
             }, 100);
         }
@@ -562,7 +513,7 @@
             if(confirm("حذف البث؟")) {
                 var xhr = new XMLHttpRequest();
                 xhr.open("PATCH", dbUrl, true);
-                xhr.send(JSON.stringify({ url: "", status: "paused", time: 0 }));
+                xhr.send(JSON.stringify({ url: "", status: "paused", time: 0, startTime: 0 }));
             }
         }
 
