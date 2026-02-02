@@ -86,14 +86,13 @@
             display: none;
         }
         
-        .lib-title { display: none; } /* تم إخفاء كلمة المكتبة هنا */
+        .lib-title { display: none; }
 
-        /* تعديل القوائم المخفية */
         .group-container { width: 100%; margin-bottom: 10px; border-bottom: 1px solid #111; }
         
         .group-header {
             width: 100%; background: #111; padding: 15px; 
-            border-radius: 8px; color: #bbbbbb; font-weight: bold; /* تم تعديل اللون ليتطابق مع المقاطع */
+            border-radius: 8px; color: #bbbbbb; font-weight: bold;
             text-align: center; cursor: pointer; display: flex; 
             justify-content: center; align-items: center;
             box-sizing: border-box; position: relative;
@@ -103,7 +102,7 @@
         .group-header.open::after { content: '▲'; }
 
         .ep-list { 
-            display: none; /* مخفية افتراضياً */
+            display: none; 
             flex-direction: column; 
             align-items: center; 
             padding: 10px 0;
@@ -178,8 +177,33 @@
         var isAdmin = window.location.hash === "#ana";
         var isSyncEnabled = true;
         var myUserId = Math.random().toString(36).substring(7);
-        // الذاكرة لأسماء المجموعات المفتوحة
         var openFolders = {};
+
+        // --- وظائف الحفظ التلقائي الجديدة ---
+        function saveProgress() {
+            if (videoElement.src || lastUrl) {
+                var progressData = JSON.parse(localStorage.getItem('videoProgress') || '{}');
+                progressData[lastUrl] = videoElement.currentTime;
+                localStorage.setItem('videoProgress', JSON.stringify(progressData));
+            }
+        }
+
+        function checkProgress(url) {
+            var progressData = JSON.parse(localStorage.getItem('videoProgress') || '{}');
+            if (progressData[url] && progressData[url] > 10) {
+                // إذا كان الفيديو أطول من 10 ثواني، نسأل المستخدم
+                var savedTime = progressData[url];
+                var minutes = Math.floor(savedTime / 60);
+                var seconds = Math.floor(savedTime % 60);
+                if (confirm("هل تريد الإكمال من الدقيقة " + minutes + ":" + seconds + "؟")) {
+                    videoElement.currentTime = savedTime;
+                }
+            }
+        }
+
+        // حفظ الوقت كل 5 ثواني
+        setInterval(saveProgress, 5000);
+        // ----------------------------------
 
         function updatePresence() {
             var xhr = new XMLHttpRequest();
@@ -220,21 +244,22 @@
                 hls.destroy(); hls = new Hls();
                 hls.loadSource(url); hls.attachMedia(videoElement);
             } else { videoElement.src = url; }
-            videoElement.play().catch(function(e){});
+            
+            videoElement.play().then(function() {
+                // بعد بدء التشغيل، نتحقق من وجود تقدم سابق
+                checkProgress(url);
+            }).catch(function(e){});
         }
 
         function toggleFolder(header, gid) {
             header.classList.toggle('open');
             var list = header.nextElementSibling;
             list.classList.toggle('show');
-            // حفظ الحالة فوراً عند الضغط
             openFolders[gid] = list.classList.contains('show');
         }
 
         function renderLibrary(libData, groupsData) {
             var container = document.getElementById('episodesContainer');
-            
-            // تحديث الذاكرة الحالية من العناصر الموجودة في الصفحة قبل مسحها
             var currentHeaders = container.querySelectorAll('.group-header');
             currentHeaders.forEach(function(h) {
                 var gid = h.getAttribute('data-gid');
@@ -242,10 +267,9 @@
             });
 
             container.innerHTML = "";
-            
             var gSelect = document.getElementById('groupSelect');
             if(isAdmin && gSelect) {
-                var currentSelection = gSelect.value; // حفظ التحديد الحالي
+                var currentSelection = gSelect.value;
                 gSelect.innerHTML = '<option value="">بدون مجموعة (الرئيسية)</option>';
                 if(groupsData) {
                     Object.keys(groupsData).forEach(function(gk) {
@@ -254,7 +278,7 @@
                         gSelect.appendChild(opt);
                     });
                 }
-                gSelect.value = currentSelection; // إعادة التحديد
+                gSelect.value = currentSelection;
             }
 
             if (!libData) { 
@@ -275,18 +299,13 @@
 
             Object.keys(grouped).forEach(function(gid) {
                 if (grouped[gid].length === 0 && gid !== "main") return;
-                
                 var groupWrapper = document.createElement('div');
                 groupWrapper.className = "group-container";
-
                 var header = document.createElement('div');
                 header.className = "group-header";
                 header.setAttribute('data-gid', gid);
                 header.innerText = (gid === "main") ? "📂 القائمة الرئيسية" : "📁 " + (groupsData[gid] ? groupsData[gid].name : "مجموعة");
-                
-                // تطبيق الحالة من الذاكرة
                 if (openFolders[gid]) header.classList.add('open');
-                
                 header.onclick = function() { toggleFolder(this, gid); };
 
                 var listDiv = document.createElement('div');
@@ -444,11 +463,7 @@
             var url = document.getElementById('epUrlInput').value.trim();
             var gid = document.getElementById('groupSelect').value;
             if (!name || !url) return;
-            
-            // تحديث الذاكرة فوراً قبل الإرسال
-            if(gid) openFolders[gid] = true;
-            else openFolders["main"] = true;
-
+            if(gid) openFolders[gid] = true; else openFolders["main"] = true;
             var xhr = new XMLHttpRequest();
             xhr.open("POST", "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream/library.json", true);
             xhr.onload = function() {
