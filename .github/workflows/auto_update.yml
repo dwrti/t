@@ -1,23 +1,23 @@
-name: Spacetoon Auto Update
+name: IPTV Daily Update
 
 on:
   schedule:
-    - cron: '0 * * * *' # تشغيل تلقائي كل ساعة
-  workflow_dispatch: # زر للتشغيل اليدوي
+    - cron: '0 0 * * *' # يشتغل يومياً الساعة 12 منتصف الليل بتوقيت جرينتش
+  workflow_dispatch: # يتيح لك التشغيل اليدوي في أي وقت
 
 jobs:
-  update-link:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Python
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
-      - name: Install Tools
+      - name: Install dependencies
         run: |
           pip install playwright requests
           playwright install chromium
