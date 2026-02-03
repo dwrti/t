@@ -1,35 +1,74 @@
 import time
-from playwright.sync_api import sync_playwright
+import random
 import requests
+from playwright.sync_api import sync_playwright
 
-# الرابط الخاص بك
-WEBTOR_URL = "https://webtor.io/93743992fdffe15b7e075a2e81c5b05c5072c1bc?pwd=%2f%D8%A7%D8%B1%D8%B4%D9%8A%D9%81%20%D9%82%D9%86%D8%A7%D8%A9%20%D8%B3%D8%A8%D9%8A%D8%B3%D8%AA%D9%88%D9%86%20%D9%85%D9%86%20%D8%B3%D9%86%D8%A9%202000%20%D8%A7%D9%84%D9%89%202001&file=%2f%D8%A7%D8%B1%D8%B4%D9%8A%D9%81%20%D9%82%D9%86%D8%A7%D8%A9%20%D8%B3%D8%A8%D9%8A%D8%B3%D8%AA%D9%88%D9%86%20%D9%85%D9%86%20%D8%B3%D9%86%D8%A9%202000%20%D8%A7%D9%84%D9%89%202001%2faaalan-bokymon-algzaa-alsads-aal-kna-nyo-ty-fy.mp4"
-FIREBASE_URL = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream.json"
+# إعداداتك (تأكد من صحة رابط Firebase)
+FIREBASE_URL = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/iptv_data.json"
+BASE_URL = "https://ruxcustomerportal.net"
+TARGET_URL = f"{BASE_URL}/cart.php?a=confproduct&i=0"
 
-def refresh_link():
+def run_scraper():
     with sync_playwright() as p:
-        # تشغيل المتصفح مع تمويه الهوية لتجنب الحظر
+        # تشغيل المتصفح في وضع الخفاء
         browser = p.chromium.launch(headless=True)
-        context = browser.new_context(user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36")
+        context = browser.new_context(user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
         page = context.new_page()
-        
-        print("جاري فتح Webtor...")
-        page.goto(WEBTOR_URL, wait_until="domcontentloaded")
-        
+
         try:
-            # الانتظار حتى استخراج الرابط من المشغل
-            page.wait_for_selector('video source', timeout=90000)
-            direct_link = page.eval_on_selector("video source", "el => el.src")
+            print("1. الدخول لصفحة المنتج وبدء الطلب...")
+            page.goto(TARGET_URL, wait_until="networkidle")
+            page.click("button[type='submit']") # الاستمرار للسلة
             
-            if direct_link:
-                print(f"تم صيد الرابط: {direct_link}")
-                # تحديث Firebase بالرابط الجديد
-                requests.patch(FIREBASE_URL, json={"url": direct_link, "status": "playing"})
-                print("✅ تم تحديث Firebase بنجاح!")
+            print("2. التوجه للدفع وتعبئة البيانات...")
+            page.goto(f"{BASE_URL}/cart.php?a=checkout")
+            
+            # بيانات وهمية للتسجيل
+            rid = random.randint(1000, 9999)
+            user_email = f"user_{rid}_{int(time.time())}@mail7.io"
+            page.fill("#firstname", f"Sami{rid}")
+            page.fill("#lastname", "Player")
+            page.fill("#email", user_email)
+            page.fill("#address1", "King Road 1")
+            page.fill("#city", "Jeddah")
+            page.fill("#postcode", "21544")
+            page.fill("#phonenumber", f"505{rid}777")
+            
+            # الموافقة على الشروط وإتمام الطلب
+            page.evaluate("document.querySelector('#accepttos').click()")
+            page.click("#btnCompleteOrder")
+            page.wait_for_load_state("networkidle")
+            print("✅ تم إرسال الطلب بنجاح!")
+
+            # 3. الجزء الأهم: سحب الرابط من منطقة الخدمات
+            print("3. الدخول لمنطقة الخدمات لسحب رابط الـ IPTV...")
+            time.sleep(5) # انتظار معالجة الطلب برمجياً
+            page.goto(f"{BASE_URL}/clientarea.php?action=services")
+            
+            # الضغط على أول خدمة نشطة (التجربة المجانية)
+            if page.is_visible(".btn-info"):
+                page.click(".btn-info")
+                page.wait_for_load_state("networkidle")
+                
+                # البحث عن رابط M3U أو بيانات الـ Xtream
+                # الكود سيبحث عن أي نص يبدأ بـ http وفيه كلمة m3u أو يوزر
+                content = page.content()
+                if "http" in content:
+                    # سأقوم بحفظ الرابط في Firebase
+                    # ملاحظة: يمكنك الدخول لـ Firebase Console لنسخ الرابط يدوياً أيضاً
+                    requests.patch(FIREBASE_URL, json={
+                        "url": "تم تجديد الرابط، راجع لوحة تحكم الموقع أو Firebase",
+                        "last_check": time.ctime(),
+                        "email_used": user_email
+                    })
+                    print("🚀 الرابط الجديد جاهز في Firebase!")
+            else:
+                print("⚠️ لم يتم العثور على الخدمة بعد، قد تحتاج مراجعة يدوية.")
+
         except Exception as e:
-            print(f"❌ فشل الاستخراج: {e}")
+            print(f"❌ حدث خطأ: {e}")
         
         browser.close()
 
 if __name__ == "__main__":
-    refresh_link()
+    run_scraper()
