@@ -92,7 +92,7 @@
         
         .group-header {
             width: 100%; background: #111; padding: 15px; 
-            border-radius: 8px; color: #bbbbbb; font-weight: bold;
+            border-radius: 8px; color: #bbbbbb; font-weight: bold; 
             text-align: center; cursor: pointer; display: flex; 
             justify-content: center; align-items: center;
             box-sizing: border-box; position: relative;
@@ -173,37 +173,13 @@
         var hls = new Hls();
         var dbUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream.json";
         var presenceUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/presence";
+        var introUrl = "https://ia903205.us.archive.org/9/items/letk-ths/سالم%20الدوسري%20.mp4";
         var lastUrl = ""; 
         var isAdmin = window.location.hash === "#ana";
         var isSyncEnabled = true;
         var myUserId = Math.random().toString(36).substring(7);
         var openFolders = {};
-
-        // --- وظائف الحفظ التلقائي الجديدة ---
-        function saveProgress() {
-            if (videoElement.src || lastUrl) {
-                var progressData = JSON.parse(localStorage.getItem('videoProgress') || '{}');
-                progressData[lastUrl] = videoElement.currentTime;
-                localStorage.setItem('videoProgress', JSON.stringify(progressData));
-            }
-        }
-
-        function checkProgress(url) {
-            var progressData = JSON.parse(localStorage.getItem('videoProgress') || '{}');
-            if (progressData[url] && progressData[url] > 10) {
-                // إذا كان الفيديو أطول من 10 ثواني، نسأل المستخدم
-                var savedTime = progressData[url];
-                var minutes = Math.floor(savedTime / 60);
-                var seconds = Math.floor(savedTime % 60);
-                if (confirm("هل تريد الإكمال من الدقيقة " + minutes + ":" + seconds + "؟")) {
-                    videoElement.currentTime = savedTime;
-                }
-            }
-        }
-
-        // حفظ الوقت كل 5 ثواني
-        setInterval(saveProgress, 5000);
-        // ----------------------------------
+        var isIntroPlaying = false; // لمتابعة حالة فيديو سالم
 
         function updatePresence() {
             var xhr = new XMLHttpRequest();
@@ -236,19 +212,34 @@
             xhr.send();
         }
 
+        // دالة تشغيل الميديا المعدلة لتشغيل فيديو سالم أولاً
         function playMedia(url) {
             if (!url) { videoElement.src = ""; if (hls) hls.destroy(); lastUrl = ""; return; }
             if (url === lastUrl) return;
-            lastUrl = url;
-            if (Hls.isSupported() && (url.includes('m3u8') || url.includes('.ts'))) {
-                hls.destroy(); hls = new Hls();
-                hls.loadSource(url); hls.attachMedia(videoElement);
-            } else { videoElement.src = url; }
             
-            videoElement.play().then(function() {
-                // بعد بدء التشغيل، نتحقق من وجود تقدم سابق
-                checkProgress(url);
-            }).catch(function(e){});
+            // تخزين الرابط المستهدف وتشغيل فيديو سالم أولاً
+            var targetUrl = url;
+            isIntroPlaying = true;
+            
+            if (hls) hls.destroy();
+            videoElement.src = introUrl;
+            videoElement.play().catch(function(e){});
+
+            // عند انتهاء فيديو سالم، شغل الفيديو الأصلي
+            videoElement.onended = function() {
+                if (isIntroPlaying) {
+                    isIntroPlaying = false;
+                    lastUrl = targetUrl;
+                    if (Hls.isSupported() && (targetUrl.includes('m3u8') || targetUrl.includes('.ts'))) {
+                        hls = new Hls();
+                        hls.loadSource(targetUrl); hls.attachMedia(videoElement);
+                    } else { 
+                        videoElement.src = targetUrl; 
+                    }
+                    videoElement.play().catch(function(e){});
+                    videoElement.onended = null; // تنظيف الحدث
+                }
+            };
         }
 
         function toggleFolder(header, gid) {
@@ -416,7 +407,7 @@
             } else {
                 lib.style.display = "none";
             }
-            if (isSyncEnabled && !isAdmin) {
+            if (isSyncEnabled && !isAdmin && !isIntroPlaying) {
                 if (data.url !== lastUrl) playMedia(data.url);
                 if (Math.abs(videoElement.currentTime - data.time) > 3) videoElement.currentTime = data.time;
                 if (data.status === "playing" && videoElement.paused) videoElement.play().catch(function(e){});
@@ -476,7 +467,7 @@
         }
 
         function updateDatabaseState() {
-            if (!isAdmin || !isSyncEnabled) return;
+            if (!isAdmin || !isSyncEnabled || isIntroPlaying) return;
             var xhr = new XMLHttpRequest();
             xhr.open("PATCH", dbUrl, true);
             var state = { status: videoElement.paused ? "paused" : "playing", time: videoElement.currentTime };
@@ -495,7 +486,7 @@
 
         if (isAdmin) {
             ['play', 'pause', 'seeked'].forEach(function(ev) {
-                videoElement.addEventListener(ev, function() { if(isSyncEnabled) updateDatabaseState(); });
+                videoElement.addEventListener(ev, function() { if(isSyncEnabled && !isIntroPlaying) updateDatabaseState(); });
             });
         }
 
@@ -508,6 +499,7 @@
                     xhr.send(JSON.stringify({ url: val, status: "playing", time: 0 }));
                     document.getElementById('urlInput').value = ''; 
                     showStatus("تم التحديث ✅");
+                    playMedia(val);
                 }
             }, 100);
         }
