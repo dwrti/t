@@ -1,57 +1,41 @@
 import requests
-import asyncio
-from playwright.async_api import async_playwright
-import random
+import re
 
-# إعداد قاعدة البيانات الخاصة بك
+# مصادر مجمعة لروابط IPTV محدثة
+SOURCES = [
+    "https://raw.githubusercontent.com/skylive-v1/IPTV-Arabic/main/Arabic.m3u",
+    "https://iptv-org.github.io/iptv/languages/ara.m3u"
+]
 DB_URL = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream.json"
 
-async def get_random_movie():
-    async with async_playwright() as p:
-        # تشغيل المتصفح
-        browser = await p.chromium.launch(headless=True)
-        context = await browser.new_context(user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-        page = await context.new_page()
-        
+def get_bein_link():
+    for source in SOURCES:
         try:
-            print("🚀 جاري البحث عن فيلم...")
-            await page.goto("https://cineby.bz/movie", wait_until="networkidle")
-            
-            # جلب الروابط المتاحة
-            links = await page.query_selector_all("a[href^='/movie/']")
-            if not links:
-                print("❌ لم يتم العثور على أفلام.")
-                return
-
-            chosen_link = random.choice(links)
-            href = await chosen_link.get_attribute("href")
-            movie_url = f"https://cineby.bz{href}"
-            
-            # الخطوة السحرية: تحويل الرابط إلى صيغة Embed المباشرة
-            # معظم الأفلام في الموقع تعمل بهذا المسار المباشر
-            final_embed = movie_url.replace("/movie/", "/embed/movie/")
-            
-            print(f"✅ تم اختيار: {final_embed}")
-
-            # تحديث Firebase
-            # نرسل الرابط كـ "url" ليتم التقاطه بواسطة iframe في كود الـ HTML الخاص بك
-            payload = {
-                "url": final_embed,
-                "status": "playing",
-                "time": 0,
-                "syncEnabled": True
-            }
-            
-            response = requests.patch(DB_URL, json=payload)
+            print(f"Searching in {source}...")
+            response = requests.get(source, timeout=10)
             if response.status_code == 200:
-                print("✨ تم إرسال الفيلم للمشغل بنجاح!")
-            else:
-                print(f"⚠️ فشل التحديث: {response.status_code}")
+                content = response.text
+                # البحث عن قنوات beIN Sports باستخدام Regex
+                # نبحث عن السطر الذي يحتوي على الاسم ثم الرابط الذي يليه
+                matches = re.findall(r'#EXTINF.*beIN.*?\n(http.*)', content, re.IGNORECASE)
+                
+                if matches:
+                    # نأخذ أول رابط يعمل (غالباً beIN 1)
+                    bein_url = matches[0].strip()
+                    print(f"✅ Found: {bein_url}")
+                    return bein_url
+        except:
+            continue
+    return None
 
-        except Exception as e:
-            print(f"🔥 خطأ تقني: {e}")
-        finally:
-            await browser.close()
+def update_firebase(url):
+    payload = {"url": url, "status": "playing", "time": 0}
+    requests.patch(DB_URL, json=payload)
 
 if __name__ == "__main__":
-    asyncio.run(get_random_movie())
+    link = get_bein_link()
+    if link:
+        update_firebase(link)
+        print("Done! Check your player.")
+    else:
+        print("❌ No working beIN links found today.")
