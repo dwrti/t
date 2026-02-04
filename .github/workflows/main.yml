@@ -1,36 +1,30 @@
-name: Update IPTV and Movies
+name: Movie Email Bot
 
-# تحديد وقت العمل التلقائي
+# تشغيل البوت تلقائياً كل دقيقة
 on:
   schedule:
-    - cron: '0 * * * *' # يعمل تلقائياً كل ساعة
-  workflow_dispatch: # يتيح لك تشغيله يدوياً في أي وقت
+    - cron: '* * * * *' #
+  workflow_dispatch: # للتشغيل اليدوي في أي وقت
 
 jobs:
   build:
     runs-on: ubuntu-latest
     
     steps:
-      # 1. جلب الكود من المستودع
+      # 1. جلب الأكواد (أطفالك) من المستودع
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # 2. إعداد لغة بايثون
+      # 2. إعداد بيئة بايثون
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
 
-      # 3. تثبيت المكتبات اللازمة (Requests و Playwright)
+      # 3. تثبيت المكتبة المطلوبة لإرسال البيانات
       - name: Install dependencies
-        run: |
-          pip install requests playwright
-          
-      # 4. تثبيت المتصفح الوهمي (ضروري جداً لموقع الأفلام)
-      - name: Install Playwright Browser
-        run: |
-          playwright install chromium
+        run: pip install requests
 
-      # 5. تشغيل البوت لتحديث الرابط في Firebase
+      # 4. تشغيل البوت لإرسال الإيميل
       - name: Run Bot
         run: python bot.py
