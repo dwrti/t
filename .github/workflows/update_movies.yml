@@ -1,0 +1,26 @@
+name: Movie Updater Bot
+
+on:
+  workflow_dispatch: # هذا السطر هو الذي يظهر لك زر "Run" يدوياً
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Run Movie Bot Script
+        run: |
+          echo "جاري البحث عن أفلام جديدة..."
+          # هنا يمكنك إضافة سكريبت Python يجلب الروابط
+          # كمثال سنقوم فقط بتحديث تاريخ آخر تحديث في الصفحة
+          sed -i "s/سينما GitHub الخاصة/آخر تحديث: $(date)/g" index.html
+
+      - name: Commit and Push
+        run: |
+          git config --global user.name "MovieBot"
+          git config --global user.email "bot@github.com"
+          git add index.html
+          git commit -m "تحديث قائمة الأفلام بواسطة البوت"
+          git push
