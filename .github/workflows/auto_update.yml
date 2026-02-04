@@ -1,11 +1,35 @@
+name: IPTV Daily Update
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install playwright requests
+          playwright install chromium
+
       - name: Run Scraper
         run: python scraper.py
 
-      - name: Get Link from File
-        id: read_file
+      - name: Read Link
+        id: read_link
         run: |
-          LINK=$(cat iptv_link.txt)
-          echo "FINAL_LINK=$LINK" >> $GITHUB_ENV
+          VAL=$(cat iptv_link.txt)
+          echo "IPTV_URL=$VAL" >> $GITHUB_ENV
 
       - name: Send Email
         uses: dawidd6/action-send-mail@v3
@@ -14,12 +38,14 @@
           server_port: 465
           username: "Ddt42202@gmail.com"
           password: ${{ secrets.MY_EMAIL_PASSWORD }}
-          subject: "🎁 رابط الـ IPTV الجديد وصل!"
+          subject: "🎁 رابط الـ IPTV الجديد وصل يا بطل"
           to: "Ddt42202@gmail.com"
           from: "GitHub Robot 🤖"
           body: |
-            أبشر يا غالي، هذا هو الرابط الذي طلبه "أطفالك":
+            يا هلا بصاحبي،
             
-            ${{ env.FINAL_LINK }}
+            هذا هو الرابط اللي طلبه "أطفالك" (الأكواد) اليوم:
             
-            مشاهدة ممتعة!
+            ${{ env.IPTV_URL }}
+            
+            تم التحديث بنجاح، مشاهدة ممتعة!
