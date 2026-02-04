@@ -2,8 +2,8 @@ name: IPTV Daily Update
 
 on:
   schedule:
-    - cron: '0 0 * * *'
-  workflow_dispatch:
+    - cron: '0 0 * * *' # يشتغل تلقائياً كل يوم الساعة 12 بالليل
+  workflow_dispatch: # زر التشغيل اليدوي اللي ضغطت عليه قبل شوي
 
 jobs:
   build:
@@ -31,11 +31,15 @@ jobs:
           server_address: smtp.gmail.com
           server_port: 465
           username: "Ddt42202@gmail.com"
-          password: ${{ secrets.MY_EMAIL_PASSWORD }}
-          subject: "🚀 رابط الـ IPTV الجديد وصل!"
+          # هذا بيسحب الكود الأصفر اللي حطيته أنت في Secrets
+          password: ${{ secrets.MY_EMAIL_PASSWORD }} 
+          subject: "🚀 رابط الـ IPTV الجديد وصل يا بطل"
           to: "Ddt42202@gmail.com"
           from: "GitHub Robot 🤖"
           body: |
-            تم تحديث الرابط بنجاح!
-            تجد تفاصيل الرابط الجديد في قاعدة بيانات Firebase الخاصة بك.
-            استمتع بالمشاهدة.
+            يا هلا بصاحبي،
+            
+            "أطفالك" (الأكواد) قاموا بالواجب وحدثوا لك الرابط اليوم.
+            تفضل بزيارة Firebase لمشاهدة الرابط الجديد أو تفقد لوحة التحكم.
+            
+            تم التحديث بنجاح!
