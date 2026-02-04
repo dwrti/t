@@ -9,53 +9,40 @@ def run_scraper():
             browser = p.chromium.launch(headless=True)
             page = browser.new_page()
 
-            # 1. الدخول واختيار التصنيف (الصورة 1 و 9)
+            # 1. الدخول واختيار Free IPTV Trial
             page.goto("https://ruxcustomerportal.net/cart.php?a=confproduct&i=0")
             page.select_option("select[name='gid']", label="Free IPTV Trial")
             
-            # 2. الضغط على Continue (الصورة 2 و 10)
-            page.wait_for_selector("button:has-text('Continue')")
+            # 2. الضغط على Continue ثم Checkout
             page.click("button:has-text('Continue')")
-            
-            # 3. الضغط على Checkout (الصورة 3 و 11)
             page.wait_for_selector("a:has-text('Checkout')")
             page.click("a:has-text('Checkout')")
             
-            # 4. تعبئة الإيميل والباسورد عشوائياً (الصورة 4 و 12)
+            # 3. تعبئة البيانات العشوائية (الإيميل والباسورد)
             rid = random.randint(1000, 9999)
             random_email = f"user{rid}{int(time.time())}@gmail.com"
-            random_password = f"Pass{rid}!{rid}"
             page.fill("#inputEmail", random_email)
-            page.fill("#inputPassword1", random_password)
-            page.fill("#inputPassword2", random_password)
+            page.fill("#inputPassword1", "Pass123!@#")
+            page.fill("#inputPassword2", "Pass123!@#")
             
-            # 5. إنهاء الطلب (الصورة 5 و 13)
+            # 4. إنهاء الطلب والانتظار دقيقة كما طلبت (الخطوة 5 و 6)
             page.click("#btnCompleteOrder")
-            
-            # 6. التوجه للوحة التحكم (الصورة 6 و 14)
-            time.sleep(20) # وقت مستقطع لمعالجة الطلب
-            page.wait_for_selector("a:has-text('Continue To Client Area')")
+            time.sleep(60) 
             page.click("a:has-text('Continue To Client Area')")
 
-            # 7. الدخول للخدمات (الصورة 7 و 15)
+            # 5. الدخول للخدمات والضغط على Active (الخطوة 7)
             page.goto("https://ruxcustomerportal.net/clientarea.php?action=services")
-            
-            # 8. الضغط على Active (الصورة 16)
-            page.wait_for_selector(".label-active")
             page.click(".label-active")
             
-            # 9. صيد الرابط النهائي (الصورة 8 و 17)
-            time.sleep(5)
-            # استخراج النص الموجود في خانة الرابط بجانب كلمة Playlist
-            final_link_element = page.locator("input[readonly]").first
-            if final_link_element:
-                found_link = final_link_element.input_value()
+            # 6. صيد الرابط من خانة Playlist (الخطوة 8 - الصورة الأخيرة)
+            page.wait_for_selector("input[readonly]")
+            found_link = page.locator("input[readonly]").first.input_value()
             
             browser.close()
     except Exception as e:
-        found_link = f"حدث خطأ: {str(e)}"
+        found_link = f"حدث خطأ فني: {str(e)}"
 
-    # حفظ الرابط في ملف ليرسله GitHub لإيميلك ddt42202@gmail.com
+    # حفظ الرابط في الملف ليرسله GitHub لإيميلك ddt42202@gmail.com
     with open("iptv_link.txt", "w") as f:
         f.write(found_link)
 
