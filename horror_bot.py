@@ -5,40 +5,52 @@ import os
 from email.message import EmailMessage
 
 def get_random_horror_movie():
-    # مفتاح API مجاني (OMDb) يعطيك بيانات IMDb
-    # ملاحظة: هذا المفتاح للاختبار، يفضل الحصول على واحد خاص بك مجاناً من omdbapi.com
-    api_key = "7628833d"
+    # استخدام مفتاح الـ API الجديد الخاص بك
+    api_key = "B43d8afb"
     
-    # اختيار سنة عشوائية لضمان العشوائية المطلقة وعدم تكرار "الأفضل" فقط
-    year = random.randint(1970, 2024)
+    # توليد سنة عشوائية لضمان عدم تكرار الأفلام
+    year = random.randint(1975, 2025)
     url = f"http://www.omdbapi.com/?s=horror&type=movie&y={year}&apikey={api_key}"
     
     try:
         response = requests.get(url)
         data = response.json()
-        if data.get("Response") == "True":
+        
+        # التأكد من وجود نتائج للسنة المختارة
+        if data.get("Response") == "True" and "Search" in data:
             movie = random.choice(data["Search"])
             title = movie["Title"]
-            year = movie["Year"]
+            movie_year = movie["Year"]
             imdb_id = movie["imdbID"]
-            return f"الفلم العشوائي: {title} ({year})\nرابط IMDb: https://www.imdb.com/title/{imdb_id}/"
-    except:
-        pass
-    return "The Texas Chain Saw Massacre (1974) - حدث خطأ في الجلب ولكن هذا كلاسيكي!"
+            return f"🎬 مقترح الليلة العشوائي:\n\nاسم الفلم: {title}\nسنة الإنتاج: {movie_year}\nرابط IMDb: https://www.imdb.com/title/{imdb_id}/"
+        else:
+            # إذا لم يجد أفلام في تلك السنة، يبحث بشكل عام عن كلمة رعب
+            fallback_url = f"http://www.omdbapi.com/?s=horror&type=movie&apikey={api_key}"
+            resp = requests.get(fallback_url).json()
+            movie = random.choice(resp["Search"])
+            return f"🎬 مقترح الليلة العشوائي:\n\nاسم الفلم: {movie['Title']}\nسنة الإنتاج: {movie['Year']}\nرابط IMDb: https://www.imdb.com/title/{movie['imdbID']}/"
+            
+    except Exception as e:
+        return "The Texas Chain Saw Massacre (1974) - حدث خطأ بسيط في الاتصال، لكن هذا الفلم كلاسيكي ومضمون!"
 
 def send_email(content):
     email_user = "ddt42202@gmail.com"
-    email_pass = os.environ.get('EMAIL_PASSWORD') # يُسحب من GitHub Secrets
+    # يسحب الباسورد من الـ Secrets في GitHub (تأكد انك سميته EMAIL_PASSWORD)
+    email_pass = os.environ.get('EMAIL_PASSWORD') 
 
     msg = EmailMessage()
     msg.set_content(content)
-    msg['Subject'] = '👻 مقترح رعب عشوائي'
+    msg['Subject'] = '👻 بوت الرعب: فلمك العشوائي جاهز'
     msg['From'] = email_user
     msg['To'] = email_user
 
-    with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
-        smtp.login(email_user, email_pass)
-        smtp.send_message(msg)
+    try:
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
+            smtp.login(email_user, email_pass)
+            smtp.send_message(msg)
+            print("تم إرسال الإيميل بنجاح!")
+    except Exception as e:
+        print(f"فشل إرسال الإيميل: {e}")
 
 if __name__ == "__main__":
     movie_info = get_random_horror_movie()
