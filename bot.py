@@ -1,41 +1,29 @@
 import requests
-import re
+import asyncio
+from playwright.async_api import async_playwright
+import random
 
-# مصادر مجمعة لروابط IPTV محدثة
-SOURCES = [
-    "https://raw.githubusercontent.com/skylive-v1/IPTV-Arabic/main/Arabic.m3u",
-    "https://iptv-org.github.io/iptv/languages/ara.m3u"
-]
 DB_URL = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream.json"
 
-def get_bein_link():
-    for source in SOURCES:
+async def get_content():
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)
+        page = await browser.new_page()
         try:
-            print(f"Searching in {source}...")
-            response = requests.get(source, timeout=10)
-            if response.status_code == 200:
-                content = response.text
-                # البحث عن قنوات beIN Sports باستخدام Regex
-                # نبحث عن السطر الذي يحتوي على الاسم ثم الرابط الذي يليه
-                matches = re.findall(r'#EXTINF.*beIN.*?\n(http.*)', content, re.IGNORECASE)
+            # 1. محاولة جلب فيلم عشوائي
+            await page.goto("https://cineby.bz/movie", wait_until="networkidle")
+            links = await page.query_selector_all("a[href^='/movie/']")
+            if links:
+                chosen = await random.choice(links).get_attribute("href")
+                final_url = f"https://cineby.bz{chosen}".replace("/movie/", "/embed/movie/")
                 
-                if matches:
-                    # نأخذ أول رابط يعمل (غالباً beIN 1)
-                    bein_url = matches[0].strip()
-                    print(f"✅ Found: {bein_url}")
-                    return bein_url
-        except:
-            continue
-    return None
-
-def update_firebase(url):
-    payload = {"url": url, "status": "playing", "time": 0}
-    requests.patch(DB_URL, json=payload)
+                # 2. تحديث Firebase
+                requests.patch(DB_URL, json={"url": final_url, "status": "playing"})
+                print(f"✅ تم تضبيط الفيلم: {final_url}")
+        except Exception as e:
+            print(f"❌ خطأ: {e}")
+        finally:
+            await browser.close()
 
 if __name__ == "__main__":
-    link = get_bein_link()
-    if link:
-        update_firebase(link)
-        print("Done! Check your player.")
-    else:
-        print("❌ No working beIN links found today.")
+    asyncio.run(get_content())
