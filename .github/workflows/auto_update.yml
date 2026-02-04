@@ -1,29 +1,11 @@
-name: IPTV Daily Update
-
-on:
-  schedule:
-    - cron: '0 0 * * *' # يشتغل تلقائياً كل يوم الساعة 12 بالليل
-  workflow_dispatch: # زر التشغيل اليدوي اللي ضغطت عليه قبل شوي
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-
-      - name: Install dependencies
-        run: |
-          pip install playwright requests
-          playwright install chromium
-
       - name: Run Scraper
         run: python scraper.py
+
+      - name: Get Link from File
+        id: read_file
+        run: |
+          LINK=$(cat iptv_link.txt)
+          echo "FINAL_LINK=$LINK" >> $GITHUB_ENV
 
       - name: Send Email
         uses: dawidd6/action-send-mail@v3
@@ -31,15 +13,13 @@ jobs:
           server_address: smtp.gmail.com
           server_port: 465
           username: "Ddt42202@gmail.com"
-          # هذا بيسحب الكود الأصفر اللي حطيته أنت في Secrets
-          password: ${{ secrets.MY_EMAIL_PASSWORD }} 
-          subject: "🚀 رابط الـ IPTV الجديد وصل يا بطل"
+          password: ${{ secrets.MY_EMAIL_PASSWORD }}
+          subject: "🎁 رابط الـ IPTV الجديد وصل!"
           to: "Ddt42202@gmail.com"
           from: "GitHub Robot 🤖"
           body: |
-            يا هلا بصاحبي،
+            أبشر يا غالي، هذا هو الرابط الذي طلبه "أطفالك":
             
-            "أطفالك" (الأكواد) قاموا بالواجب وحدثوا لك الرابط اليوم.
-            تفضل بزيارة Firebase لمشاهدة الرابط الجديد أو تفقد لوحة التحكم.
+            ${{ env.FINAL_LINK }}
             
-            تم التحديث بنجاح!
+            مشاهدة ممتعة!
