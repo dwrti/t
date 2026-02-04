@@ -1,48 +1,89 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مشغل الأفلام الخاص</title>
-    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+    <title>مشغل التزامن الذكي</title>
+    <script src="https://www.gstatic.com/firebasejs/9.1.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.0/firebase-database-compat.js"></script>
+
     <style>
-        body { margin: 0; background: #000; color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .header { padding: 20px; text-align: center; background: linear-gradient(to bottom, #111, transparent); }
-        .player-container { max-width: 1000px; margin: 20px auto; box-shadow: 0 0 50px rgba(229, 9, 20, 0.2); }
-        .controls { text-align: center; padding: 20px; }
-        input { padding: 12px; width: 60%; border-radius: 25px; border: 1px solid #333; background: #222; color: white; outline: none; }
-        button { padding: 12px 25px; border-radius: 25px; border: none; background: #e50914; color: white; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        button:hover { background: #ff0a16; transform: scale(1.05); }
+        body { background: #1a1a1a; color: white; text-align: center; font-family: sans-serif; padding: 20px; }
+        video { width: 100%; max-width: 800px; border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        .status { margin-top: 10px; font-size: 0.9em; color: #888; }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <h1>سينما GitHub الخاصة 🎬</h1>
-    </div>
+    <h2>متزامن الآن ⚡</h2>
+    
+    <video id="remoteVideo" controls>
+        <source src="https://gofile.io/d/wuVuDk" type="video/mp4">
+        متصفحك لا يدعم الفيديو.
+    </video>
 
-    <div class="player-container">
-        <video id="player" playsinline controls data-poster="https://bit.ly/3mS89Yp">
-            <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4" />
-        </video>
-    </div>
+    <div class="status" id="status">جاري الاتصال بالسيرفر...</div>
 
-    <div class="controls">
-        <input type="text" id="movieUrl" placeholder="أدخل رابط الفيلم المباشر هنا...">
-        <button onclick="changeVideo()">تشغيل الآن</button>
-    </div>
-
-    <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
     <script>
-        const player = new Plyr('#player');
-        function changeVideo() {
-            const url = document.getElementById('movieUrl').value;
-            if (url) {
-                const video = document.querySelector('video');
-                video.src = url;
-                player.play();
+        // 1. إعدادات Firebase التي أرسلتها
+        const firebaseConfig = {
+            apiKey: "AIzaSyCDQm_qocYr7-QuAMIafyC6PuAzSbs8Q8k",
+            authDomain: "axnt-68677.firebaseapp.com",
+            databaseURL: "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "axnt-68677",
+            storageBucket: "axnt-68677.firebasestorage.app",
+            messagingSenderId: "838335964467",
+            appId: "1:838335964467:web:5152329be098c9339a0a46"
+        };
+
+        // 2. تشغيل Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database().ref("sync_room_1");
+        const video = document.getElementById("remoteVideo");
+        const status = document.getElementById("status");
+        let isReceiving = false; // لمنع الحلقة اللانهائية عند التحديث
+
+        // 3. استقبال الأوامر من Firebase (من الطرف الآخر)
+        db.on("value", (snapshot) => {
+            const data = snapshot.val();
+            if (!data) return;
+
+            isReceiving = true;
+            status.innerText = "متصل ومنضبط ✅";
+
+            // تزامن الوقت (إذا كان الفرق أكثر من ثانية)
+            if (Math.abs(video.currentTime - data.time) > 1) {
+                video.currentTime = data.time;
             }
-        }
+
+            // تزامن التشغيل والإيقاف
+            if (data.playing && video.paused) video.play();
+            else if (!data.playing && !video.paused) video.pause();
+
+            setTimeout(() => { isReceiving = false; }, 100);
+        });
+
+        // 4. إرسال الأوامر عند التفاعل مع الفيديو
+        const sendUpdate = () => {
+            if (isReceiving) return; // لا ترسل إذا كنت أنت المستلم
+            db.set({
+                playing: !video.paused,
+                time: video.currentTime,
+                lastUpdated: Date.now()
+            });
+        };
+
+        video.onplay = sendUpdate;
+        video.onpause = sendUpdate;
+        video.onseeked = sendUpdate; // عند تقديم الفيديو أو تأخيره
+
+        // تحديث دوري خفيف لضمان دقة الوقت
+        setInterval(() => {
+            if (!video.paused && !isReceiving) {
+                db.update({ time: video.currentTime });
+            }
+        }, 3000);
+
     </script>
 </body>
 </html>
