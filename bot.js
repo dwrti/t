@@ -7,62 +7,47 @@ async function getNewLink() {
         args: ['--no-sandbox', '--disable-setuid-sandbox'] 
     });
     const page = await browser.newPage();
-    
-    // ميزة القناص: مراقبة الروابط اللي تطلع من الصفحة
-    let interceptedLink = null;
-    await page.setRequestInterception(true);
-    page.on('request', request => {
-        const url = request.url();
-        // إذا الرابط فيه كلمة download و direct يعني هذا هو هدفنا
-        if (url.includes('download/direct') || url.includes('stream/token')) {
-            interceptedLink = url;
-        }
-        request.continue();
-    });
+    await page.setViewport({ width: 1280, height: 1000 });
 
     const webtorUrl = "https://webtor.io/93743992fdffe15b7e075a2e81c5b05c5072c1bc?pwd=%2fارشيف%20قناة%20سبيستون%20من%20سنة%202000%20الى%202001&file=%2fارشيف%20قناة%20سبيستون%20من%20سنة%202000%20الى%202001%2faaalan-bokymon-algzaa-alsads-aal-kna-nyo-ty-fy.mp4";
 
     try {
-        console.log("⏳ فتح صفحة سبيستون...");
+        console.log("⏳ فتح الصفحة...");
         await page.goto(webtorUrl, { waitUntil: 'networkidle2', timeout: 90000 });
 
-        console.log("🖱️ الضغط على Download...");
+        console.log("🖱️ الضغط على زر Download الأساسي...");
         await page.evaluate(() => {
-            const btns = Array.from(document.querySelectorAll('button, a, span'));
+            const btns = Array.from(document.querySelectorAll('button, a'));
             const downloadBtn = btns.find(b => b.innerText.toLowerCase().includes('download'));
             if (downloadBtn) downloadBtn.click();
         });
 
-        await new Promise(r => setTimeout(r, 10000));
+        // انتظار ظهور الخيارات الوردية
+        await new Promise(r => setTimeout(r, 15000));
 
-        console.log("🎯 محاولة صيد الرابط من الزر الوردي...");
-        await page.evaluate(() => {
-            const pinkBtns = Array.from(document.querySelectorAll('button, div, span'));
-            const copyBtn = pinkBtns.find(el => el.innerText.toLowerCase().trim() === 'copy url');
-            if (copyBtn) copyBtn.click(); // نضغط عليه عشان يحفز توليد الرابط
+        console.log("🎯 استخراج الرابط المباشر بالإجبار...");
+        const directLink = await page.evaluate(() => {
+            // نبحث عن أي رابط يحتوي على كلمة "direct" أو "token" في الكود المولد
+            const allLinks = Array.from(document.querySelectorAll('a'));
+            const target = allLinks.find(a => a.href.includes('download/direct') || a.href.includes('stream/token'));
+            
+            if (target) return target.href;
+
+            // محاولة جلب الرابط من أي نص مخفي داخل الأزرار الوردية
+            const pinkBtn = Array.from(document.querySelectorAll('button, a, div')).find(el => el.innerText.toLowerCase().includes('copy url'));
+            return pinkBtn ? (pinkBtn.getAttribute('data-url') || pinkBtn.getAttribute('data-link')) : null;
         });
 
-        // ننتظر ثواني للصيد
-        await new Promise(r => setTimeout(r, 10000));
-
-        if (interceptedLink) {
+        if (directLink && directLink.startsWith('http')) {
             const dbUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream.json";
-            await axios.patch(dbUrl, { url: interceptedLink, status: "playing" });
-            console.log("✅ كفووو! انصاد الرابط: " + interceptedLink);
+            await axios.patch(dbUrl, { url: directLink, status: "playing" });
+            console.log("✅ كفو! تم صيد الرابط: " + directLink);
         } else {
-            console.log("❌ الرابط ما انصاد من الشبكة. بنجرب حل أخير...");
-            // محاولة أخيرة لسحب أي رابط مباشر موجود في الصفحة
-            const backupLink = await page.evaluate(() => {
-                const link = document.querySelector('a[href*="download/direct"]');
-                return link ? link.href : null;
-            });
-            if (backupLink) {
-                await axios.patch("https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream.json", { url: backupLink });
-                console.log("✅ تم التحديث برابط احتياطي!");
-            }
+            console.log("❌ فشلنا في الصيد، باخذ لقطة أخيرة للشاشة للتأكد من المحتوى.");
+            await page.screenshot({ path: 'final_check.png' });
         }
     } catch (e) {
-        console.error("❌ حصل خطأ: ", e.message);
+        console.error("❌ خطأ فني: ", e.message);
     } finally {
         await browser.close();
     }
