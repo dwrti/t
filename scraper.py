@@ -1,29 +1,27 @@
 import time
 import random
 import requests
+import os
 from playwright.sync_api import sync_playwright
 
-# إعداداتك (تأكد من صحة رابط Firebase)
 FIREBASE_URL = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/iptv_data.json"
 BASE_URL = "https://ruxcustomerportal.net"
 TARGET_URL = f"{BASE_URL}/cart.php?a=confproduct&i=0"
 
 def run_scraper():
     with sync_playwright() as p:
-        # تشغيل المتصفح في وضع الخفاء
         browser = p.chromium.launch(headless=True)
         context = browser.new_context(user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
         page = context.new_page()
+        # القيمة الافتراضية إذا لم يجد الرابط
+        found_link = "لم يتم العثور على الرابط تلقائياً، يرجى مراجعة الموقع"
 
         try:
-            print("1. الدخول لصفحة المنتج وبدء الطلب...")
+            print("بدء عملية التسجيل...")
             page.goto(TARGET_URL, wait_until="networkidle")
-            page.click("button[type='submit']") # الاستمرار للسلة
-            
-            print("2. التوجه للدفع وتعبئة البيانات...")
+            page.click("button[type='submit']")
             page.goto(f"{BASE_URL}/cart.php?a=checkout")
             
-            # بيانات وهمية للتسجيل
             rid = random.randint(1000, 9999)
             user_email = f"user_{rid}_{int(time.time())}@mail7.io"
             page.fill("#firstname", f"Sami{rid}")
@@ -34,39 +32,35 @@ def run_scraper():
             page.fill("#postcode", "21544")
             page.fill("#phonenumber", f"505{rid}777")
             
-            # الموافقة على الشروط وإتمام الطلب
             page.evaluate("document.querySelector('#accepttos').click()")
             page.click("#btnCompleteOrder")
             page.wait_for_load_state("networkidle")
-            print("✅ تم إرسال الطلب بنجاح!")
 
-            # 3. الجزء الأهم: سحب الرابط من منطقة الخدمات
-            print("3. الدخول لمنطقة الخدمات لسحب رابط الـ IPTV...")
-            time.sleep(5) # انتظار معالجة الطلب برمجياً
+            time.sleep(10) # وقت إضافي لتجهيز الخدمة
             page.goto(f"{BASE_URL}/clientarea.php?action=services")
             
-            # الضغط على أول خدمة نشطة (التجربة المجانية)
+            # البحث عن الرابط داخل صفحة الخدمات
             if page.is_visible(".btn-info"):
                 page.click(".btn-info")
                 page.wait_for_load_state("networkidle")
                 
-                # البحث عن رابط M3U أو بيانات الـ Xtream
-                # الكود سيبحث عن أي نص يبدأ بـ http وفيه كلمة m3u أو يوزر
-                content = page.content()
-                if "http" in content:
-                    # سأقوم بحفظ الرابط في Firebase
-                    # ملاحظة: يمكنك الدخول لـ Firebase Console لنسخ الرابط يدوياً أيضاً
-                    requests.patch(FIREBASE_URL, json={
-                        "url": "تم تجديد الرابط، راجع لوحة تحكم الموقع أو Firebase",
-                        "last_check": time.ctime(),
-                        "email_used": user_email
-                    })
-                    print("🚀 الرابط الجديد جاهز في Firebase!")
-            else:
-                print("⚠️ لم يتم العثور على الخدمة بعد، قد تحتاج مراجعة يدوية.")
+                # البحث عن أي نص يحتوي على http و m3u
+                all_links = page.locator("a").all_text_contents()
+                for l in all_links:
+                    if "http" in l and ("m3u" in l or "get.php" in l):
+                        found_link = l
+                        break
+            
+            # تحديث Firebase
+            requests.patch(FIREBASE_URL, json={"url": found_link, "email": user_email})
+            
+            # أهم خطوة: حفظ الرابط في ملف نصي ليقرأه GitHub ويرسله لك
+            with open("iptv_link.txt", "w") as f:
+                f.write(found_link)
 
         except Exception as e:
-            print(f"❌ حدث خطأ: {e}")
+            with open("iptv_link.txt", "w") as f:
+                f.write(f"حدث خطأ أثناء البحث: {str(e)}")
         
         browser.close()
 
