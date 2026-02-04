@@ -1,7 +1,7 @@
 name: Movie Updater Bot
 
 on:
-  workflow_dispatch: # هذا السطر هو الذي يظهر لك زر "Run" يدوياً
+  workflow_dispatch: 
 
 jobs:
   update:
@@ -10,17 +10,20 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Run Movie Bot Script
+      - name: Update Movie Link
         run: |
-          echo "جاري البحث عن أفلام جديدة..."
-          # هنا يمكنك إضافة سكريبت Python يجلب الروابط
-          # كمثال سنقوم فقط بتحديث تاريخ آخر تحديث في الصفحة
-          sed -i "s/سينما GitHub الخاصة/آخر تحديث: $(date)/g" index.html
+          # التأكد من وجود ملف HTML، وإذا لم يوجد سيقوم البوت بإنشائه فوراً
+          if [ ! -f index.html ]; then
+            echo "<h1>قائمة الأفلام</h1><video id='player' src='https://vjs.zencdn.net/v/oceans.mp4'></video>" > index.html
+          fi
+          
+          # تحديث رابط الفيلم (كمثال)
+          sed -i 's|https://vjs.zencdn.net/v/oceans.mp4|https://www.w3schools.com/html/mov_bbb.mp4|g' index.html
 
       - name: Commit and Push
         run: |
-          git config --global user.name "MovieBot"
-          git config --global user.email "bot@github.com"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add index.html
-          git commit -m "تحديث قائمة الأفلام بواسطة البوت"
+          git commit -m "تم تحديث الفيلم بنجاح 🎬" || echo "لا توجد تغييرات لإضافتها"
           git push
