@@ -2,82 +2,73 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AXNT Sync</title>
+    <title>AXNT SYNC - المتزامن</title>
     <script src="https://www.gstatic.com/firebasejs/9.1.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.0/firebase-database-compat.js"></script>
-    
     <style>
-        /* هذا هو نفس تصميم صفحتك الأصلية */
-        body { margin: 0; background-color: #000; color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
-        .video-container { position: relative; width: 100%; max-width: 900px; }
-        video { width: 100%; border-radius: 8px; box-shadow: 0 0 20px rgba(255, 255, 255, 0.1); }
-        .controls { margin-top: 20px; background: rgba(255,255,255,0.1); padding: 10px 20px; border-radius: 50px; }
-        #status { font-size: 12px; color: #555; margin-top: 10px; }
+        body { background: #000; color: white; text-align: center; font-family: sans-serif; }
+        .container { margin-top: 50px; }
+        video { width: 80%; border: 2px solid #333; border-radius: 15px; background: #111; }
+        .controls { margin-top: 20px; }
+        input { padding: 10px; width: 50%; border-radius: 5px; }
     </style>
 </head>
 <body>
 
-    <div class="video-container">
-        <video id="mainPlayer" controls>
-            <source src="https://store1.gofile.io/download/direct/67389104-e53b-4869-8084-5a6396825c89/wuVuDk.mp4" type="video/mp4">
-        </video>
+<div class="container">
+    <h2>مجلس AXNT للتزامن ⚡</h2>
+    
+    <video id="vPlayer" controls src="https://www.w3schools.com/html/mov_bbb.mp4"></video>
+
+    <div class="controls">
+        <p>إذا تبي تغير الفيديو، حط الرابط المباشر هنا:</p>
+        <input type="text" id="newUrl" placeholder="ضع رابط .mp4 هنا">
+        <button onclick="updateVideo()">تغيير عند الكل</button>
     </div>
+</div>
 
-    <div id="status">جاري المزامنة مع المجلس...</div>
+<script>
+    // بياناتك الصحيحة
+    const firebaseConfig = {
+        apiKey: "AIzaSyCDQm_qocYr7-QuAMIafyC6PuAzSbs8Q8k",
+        authDomain: "axnt-68677.firebaseapp.com",
+        databaseURL: "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "axnt-68677",
+        storageBucket: "axnt-68677.firebasestorage.app",
+        messagingSenderId: "838335964467",
+        appId: "1:838335964467:web:5152329be098c9339a0a46"
+    };
 
-    <script>
-        // بيانات Firebase الخاصة بك
-        const firebaseConfig = {
-            apiKey: "AIzaSyCDQm_qocYr7-QuAMIafyC6PuAzSbs8Q8k",
-            authDomain: "axnt-68677.firebaseapp.com",
-            databaseURL: "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "axnt-68677",
-            storageBucket: "axnt-68677.firebasestorage.app",
-            messagingSenderId: "838335964467",
-            appId: "1:838335964467:web:5152329be098c9339a0a46"
-        };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database().ref("sync_room");
+    const v = document.getElementById("vPlayer");
+    let lock = false;
 
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database().ref("axnt_sync");
-        const player = document.getElementById("mainPlayer");
-        let remoteChange = false;
+    // استقبال الأوامر
+    db.on("value", (s) => {
+        const data = s.val();
+        if (!data) return;
+        lock = true;
+        
+        if (v.src !== data.url && data.url) v.src = data.url;
+        if (Math.abs(v.currentTime - data.t) > 1.5) v.currentTime = data.t;
+        data.p ? v.play() : v.pause();
+        
+        setTimeout(() => lock = false, 300);
+    });
 
-        // استقبال الحركة من الطرف الآخر
-        db.on("value", (snapshot) => {
-            const data = snapshot.val();
-            if (!data) return;
+    // إرسال الأوامر
+    const send = () => {
+        if (lock) return;
+        db.set({ t: v.currentTime, p: !v.paused, url: v.src });
+    };
 
-            remoteChange = true;
-            if (Math.abs(player.currentTime - data.time) > 2) {
-                player.currentTime = data.time;
-            }
-            if (data.playing && player.paused) player.play();
-            else if (!data.playing && !player.paused) player.pause();
-            
-            setTimeout(() => { remoteChange = false; }, 500);
-        });
+    v.onplay = send; v.onpause = send; v.onseeked = send;
 
-        // إرسال حركتك للطرف الآخر
-        const sync = () => {
-            if (remoteChange) return;
-            db.set({
-                playing: !player.paused,
-                time: player.currentTime,
-                timestamp: Date.now()
-            });
-        };
-
-        player.onplay = sync;
-        player.onpause = sync;
-        player.onseeked = sync;
-
-        // تحديث بسيط كل 5 ثواني لضمان الدقة
-        setInterval(() => {
-            if (!player.paused && !remoteChange) {
-                db.update({ time: player.currentTime });
-            }
-        }, 5000);
-    </script>
+    function updateVideo() {
+        const url = document.getElementById("newUrl").value;
+        if(url) db.update({ url: url, t: 0, p: false });
+    }
+</script>
 </body>
 </html>
