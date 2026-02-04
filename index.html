@@ -1,31 +1,30 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مشغل التزامن الذكي</title>
+    <title>مجلس التزامن</title>
     <script src="https://www.gstatic.com/firebasejs/9.1.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.0/firebase-database-compat.js"></script>
-
     <style>
         body { background: #1a1a1a; color: white; text-align: center; font-family: sans-serif; padding: 20px; }
-        video { width: 100%; max-width: 800px; border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
-        .status { margin-top: 10px; font-size: 0.9em; color: #888; }
+        video { width: 90%; max-width: 800px; border: 2px solid #444; border-radius: 10px; margin-top: 20px; }
+        input { padding: 10px; width: 60%; border-radius: 5px; border: none; }
+        button { padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <h2>متزامن الآن ⚡</h2>
+    <h2>نظام التزامن (Firebase) ⚡</h2>
     
-    <video id="remoteVideo" controls>
-        <source src="https://gofile.io/d/wuVuDk" type="video/mp4">
-        متصفحك لا يدعم الفيديو.
-    </video>
+    <div id="setup">
+        <input type="text" id="videoUrl" placeholder="حط رابط الفيديو المباشر هنا...">
+        <button onclick="changeVideo()">شغل عند الجميع</button>
+    </div>
 
-    <div class="status" id="status">جاري الاتصال بالسيرفر...</div>
+    <video id="myVideo" controls></video>
 
     <script>
-        // 1. إعدادات Firebase التي أرسلتها
+        // بياناتك اللي تعبت عليها (هذي هي قلب النظام)
         const firebaseConfig = {
             apiKey: "AIzaSyCDQm_qocYr7-QuAMIafyC6PuAzSbs8Q8k",
             authDomain: "axnt-68677.firebaseapp.com",
@@ -36,54 +35,48 @@
             appId: "1:838335964467:web:5152329be098c9339a0a46"
         };
 
-        // 2. تشغيل Firebase
         firebase.initializeApp(firebaseConfig);
-        const db = firebase.database().ref("sync_room_1");
-        const video = document.getElementById("remoteVideo");
-        const status = document.getElementById("status");
-        let isReceiving = false; // لمنع الحلقة اللانهائية عند التحديث
+        const db = firebase.database().ref("sync_data");
+        const video = document.getElementById("myVideo");
+        let isSyncing = false;
 
-        // 3. استقبال الأوامر من Firebase (من الطرف الآخر)
+        // وظيفة تغيير الفيديو عند الكل
+        function changeVideo() {
+            const url = document.getElementById("videoUrl").value;
+            db.set({ url: url, time: 0, playing: false });
+        }
+
+        // استقبال التحديثات من Firebase
         db.on("value", (snapshot) => {
             const data = snapshot.val();
             if (!data) return;
 
-            isReceiving = true;
-            status.innerText = "متصل ومنضبط ✅";
-
-            // تزامن الوقت (إذا كان الفرق أكثر من ثانية)
-            if (Math.abs(video.currentTime - data.time) > 1) {
-                video.currentTime = data.time;
+            isSyncing = true;
+            
+            // إذا تغير الرابط، غير الفيديو
+            if (video.src !== data.url) {
+                video.src = data.url;
             }
 
-            // تزامن التشغيل والإيقاف
-            if (data.playing && video.paused) video.play();
-            else if (!data.playing && !video.paused) video.pause();
+            // تزامن الوقت والتشغيل
+            if (Math.abs(video.currentTime - data.time) > 1.5) video.currentTime = data.time;
+            if (data.playing) video.play(); else video.pause();
 
-            setTimeout(() => { isReceiving = false; }, 100);
+            setTimeout(() => { isSyncing = false; }, 200);
         });
 
-        // 4. إرسال الأوامر عند التفاعل مع الفيديو
+        // إرسال الحركة (لما تضغط بلاي أو توقف)
         const sendUpdate = () => {
-            if (isReceiving) return; // لا ترسل إذا كنت أنت المستلم
-            db.set({
+            if (isSyncing) return;
+            db.update({
                 playing: !video.paused,
-                time: video.currentTime,
-                lastUpdated: Date.now()
+                time: video.currentTime
             });
         };
 
         video.onplay = sendUpdate;
         video.onpause = sendUpdate;
-        video.onseeked = sendUpdate; // عند تقديم الفيديو أو تأخيره
-
-        // تحديث دوري خفيف لضمان دقة الوقت
-        setInterval(() => {
-            if (!video.paused && !isReceiving) {
-                db.update({ time: video.currentTime });
-            }
-        }, 3000);
-
+        video.onseeked = sendUpdate;
     </script>
 </body>
 </html>
