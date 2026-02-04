@@ -1,19 +1,24 @@
-name: Refresh Webtor Link
+name: Horror Movie Bot
+
 on:
-  schedule:
-    - cron: '*/30 * * * *' # يشتغل تلقائياً كل 30 دقيقة
-  workflow_dispatch:      # زر للتشغيل اليدوي
+  workflow_dispatch: # للتشغيل اليدوي بضغطة زر
 
 jobs:
-  build:
+  run-bot:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - name: Use Node.js
-        uses: actions/setup-node@v3
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
         with:
-          node-version: '18'
+          python-version: '3.9'
+
       - name: Install Dependencies
-        run: npm install
+        run: pip install requests
+
       - name: Run Bot
-        run: node bot.js
+        env:
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+        run: python horror_bot.py
