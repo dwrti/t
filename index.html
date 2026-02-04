@@ -3,124 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>دورتي الذكية 📺</title>
+    <title>مشغلي الذكي 📺</title>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
-        html, body { 
-            margin: 0; padding: 0; width: 100%; height: 100%; 
-            background-color: #000000; color: #eee;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            overflow-x: hidden;
-        }
-        body { display: flex; flex-direction: column; align-items: center; }
-        .card { 
-            position: sticky; top: 0; z-index: 1000; 
-            background: #000; width: 100%; max-width: 800px; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.8);
-        }
-        /* المشغل المزدوج */
-        video, iframe { 
-            width: 100%; aspect-ratio: 16/9; display: none; border: none; 
-        }
-        #contentWrapper { width: 100%; display: flex; flex-direction: column; align-items: center; }
-        #admin { display: none; width: 95%; max-width: 650px; margin-top: 15px; }
-        #viewerCount { background: #0a0a0a; color: #4caf50; padding: 8px; border-radius: 8px; text-align: center; margin-bottom: 10px; border: 1px solid #1a1a1a; }
-        input, select { width: 100%; padding: 12px; margin: 6px 0; border: 1px solid #222; border-radius: 8px; background: #0a0a0a; color: #fff; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; background-color: #111; color: #fff; border: 1px solid #222; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 5px; }
-        .btn-sync.active { background-color: #1b5e20; }
-        .btn-sync.inactive { background-color: #b71c1c; }
-        #statusText { text-align: center; font-size: 13px; color: #4caf50; margin: 10px 0; display: none; }
-        #librarySection { width: 95%; max-width: 700px; margin: 20px auto 120px auto; }
-        .group-container { width: 100%; margin-bottom: 10px; border-bottom: 1px solid #111; }
-        .group-header { width: 100%; background: #111; padding: 15px; border-radius: 8px; color: #bbbbbb; text-align: center; cursor: pointer; }
-        .ep-list { display: none; flex-direction: column; align-items: center; }
-        .ep-list.show { display: flex; }
-        .ep-item { display: flex; align-items: center; background: #050505; margin-bottom: 4px; width: 100%; }
-        .ep-name-clickable { flex-grow: 1; padding: 12px; cursor: pointer; text-align: center; color: #bbbbbb; }
+        html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; color: #eee; font-family: sans-serif; overflow: hidden; }
+        .card { width: 100%; height: 100vh; display: flex; align-items: center; justify-content: center; background: #000; }
+        video, iframe { width: 100%; height: 100%; border: none; display: none; }
+        #adminLink { position: fixed; bottom: 10px; right: 10px; color: #333; text-decoration: none; font-size: 10px; }
     </style>
 </head>
 <body>
 
-    <div class="card">
-        <video id="myPlayer" controls autoplay playsinline></video>
-        <iframe id="myIframe" allowfullscreen allow="autoplay; encrypted-media"></iframe>
-    </div>
+<div class="card">
+    <video id="myPlayer" controls autoplay playsinline></video>
+    <iframe id="myIframe" allowfullscreen allow="autoplay; encrypted-media"></iframe>
+</div>
 
-    <div id="contentWrapper">
-        <div id="admin">
-            <div id="viewerCount">عدد المتصلين: ...</div>
-            <input type="text" id="urlInput" placeholder="الصق رابط فيديو أو موقع فيلم هنا..." onpaste="handlePaste(event)">
-            <button id="syncToggleBtn" class="btn-sync" onclick="toggleSync()">المزامنة</button>
-            <div id="statusText">تم التحديث ✅</div>
-        </div>
-        <div id="librarySection">
-            <div id="episodesContainer"></div>
-        </div>
-    </div>
+<a href="#ana" id="adminLink">.</a>
 
-    <script>
-        var videoElement = document.getElementById('myPlayer');
-        var iframeElement = document.getElementById('myIframe');
-        var hls = new Hls();
-        var dbUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream.json";
-        var lastUrl = ""; 
-        var isAdmin = window.location.hash === "#ana";
-        var isSyncEnabled = true;
+<script>
+    var video = document.getElementById('myPlayer');
+    var iframe = document.getElementById('myIframe');
+    var hls = new Hls();
+    var lastUrl = "";
+    var dbUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream.json";
 
-        function playMedia(url) {
-            if (!url || url === lastUrl) return;
-            lastUrl = url;
+    function playMedia(url) {
+        if (!url || url === lastUrl) return;
+        lastUrl = url;
 
-            // تحديد هل الرابط فيديو مباشر أم صفحة ويب
-            var isVideo = url.match(/\.(mp4|m3u8|ts)/i) || url.includes('m3u8');
+        // التحقق من نوع الرابط
+        var isDirectVideo = url.includes('.m3u8') || url.includes('.mp4') || url.includes('.ts');
 
-            if (isVideo) {
-                iframeElement.style.display = "none";
-                iframeElement.src = "";
-                videoElement.style.display = "block";
-                if (Hls.isSupported() && url.includes('m3u8')) {
-                    hls.destroy(); hls = new Hls();
-                    hls.loadSource(url); hls.attachMedia(videoElement);
-                } else { videoElement.src = url; }
-                videoElement.play().catch(e => {});
-            } else {
-                videoElement.pause();
-                videoElement.style.display = "none";
-                iframeElement.style.display = "block";
-                // تحويل روابط الأفلام لتعمل بشكل أفضل داخل iframe إذا لزم الأمر
-                iframeElement.src = url;
-            }
+        if (isDirectVideo) {
+            iframe.style.display = "none"; iframe.src = "";
+            video.style.display = "block";
+            if (Hls.isSupported() && url.includes('m3u8')) {
+                hls.destroy(); hls = new Hls();
+                hls.loadSource(url); hls.attachMedia(video);
+            } else { video.src = url; }
+            video.play().catch(e => console.log("Auto-play blocked"));
+        } else {
+            video.pause(); video.style.display = "none";
+            iframe.style.display = "block";
+            iframe.src = url;
         }
+    }
 
-        function loadStream() {
-            fetch(dbUrl).then(r => r.json()).then(data => {
-                if (!data) return;
-                isSyncEnabled = data.syncEnabled !== false;
-                if (isSyncEnabled || isAdmin) {
-                    playMedia(data.url);
-                }
-            });
-        }
+    function checkUpdate() {
+        fetch(dbUrl + "?t=" + new Date().getTime())
+        .then(r => r.json())
+        .then(data => { if(data && data.url) playMedia(data.url); });
+    }
 
-        function handlePaste(event) {
-            setTimeout(() => {
-                var val = document.getElementById('urlInput').value.trim();
-                if (val) {
-                    fetch(dbUrl, {
-                        method: 'PATCH',
-                        body: JSON.stringify({ url: val, status: "playing", time: 0 })
-                    }).then(() => {
-                        document.getElementById('urlInput').value = '';
-                        document.getElementById('statusText').style.display = "block";
-                        setTimeout(() => document.getElementById('statusText').style.display="none", 2000);
-                    });
-                }
-            }, 100);
-        }
-
-        if (isAdmin) document.getElementById('admin').style.display = "block";
-        setInterval(loadStream, 5000);
-        window.onload = loadStream;
-    </script>
+    setInterval(checkUpdate, 5000); // تحديث كل 5 ثوانٍ
+    checkUpdate();
+</script>
 </body>
 </html>
