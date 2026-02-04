@@ -1,27 +1,36 @@
 name: Update IPTV and Movies
 
+# تحديد وقت العمل التلقائي
 on:
   schedule:
-    - cron: '0 * * * *' # سيعمل البوت تلقائياً كل ساعة
-  workflow_dispatch: # يتيح لك تشغيل البوت يدوياً بضغطة زر
+    - cron: '0 * * * *' # يعمل تلقائياً كل ساعة
+  workflow_dispatch: # يتيح لك تشغيله يدوياً في أي وقت
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    
     steps:
+      # 1. جلب الكود من المستودع
       - name: Checkout code
         uses: actions/checkout@v3
 
+      # 2. إعداد لغة بايثون
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
 
+      # 3. تثبيت المكتبات اللازمة (Requests و Playwright)
       - name: Install dependencies
-        run: pip install requests playwright
+        run: |
+          pip install requests playwright
+          
+      # 4. تثبيت المتصفح الوهمي (ضروري جداً لموقع الأفلام)
+      - name: Install Playwright Browser
+        run: |
+          playwright install chromium
 
-      - name: Install Browser (for movies)
-        run: playwright install chromium
-
+      # 5. تشغيل البوت لتحديث الرابط في Firebase
       - name: Run Bot
         run: python bot.py
