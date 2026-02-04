@@ -2,62 +2,47 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>مشغلي الذكي 📺</title>
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مشغل الأفلام الخاص</title>
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
     <style>
-        html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; color: #eee; font-family: sans-serif; overflow: hidden; }
-        .card { width: 100%; height: 100vh; display: flex; align-items: center; justify-content: center; background: #000; }
-        video, iframe { width: 100%; height: 100%; border: none; display: none; }
-        #adminLink { position: fixed; bottom: 10px; right: 10px; color: #333; text-decoration: none; font-size: 10px; }
+        body { margin: 0; background: #000; color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .header { padding: 20px; text-align: center; background: linear-gradient(to bottom, #111, transparent); }
+        .player-container { max-width: 1000px; margin: 20px auto; box-shadow: 0 0 50px rgba(229, 9, 20, 0.2); }
+        .controls { text-align: center; padding: 20px; }
+        input { padding: 12px; width: 60%; border-radius: 25px; border: 1px solid #333; background: #222; color: white; outline: none; }
+        button { padding: 12px 25px; border-radius: 25px; border: none; background: #e50914; color: white; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        button:hover { background: #ff0a16; transform: scale(1.05); }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <video id="myPlayer" controls autoplay playsinline></video>
-    <iframe id="myIframe" allowfullscreen allow="autoplay; encrypted-media"></iframe>
-</div>
+    <div class="header">
+        <h1>سينما GitHub الخاصة 🎬</h1>
+    </div>
 
-<a href="#ana" id="adminLink">.</a>
+    <div class="player-container">
+        <video id="player" playsinline controls data-poster="https://bit.ly/3mS89Yp">
+            <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4" />
+        </video>
+    </div>
 
-<script>
-    var video = document.getElementById('myPlayer');
-    var iframe = document.getElementById('myIframe');
-    var hls = new Hls();
-    var lastUrl = "";
-    var dbUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream.json";
+    <div class="controls">
+        <input type="text" id="movieUrl" placeholder="أدخل رابط الفيلم المباشر هنا...">
+        <button onclick="changeVideo()">تشغيل الآن</button>
+    </div>
 
-    function playMedia(url) {
-        if (!url || url === lastUrl) return;
-        lastUrl = url;
-
-        // التحقق من نوع الرابط
-        var isDirectVideo = url.includes('.m3u8') || url.includes('.mp4') || url.includes('.ts');
-
-        if (isDirectVideo) {
-            iframe.style.display = "none"; iframe.src = "";
-            video.style.display = "block";
-            if (Hls.isSupported() && url.includes('m3u8')) {
-                hls.destroy(); hls = new Hls();
-                hls.loadSource(url); hls.attachMedia(video);
-            } else { video.src = url; }
-            video.play().catch(e => console.log("Auto-play blocked"));
-        } else {
-            video.pause(); video.style.display = "none";
-            iframe.style.display = "block";
-            iframe.src = url;
+    <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
+    <script>
+        const player = new Plyr('#player');
+        function changeVideo() {
+            const url = document.getElementById('movieUrl').value;
+            if (url) {
+                const video = document.querySelector('video');
+                video.src = url;
+                player.play();
+            }
         }
-    }
-
-    function checkUpdate() {
-        fetch(dbUrl + "?t=" + new Date().getTime())
-        .then(r => r.json())
-        .then(data => { if(data && data.url) playMedia(data.url); });
-    }
-
-    setInterval(checkUpdate, 5000); // تحديث كل 5 ثوانٍ
-    checkUpdate();
-</script>
+    </script>
 </body>
 </html>
