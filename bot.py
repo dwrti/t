@@ -1,40 +1,62 @@
-import requests
+import os
+import time
 import random
-import smtplib
-from email.mime.text import MIMEText
+import googleapiclient.discovery
 
-# --- الإعدادات التي جهزتها أنت ---
-SENDER_EMAIL = "bcfcwomen@gmail.com"
-# ضع الكود المكون من 16 حرفاً من صورتك هنا بدون مسافات
-SENDER_PASSWORD = "ejehezvcbrwryihx"
-RECEIVER_EMAIL = "ddt42202@gmail.com"
+# --- جلب الأسرار من خزنة GitHub ---
+# سيقوم البوت بسحب المفتاح الذي وضعته في Secrets تلقائياً
+API_KEY = os.environ.get('YOUTUBE_API_KEY') 
 
-def send_movie_email(movie_id):
-    imdb_link = f"https://www.imdb.com/title/{movie_id}"
-    # رابط مشاهدة مباشر كخدمة إضافية
-    watch_link = f"https://vidsrc.to/embed/movie/{movie_id}"
+# إعدادات القناة (الهدف: الجزيرة)
+TARGET_CHANNEL_ID = "UCfiwzLy-8yKzIbsmZTzxwWA"
+
+# قائمة التعليقات الخاصة بك
+COMMENTS = [
+    "تغطية مميزة كالعادة، شكراً لكم.",
+    "متابعكم أولاً بأول، استمروا.",
+    "تحية طيبة لكم على هذا النقل."
+]
+
+def get_latest_video(api_key, channel_id):
+    youtube = googleapiclient.discovery.build("youtube", "v3", developerKey=api_key)
+    request = youtube.search().list(
+        part="id",
+        channelId=channel_id,
+        order="date",
+        maxResults=1
+    )
+    response = request.execute()
+    if response['items']:
+        return response['items'][0]['id']['videoId']
+    return None
+
+def main():
+    if not API_KEY:
+        print("خطأ: لم يتم العثور على المفتاح في Secrets!")
+        return
+
+    print(f"بدأ الرادار بمراقبة قناة الجزيرة باستخدام المفتاح: {API_KEY[:5]}***")
     
-    subject = f"🎬 اقتراح فيلم: {movie_id}"
-    body = f"إليك فيلم عشوائي جديد من أرشيف العالم:\n\nرابط IMDb:\n{imdb_link}\n\nرابط المشاهدة:\n{watch_link}"
+    # تحديد آخر فيديو موجود حالياً
+    last_video_id = get_latest_video(API_KEY, TARGET_CHANNEL_ID)
     
-    msg = MIMEText(body)
-    msg['Subject'] = subject
-    msg['From'] = SENDER_EMAIL
-    msg['To'] = RECEIVER_EMAIL
-
-    try:
-        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
-            server.login(SENDER_EMAIL, SENDER_PASSWORD)
-            server.sendmail(SENDER_EMAIL, RECEIVER_EMAIL, msg.as_string())
-        print(f"✅ تم الإرسال بنجاح إلى {RECEIVER_EMAIL}")
-    except Exception as e:
-        print(f"❌ خطأ في الإرسال: {e}")
-
-def run_bot():
-    # توليد معرف فيلم عشوائي تماماً (أكثر من 10 ملايين خيار)
-    random_id = random.randint(100000, 9999999)
-    movie_id = f"tt{random_id:07d}"
-    send_movie_email(movie_id)
+    # هذه الحلقة ستبقى تعمل لفحص القناة
+    while True:
+        try:
+            current_video_id = get_latest_video(API_KEY, TARGET_CHANNEL_ID)
+            
+            if current_video_id and current_video_id != last_video_id:
+                print("!!! تم رصد فيديو جديد الآن !!!")
+                # ملاحظة: التعليق يحتاج لملف JSON سنقوم ببرمجته لاحقاً في الـ Workflow
+                print(f"الفيديو الجديد هو: {current_video_id}")
+                last_video_id = current_video_id
+            
+            # فحص كل دقيقة (للحفاظ على رصيد الـ API مجانياً)
+            time.sleep(60) 
+            
+        except Exception as e:
+            print(f"انتظار... (حدث خطأ بسيط: {e})")
+            time.sleep(120)
 
 if __name__ == "__main__":
-    run_bot()
+    main()
