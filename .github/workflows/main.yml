@@ -16,9 +16,13 @@ jobs:
           python-version: '3.9'
 
       - name: Install Dependencies
-        run: pip install requests
+        # هنا التعديل: أضفنا مكتبة الترجمة لكي يفهمها البوت
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests deep-translator
 
       - name: Run Bot
         env:
+          # تأكد أن هذا الاسم مطابق لما وضعته في الـ Secrets
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
         run: python horror_bot.py
