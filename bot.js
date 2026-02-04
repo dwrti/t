@@ -12,40 +12,47 @@ async function getNewLink() {
     const webtorUrl = "https://webtor.io/93743992fdffe15b7e075a2e81c5b05c5072c1bc?pwd=%2fارشيف%20قناة%20سبيستون%20من%20سنة%202000%20الى%202001&file=%2fارشيف%20قناة%20سبيستون%20من%20سنة%202000%20الى%202001%2faaalan-bokymon-algzaa-alsads-aal-kna-nyo-ty-fy.mp4";
 
     try {
-        console.log("⏳ جاري فتح الصفحة...");
+        console.log("⏳ فتح الصفحة...");
         await page.goto(webtorUrl, { waitUntil: 'networkidle2', timeout: 90000 });
 
-        // 1. الضغط على زر Download (اللي شفته في صورتك)
-        console.log("🖱️ جاري الضغط على زر Download...");
-        const downloadBtnSelector = 'button.btn-primary, .btn-download, button[data-action="download"]'; // محاولة تحديد الزر
+        console.log("🖱️ الضغط على Download...");
         await page.evaluate(() => {
-            const btns = Array.from(document.querySelectorAll('button, a'));
+            const btns = Array.from(document.querySelectorAll('button, a, span'));
             const downloadBtn = btns.find(b => b.innerText.toLowerCase().includes('download'));
             if (downloadBtn) downloadBtn.click();
         });
 
-        // 2. الانتظار حتى تظهر خيارات النسخ (مثل copy url في صورتك)
+        // ننتظر القائمة الوردية تظهر
         await new Promise(r => setTimeout(r, 15000));
 
-        // 3. سحب الرابط المباشر من زر "Copy URL" أو من طلبات الشبكة
-        console.log("🔗 جاري استخراج الرابط المباشر...");
+        console.log("🔗 استخراج الرابط من زر Copy URL الوردي...");
         const directLink = await page.evaluate(() => {
-            // محاولة جلب الرابط من أي مكان يحتوي على 'video' أو 'download'
-            const links = Array.from(document.querySelectorAll('a, button'));
-            const urlBtn = links.find(l => l.innerText.toLowerCase().includes('copy url') || l.href?.includes('download/direct'));
-            return urlBtn ? (urlBtn.href || urlBtn.getAttribute('data-url')) : null;
+            // نبحث عن الزر اللي مكتوب فيه 'copy url'
+            const allElements = Array.from(document.querySelectorAll('button, a, div, span'));
+            const copyBtn = allElements.find(el => el.innerText.toLowerCase().trim() === 'copy url');
+            
+            if (copyBtn) {
+                // في webtor الرابط غالباً يكون مخزن في سمة معينة أو نأخذه من كود الصفحة
+                // بنجرب نسحب أحدث رابط مباشر تم توليده في الشبكة
+                return window.location.origin + document.querySelector('a[href*="download/direct"]')?.getAttribute('href') 
+                       || copyBtn.getAttribute('data-url') 
+                       || document.querySelector('a[download]')?.href;
+            }
+            // محاولة أخيرة: إذا ما لقينا الزر، نسحب أي رابط 'direct' موجود
+            const directLinkEl = document.querySelector('a[href*="direct"]');
+            return directLinkEl ? directLinkEl.href : null;
         });
 
         if (directLink && directLink.startsWith('http')) {
             const dbUrl = "https://axnt-68677-default-rtdb.europe-west1.firebasedatabase.app/live_stream.json";
             await axios.patch(dbUrl, { url: directLink, status: "playing" });
-            console.log("✅ كفو! تم تحديث الرابط بنجاح: " + directLink);
+            console.log("✅ بطل! تم التحديث: " + directLink);
         } else {
-            console.log("❌ فشل استخراج الرابط بعد الضغط. باخذ لقطة شاشة ثانية...");
-            await page.screenshot({ path: 'after_click.png' });
+            console.log("❌ الزر الوردي طلع بس الرابط ما انمسك. باخذ صورة أخيرة.");
+            await page.screenshot({ path: 'pink_buttons.png' });
         }
     } catch (e) {
-        console.error("❌ حصل خطأ في العملية: ", e.message);
+        console.error("❌ خطأ: ", e.message);
     } finally {
         await browser.close();
     }
