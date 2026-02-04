@@ -1,30 +1,30 @@
-name: Movie Email Bot
+name: YouTube Sniper Bot
 
-# تشغيل البوت تلقائياً كل دقيقة
 on:
   schedule:
-    - cron: '* * * * *' #
-  workflow_dispatch: # للتشغيل اليدوي في أي وقت
+    # سيقوم بالعمل تلقائياً كل 5 دقائق لفحص القناة
+    - cron: '*/5 * * * *'
+  workflow_dispatch: # يتيح لك تشغيله يدوياً متى شئت
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    
-    steps:
-      # 1. جلب الأكواد (أطفالك) من المستودع
-      - name: Checkout code
-        uses: actions/checkout@v3
 
-      # 2. إعداد بيئة بايثون
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v2
         with:
           python-version: '3.9'
 
-      # 3. تثبيت المكتبة المطلوبة لإرسال البيانات
       - name: Install dependencies
-        run: pip install requests
+        run: |
+          pip install google-api-python-client google-auth-oauthlib
 
-      # 4. تشغيل البوت لإرسال الإيميل
       - name: Run Bot
+        env:
+          # هنا نربط الكود بالسر الذي وضعته في الخزنة
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
         run: python bot.py
